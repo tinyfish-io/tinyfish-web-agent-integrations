@@ -11,7 +11,7 @@
 1. On the Dify platform, access the [Plugin Marketplace](https://docs.dify.ai/plugins/quick-start/install-plugins#marketplace).
 2. Locate and install the TinyFish Web Agent tool.
 
-### 2. Create an TinyFish Web Agent API Key
+### 2. Create a TinyFish Web Agent API Key
 
 Visit [TinyFish Dashboard](https://agent.tinyfish.ai/api-keys) and generate your API key.
 
@@ -19,7 +19,7 @@ Visit [TinyFish Dashboard](https://agent.tinyfish.ai/api-keys) and generate your
 
 Go to **Plugins > TinyFish Web Agent > To Authorize** in Dify and input your API key.
 
-![](./_assets/authorization.png)
+![Authorization](./_assets/authorization.png)
 
 ## Workflow Usage
 
@@ -29,7 +29,7 @@ Integrate TinyFish Web Agent into your pipeline by following these steps:
 2. Configure input variables in the tool's UI.
 3. Run the pipeline to extract any information from a web page.
 
-![](./_assets/workflow.png)
+![Workflow](./_assets/workflow.png)
 
 ## Agent Usage
 
@@ -60,7 +60,7 @@ Dify provides a remote debugging method.
 
 On the platform, go to the "Plugin Management" page to get the debugging key and remote server address.
 
-![](./_assets/debug.webp)
+![Debug](./_assets/debug.webp)
 
 ### 2. Add server and key to your environment
 
@@ -78,7 +78,7 @@ REMOTE_INSTALL_KEY=********-****-****-****-************
 
 Run the `python -m main` command to launch the plugin. You can see on the plugin page that the plugin has been installed into Workspace.
 
-![](./_assets/debug_plugin.png)
+![Debug Plugin](./_assets/debug_plugin.png)
 
 ## Contributing
 

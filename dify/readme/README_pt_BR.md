@@ -1,3 +1,3 @@
 ## Readme do Plugin
 
-Por favor, preencha aqui o documento de descrição detalhada do plugin.
+Consulte [README.md](../README.md) para obter detalhes.

@@ -95,7 +95,7 @@ Study these examples to understand plugin implementation:
 <summary><b>3. Testing & Debugging</b></summary>
 
 1. Copy `.env.example` to `.env` and configure:
-   ```
+   ```bash
    INSTALL_METHOD=remote
    REMOTE_INSTALL_URL=debug.dify.ai:5003
    REMOTE_INSTALL_KEY=your-debug-key
@@ -112,12 +112,12 @@ Study these examples to understand plugin implementation:
 <details>
 <summary><b>4. Publishing</b></summary>
 
-#### Manual Packaging
+### Manual Packaging
 ```bash
 dify-plugin plugin package ./YOUR_PLUGIN_DIR
 ```
 
-#### Automated GitHub Workflow
+### Automated GitHub Workflow
 
 Configure GitHub Actions to automate PR creation:
 
