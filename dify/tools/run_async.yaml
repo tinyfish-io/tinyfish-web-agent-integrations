@@ -1,0 +1,162 @@
+identity:
+  name: "run_async"
+  author: "tinyfish"
+  label:
+    en_US: "Run Asynchronously"
+    zh_Hans: "异步运行"
+    pt_BR: "Executar Assincronamente"
+    ja_JP: "非同期実行"
+description:
+  human:
+    en_US: "Start browser automation asynchronously. Returns run_id immediately without waiting for completion."
+    zh_Hans: "异步启动浏览器自动化。立即返回run_id而无需等待完成。"
+    pt_BR: "Inicie a automação do navegador de forma assíncrona. Retorna run_id imediatamente sem aguardar a conclusão."
+    ja_JP: "ブラウザ自動化を非同期で開始します。完了を待たずにrun_idをすぐに返します。"
+  llm: "Creates and enqueues an automation run, returning the run_id immediately without waiting for completion. Use this for long-running automations where you want to poll for results separately using get_run."
+parameters:
+  - name: url
+    type: string
+    required: true
+    label:
+      en_US: Target URL
+      zh_Hans: 目标网址
+      pt_BR: URL de destino
+      ja_JP: ターゲットURL
+    human_description:
+      en_US: "The website URL to navigate to and interact with"
+      zh_Hans: "要导航和交互的网站URL"
+      pt_BR: "O URL do site para navegar e interagir"
+      ja_JP: "ナビゲートして操作するウェブサイトのURL"
+    llm_description: "The target website URL where the automation task should be performed."
+    placeholder:
+      en_US: "https://example.com"
+      zh_Hans: "https://example.com"
+      pt_BR: "https://example.com"
+      ja_JP: "https://example.com"
+    form: llm
+  - name: goal
+    type: string
+    required: true
+    label:
+      en_US: Goal
+      zh_Hans: 目标
+      pt_BR: Objetivo
+      ja_JP: 目標
+    human_description:
+      en_US: "Natural language description of what to accomplish"
+      zh_Hans: "用自然语言描述要完成的任务"
+      pt_BR: "Descrição em linguagem natural do que realizar"
+      ja_JP: "達成すべきことの自然言語による説明"
+    llm_description: "A clear, natural language instruction describing what the agent should accomplish."
+    placeholder:
+      en_US: "Extract product information from the page"
+      zh_Hans: "从页面中提取产品信息"
+      pt_BR: "Extrair informações do produto da página"
+      ja_JP: "ページから製品情報を抽出する"
+    form: llm
+  - name: browser_profile
+    type: select
+    required: false
+    default: "lite"
+    label:
+      en_US: Browser Profile
+      zh_Hans: 浏览器配置
+      pt_BR: Perfil do navegador
+      ja_JP: ブラウザプロファイル
+    human_description:
+      en_US: "Browser profile for execution"
+      zh_Hans: "执行的浏览器配置"
+      pt_BR: "Perfil do navegador para execução"
+      ja_JP: "実行用のブラウザプロファイル"
+    llm_description: "Choose 'lite' for standard browser or 'stealth' for anti-detection browser."
+    options:
+      - value: "lite"
+        label:
+          en_US: "Lite"
+          zh_Hans: "Lite"
+          pt_BR: "Lite"
+          ja_JP: "Lite"
+      - value: "stealth"
+        label:
+          en_US: "Stealth"
+          zh_Hans: "Stealth"
+          pt_BR: "Stealth"
+          ja_JP: "Stealth"
+    form: form
+  - name: proxy_enabled
+    type: boolean
+    required: false
+    default: false
+    label:
+      en_US: Enable Proxy
+      zh_Hans: 启用代理
+      pt_BR: Ativar Proxy
+      ja_JP: プロキシを有効にする
+    human_description:
+      en_US: "Enable proxy routing"
+      zh_Hans: "启用代理路由"
+      pt_BR: "Ativar roteamento de proxy"
+      ja_JP: "プロキシルーティングを有効にする"
+    llm_description: "Set to true to route requests through a proxy."
+    form: form
+  - name: proxy_country_code
+    type: select
+    required: false
+    label:
+      en_US: Proxy Country
+      zh_Hans: 代理国家
+      pt_BR: País do Proxy
+      ja_JP: プロキシ国
+    human_description:
+      en_US: "Country for proxy location. Only used when proxy is enabled."
+      zh_Hans: "代理位置的国家。仅在启用代理时使用。"
+      pt_BR: "País para localização do proxy. Usado apenas quando o proxy está ativado."
+      ja_JP: "プロキシの場所の国。プロキシが有効な場合のみ使用されます。"
+    llm_description: "ISO country code for proxy location. Only used when proxy is enabled. Valid values: US, GB, CA, DE, FR, JP, AU."
+    options:
+      - value: "US"
+        label:
+          en_US: "US - United States"
+          zh_Hans: "US - 美国"
+          pt_BR: "US - Estados Unidos"
+          ja_JP: "US - アメリカ"
+      - value: "GB"
+        label:
+          en_US: "GB - United Kingdom"
+          zh_Hans: "GB - 英国"
+          pt_BR: "GB - Reino Unido"
+          ja_JP: "GB - イギリス"
+      - value: "CA"
+        label:
+          en_US: "CA - Canada"
+          zh_Hans: "CA - 加拿大"
+          pt_BR: "CA - Canadá"
+          ja_JP: "CA - カナダ"
+      - value: "DE"
+        label:
+          en_US: "DE - Germany"
+          zh_Hans: "DE - 德国"
+          pt_BR: "DE - Alemanha"
+          ja_JP: "DE - ドイツ"
+      - value: "FR"
+        label:
+          en_US: "FR - France"
+          zh_Hans: "FR - 法国"
+          pt_BR: "FR - França"
+          ja_JP: "FR - フランス"
+      - value: "JP"
+        label:
+          en_US: "JP - Japan"
+          zh_Hans: "JP - 日本"
+          pt_BR: "JP - Japão"
+          ja_JP: "JP - 日本"
+      - value: "AU"
+        label:
+          en_US: "AU - Australia"
+          zh_Hans: "AU - 澳大利亚"
+          pt_BR: "AU - Austrália"
+          ja_JP: "AU - オーストラリア"
+    form: form
+extra:
+  python:
+    source: tools/run_async.py

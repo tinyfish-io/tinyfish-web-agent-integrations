@@ -1,0 +1,103 @@
+identity:
+  name: "list_runs"
+  author: "tinyfish"
+  label:
+    en_US: "List Runs"
+    zh_Hans: "列出运行"
+    pt_BR: "Listar Execuções"
+    ja_JP: "実行をリスト"
+description:
+  human:
+    en_US: "List automation runs with optional filtering by status. Returns paginated results ordered by creation date."
+    zh_Hans: "列出自动化运行，可选择按状态过滤。返回按创建日期排序的分页结果。"
+    pt_BR: "Liste execuções de automação com filtragem opcional por status. Retorna resultados paginados ordenados por data de criação."
+    ja_JP: "ステータスによるオプションのフィルタリングを使用して自動化実行をリストします。作成日順に並べられたページ分割された結果を返します。"
+  llm: "List automation runs with optional filtering by status (PENDING, RUNNING, COMPLETED, FAILED, CANCELLED). Returns paginated results ordered by creation date (newest first). Use cursor for pagination."
+parameters:
+  - name: status
+    type: select
+    required: false
+    label:
+      en_US: Status Filter
+      zh_Hans: 状态过滤
+      pt_BR: Filtro de Status
+      ja_JP: ステータスフィルター
+    human_description:
+      en_US: "Filter runs by status"
+      zh_Hans: "按状态过滤运行"
+      pt_BR: "Filtrar execuções por status"
+      ja_JP: "ステータスで実行をフィルター"
+    llm_description: "Optional status filter. Leave empty to get all runs."
+    options:
+      - value: "PENDING"
+        label:
+          en_US: "Pending"
+          zh_Hans: "待处理"
+          pt_BR: "Pendente"
+          ja_JP: "保留中"
+      - value: "RUNNING"
+        label:
+          en_US: "Running"
+          zh_Hans: "运行中"
+          pt_BR: "Em Execução"
+          ja_JP: "実行中"
+      - value: "COMPLETED"
+        label:
+          en_US: "Completed"
+          zh_Hans: "已完成"
+          pt_BR: "Concluído"
+          ja_JP: "完了"
+      - value: "FAILED"
+        label:
+          en_US: "Failed"
+          zh_Hans: "失败"
+          pt_BR: "Falhou"
+          ja_JP: "失敗"
+      - value: "CANCELLED"
+        label:
+          en_US: "Cancelled"
+          zh_Hans: "已取消"
+          pt_BR: "Cancelado"
+          ja_JP: "キャンセル済み"
+    form: form
+  - name: limit
+    type: number
+    required: false
+    default: 20
+    min: 1
+    max: 100
+    label:
+      en_US: Limit
+      zh_Hans: 限制
+      pt_BR: Limite
+      ja_JP: 制限
+    human_description:
+      en_US: "Maximum number of results to return (1-100)"
+      zh_Hans: "要返回的最大结果数（1-100）"
+      pt_BR: "Número máximo de resultados a retornar (1-100)"
+      ja_JP: "返す結果の最大数（1-100）"
+    llm_description: "Maximum number of results to return. Must be between 1 and 100. Default is 20."
+    form: form
+  - name: cursor
+    type: string
+    required: false
+    label:
+      en_US: Cursor
+      zh_Hans: 游标
+      pt_BR: Cursor
+      ja_JP: カーソル
+    human_description:
+      en_US: "Pagination cursor from previous response"
+      zh_Hans: "来自上一个响应的分页游标"
+      pt_BR: "Cursor de paginação da resposta anterior"
+      ja_JP: "前のレスポンスからのページネーションカーソル"
+    llm_description: "Cursor for pagination. Use the next_cursor value from a previous response to get the next page of results."
+    placeholder:
+      en_US: "eyJpZCI6ImFiYyIsImNyZWF0ZWRBdCI6IjIwMjYtMDEtMDFUMTI6MDA6MDBaIn0="
+      zh_Hans: "eyJpZCI6ImFiYyIsImNyZWF0ZWRBdCI6IjIwMjYtMDEtMDFUMTI6MDA6MDBaIn0="
+      pt_BR: "eyJpZCI6ImFiYyIsImNyZWF0ZWRBdCI6IjIwMjYtMDEtMDFUMTI6MDA6MDBaIn0="
+      ja_JP: "eyJpZCI6ImFiYyIsImNyZWF0ZWRBdCI6IjIwMjYtMDEtMDFUMTI6MDA6MDBaIn0="
+    form: form
+extra:
+  python:
+    source: tools/list_runs.py

@@ -1,0 +1,39 @@
+identity:
+  name: "get_run"
+  author: "tinyfish"
+  label:
+    en_US: "Get Run"
+    zh_Hans: "获取运行"
+    pt_BR: "Obter Execução"
+    ja_JP: "実行を取得"
+description:
+  human:
+    en_US: "Get detailed information about a specific automation run by its ID."
+    zh_Hans: "通过ID获取特定自动化运行的详细信息。"
+    pt_BR: "Obtenha informações detalhadas sobre uma execução de automação específica por seu ID."
+    ja_JP: "IDによって特定の自動化実行の詳細情報を取得します。"
+  llm: "Retrieve detailed information about a specific automation run including status, results, errors, and configuration. Use this to check the status of async runs or get details about completed runs."
+parameters:
+  - name: run_id
+    type: string
+    required: true
+    label:
+      en_US: Run ID
+      zh_Hans: 运行ID
+      pt_BR: ID de Execução
+      ja_JP: 実行ID
+    human_description:
+      en_US: "The unique identifier of the automation run"
+      zh_Hans: "自动化运行的唯一标识符"
+      pt_BR: "O identificador único da execução de automação"
+      ja_JP: "自動化実行の一意の識別子"
+    llm_description: "The unique run_id returned from run_async or run_sync. Format: UUID string like 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'"
+    placeholder:
+      en_US: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      zh_Hans: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      pt_BR: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      ja_JP: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    form: llm
+extra:
+  python:
+    source: tools/get_run.py

@@ -1,0 +1,45 @@
+identity:
+  author: "tinyfish"
+  name: "tinyfish-web-agent"
+  label:
+    en_US: "TinyFish Web Agent"
+    zh_Hans: "TinyFish Web Agent"
+    pt_BR: "TinyFish Web Agent"
+    ja_JP: "TinyFish Web Agent"
+  description:
+    en_US: "AI-powered web automation that turns natural language into browser actions"
+    zh_Hans: "AI驱动的网络自动化将自然语言转换为浏览器操作"
+    pt_BR: "Automação web alimentada por IA que transforma linguagem natural em ações do navegador"
+    ja_JP: "自然言語をブラウザアクションに変換するAI搭載のウェブ自動化"
+  icon: "icon.svg"
+
+credentials_for_provider:
+  api_key:
+    type: secret-input
+    required: true
+    label:
+      en_US: API Key
+      zh_Hans: API 密钥
+      pt_BR: Chave de API
+      ja_JP: APIキー
+    placeholder:
+      en_US: Please input your TinyFish Web Agent API key
+      zh_Hans: 请输入你的 TinyFish Web Agent API 密钥
+      pt_BR: Insira sua chave de API do TinyFish Web Agent
+      ja_JP: TinyFish Web Agent APIキーを入力してください
+    help:
+      en_US: Get your API key from https://agent.tinyfish.ai/api-keys
+      zh_Hans: 从 https://agent.tinyfish.ai/api-keys 获取你的 API 密钥
+      pt_BR: Obtenha sua chave de API em https://agent.tinyfish.ai/api-keys
+      ja_JP: https://agent.tinyfish.ai/api-keys からAPIキーを取得してください
+    url: https://agent.tinyfish.ai/api-keys
+
+tools:
+  - tools/run_sse.yaml
+  - tools/run_sync.yaml
+  - tools/run_async.yaml
+  - tools/get_run.yaml
+  - tools/list_runs.yaml
+extra:
+  python:
+    source: provider/tinyfish_web_agent.py
