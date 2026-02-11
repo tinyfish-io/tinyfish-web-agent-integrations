@@ -1,0 +1,162 @@
+identity:
+  name: "run_sync"
+  author: "tinyfish"
+  label:
+    en_US: "Run Synchronously"
+    zh_Hans: "同步运行"
+    pt_BR: "Executar Sincronamente"
+    ja_JP: "同期実行"
+description:
+  human:
+    en_US: "Execute browser automation synchronously and wait for completion. Returns the final result in a single response."
+    zh_Hans: "同步执行浏览器自动化并等待完成。在单个响应中返回最终结果。"
+    pt_BR: "Execute automação do navegador de forma síncrona e aguarde a conclusão. Retorna o resultado final em uma única resposta."
+    ja_JP: "ブラウザ自動化を同期的に実行し、完了を待ちます。単一のレスポンスで最終結果を返します。"
+  llm: "Execute a browser automation task synchronously and wait for completion. Returns the complete result once the automation finishes (success or failure). Use this when you need the complete result in a single response without streaming."
+parameters:
+  - name: url
+    type: string
+    required: true
+    label:
+      en_US: Target URL
+      zh_Hans: 目标网址
+      pt_BR: URL de destino
+      ja_JP: ターゲットURL
+    human_description:
+      en_US: "The website URL to navigate to and interact with"
+      zh_Hans: "要导航和交互的网站URL"
+      pt_BR: "O URL do site para navegar e interagir"
+      ja_JP: "ナビゲートして操作するウェブサイトのURL"
+    llm_description: "The target website URL where the automation task should be performed. Must be a valid HTTP or HTTPS URL."
+    placeholder:
+      en_US: "https://example.com"
+      zh_Hans: "https://example.com"
+      pt_BR: "https://example.com"
+      ja_JP: "https://example.com"
+    form: llm
+  - name: goal
+    type: string
+    required: true
+    label:
+      en_US: Goal
+      zh_Hans: 目标
+      pt_BR: Objetivo
+      ja_JP: 目標
+    human_description:
+      en_US: "Natural language description of what to accomplish on the website"
+      zh_Hans: "用自然语言描述在网站上要完成的任务"
+      pt_BR: "Descrição em linguagem natural do que realizar no site"
+      ja_JP: "ウェブサイトで達成すべきことの自然言語による説明"
+    llm_description: "A clear, natural language instruction describing what the agent should accomplish on the website."
+    placeholder:
+      en_US: "Extract product information from the page"
+      zh_Hans: "从页面中提取产品信息"
+      pt_BR: "Extrair informações do produto da página"
+      ja_JP: "ページから製品情報を抽出する"
+    form: llm
+  - name: browser_profile
+    type: select
+    required: false
+    default: "lite"
+    label:
+      en_US: Browser Profile
+      zh_Hans: 浏览器配置
+      pt_BR: Perfil do navegador
+      ja_JP: ブラウザプロファイル
+    human_description:
+      en_US: "Browser profile for execution. LITE uses standard browser, STEALTH uses anti-detection browser."
+      zh_Hans: "执行的浏览器配置。LITE使用标准浏览器，STEALTH使用反检测浏览器。"
+      pt_BR: "Perfil do navegador para execução. LITE usa navegador padrão, STEALTH usa navegador anti-detecção."
+      ja_JP: "実行用のブラウザプロファイル。LITEは標準ブラウザを使用し、STEALTHは検出防止ブラウザを使用します。"
+    llm_description: "Choose 'lite' for standard browser automation or 'stealth' for anti-detection browser."
+    options:
+      - value: "lite"
+        label:
+          en_US: "Lite (Standard Browser)"
+          zh_Hans: "Lite（标准浏览器）"
+          pt_BR: "Lite (Navegador Padrão)"
+          ja_JP: "Lite（標準ブラウザ）"
+      - value: "stealth"
+        label:
+          en_US: "Stealth (Anti-Detection)"
+          zh_Hans: "Stealth（反检测）"
+          pt_BR: "Stealth (Anti-Detecção)"
+          ja_JP: "Stealth（検出防止）"
+    form: form
+  - name: proxy_enabled
+    type: boolean
+    required: false
+    default: false
+    label:
+      en_US: Enable Proxy
+      zh_Hans: 启用代理
+      pt_BR: Ativar Proxy
+      ja_JP: プロキシを有効にする
+    human_description:
+      en_US: "Enable proxy routing for the browser automation"
+      zh_Hans: "为浏览器自动化启用代理路由"
+      pt_BR: "Ativar roteamento de proxy para automação do navegador"
+      ja_JP: "ブラウザ自動化のプロキシルーティングを有効にする"
+    llm_description: "Set to true to route requests through a proxy server."
+    form: form
+  - name: proxy_country_code
+    type: select
+    required: false
+    label:
+      en_US: Proxy Country
+      zh_Hans: 代理国家
+      pt_BR: País do Proxy
+      ja_JP: プロキシ国
+    human_description:
+      en_US: "Country for proxy location. Only used when proxy is enabled."
+      zh_Hans: "代理位置的国家。仅在启用代理时使用。"
+      pt_BR: "País para localização do proxy. Usado apenas quando o proxy está ativado."
+      ja_JP: "プロキシの場所の国。プロキシが有効な場合のみ使用されます。"
+    llm_description: "ISO country code for proxy location. Only used when proxy is enabled. Valid values: US, GB, CA, DE, FR, JP, AU."
+    options:
+      - value: "US"
+        label:
+          en_US: "US - United States"
+          zh_Hans: "US - 美国"
+          pt_BR: "US - Estados Unidos"
+          ja_JP: "US - アメリカ"
+      - value: "GB"
+        label:
+          en_US: "GB - United Kingdom"
+          zh_Hans: "GB - 英国"
+          pt_BR: "GB - Reino Unido"
+          ja_JP: "GB - イギリス"
+      - value: "CA"
+        label:
+          en_US: "CA - Canada"
+          zh_Hans: "CA - 加拿大"
+          pt_BR: "CA - Canadá"
+          ja_JP: "CA - カナダ"
+      - value: "DE"
+        label:
+          en_US: "DE - Germany"
+          zh_Hans: "DE - 德国"
+          pt_BR: "DE - Alemanha"
+          ja_JP: "DE - ドイツ"
+      - value: "FR"
+        label:
+          en_US: "FR - France"
+          zh_Hans: "FR - 法国"
+          pt_BR: "FR - França"
+          ja_JP: "FR - フランス"
+      - value: "JP"
+        label:
+          en_US: "JP - Japan"
+          zh_Hans: "JP - 日本"
+          pt_BR: "JP - Japão"
+          ja_JP: "JP - 日本"
+      - value: "AU"
+        label:
+          en_US: "AU - Australia"
+          zh_Hans: "AU - 澳大利亚"
+          pt_BR: "AU - Austrália"
+          ja_JP: "AU - オーストラリア"
+    form: form
+extra:
+  python:
+    source: tools/run_sync.py

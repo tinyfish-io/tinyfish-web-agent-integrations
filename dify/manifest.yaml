@@ -1,0 +1,44 @@
+version: 0.0.1
+type: plugin
+author: tinyfish
+name: tinyfish-web-agent
+label:
+  en_US: TinyFish Web Agent
+  ja_JP: TinyFish Web Agent
+  zh_Hans: TinyFish Web Agent
+  pt_BR: TinyFish Web Agent
+description:
+  en_US: AI-powered web automation that turns natural language into browser actions
+  ja_JP: 自然言語をブラウザアクションに変換するAI搭載のウェブ自動化
+  zh_Hans: AI驱动的网络自动化将自然语言转换为浏览器操作
+  pt_BR: Automação web alimentada por IA que transforma linguagem natural em ações do navegador
+icon: icon.svg
+icon_dark: icon.svg
+resource:
+  memory: 268435456
+  permission:
+    tool:
+      enabled: true
+    endpoint:
+      enabled: true
+    app:
+      enabled: true
+    storage:
+      enabled: true
+      size: 1048576
+plugins:
+  tools:
+    - provider/tinyfish_web_agent.yaml
+meta:
+  version: 0.0.1
+  arch:
+    - amd64
+    - arm64
+  runner:
+    language: python
+    version: "3.13"
+    entrypoint: main
+  minimum_dify_version: null
+created_at: 2026-02-08T22:40:58.248502-08:00
+privacy: PRIVACY.md
+verified: false
