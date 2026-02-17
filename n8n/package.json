@@ -1,0 +1,52 @@
+{
+	"name": "n8n-nodes-tinyfish",
+	"version": "0.1.0",
+	"description": "n8n community node for TinyFish Web Agent - AI-powered web automation using natural language",
+	"license": "MIT",
+	"homepage": "https://docs.mino.ai",
+	"keywords": [
+		"n8n-community-node-package",
+		"n8n",
+		"tinyfish",
+		"web-automation",
+		"browser-automation",
+		"web-scraping",
+		"ai"
+	],
+	"author": {
+		"name": "TinyFish",
+		"email": "support@tinyfish.io"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/tinyfish-io/tinyfish-web-agent-integrations.git",
+		"directory": "n8n"
+	},
+	"main": "dist/nodes/Tinyfish/Tinyfish.node.js",
+	"scripts": {
+		"build": "tsc && cp nodes/Tinyfish/tinyfish.svg dist/nodes/Tinyfish/tinyfish.svg && cp credentials/tinyfish.svg dist/credentials/tinyfish.svg",
+		"build:watch": "tsc --watch",
+		"lint": "tsc --noEmit",
+		"prepublishOnly": "npm run build"
+	},
+	"files": [
+		"dist"
+	],
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"credentials": [
+			"dist/credentials/TinyfishApi.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/Tinyfish/Tinyfish.node.js"
+		]
+	},
+	"devDependencies": {
+		"@types/node": "^22.0.0",
+		"n8n-workflow": "*",
+		"typescript": "~5.7.0"
+	},
+	"peerDependencies": {
+		"n8n-workflow": "*"
+	}
+}

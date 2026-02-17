@@ -1,0 +1,32 @@
+{
+	"node": "n8n-nodes-tinyfish.tinyfish",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["AI"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://docs.mino.ai"
+			}
+		],
+		"credentialDocumentation": [
+			{
+				"url": "https://docs.mino.ai/authentication"
+			}
+		]
+	},
+	"alias": [
+		"tinyfish",
+		"mino",
+		"web automation",
+		"browser automation",
+		"web scraping",
+		"scrape",
+		"extract",
+		"ai agent",
+		"browse website"
+	],
+	"subcategories": {
+		"AI": ["Agents & Tools"]
+	}
+}
