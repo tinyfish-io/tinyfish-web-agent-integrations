@@ -133,18 +133,6 @@ export const runFields: INodeProperties[] = [
 					{ name: 'United States', value: 'US' },
 				],
 			},
-			{
-				displayName: 'Timeout (Seconds)',
-				name: 'timeout',
-				type: 'number',
-				default: 300,
-				description:
-					'Maximum time to wait for automation to complete (30-600s). Most tasks complete within 60-120 seconds. Increase for complex multi-step workflows.',
-				typeOptions: {
-					minValue: 30,
-					maxValue: 600,
-				},
-			},
 		],
 	},
 ];

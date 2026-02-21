@@ -57,24 +57,17 @@ export class Tinyfish implements INodeType {
 
 				if (operation === 'runSse') {
 					const payload = buildAutomationPayload.call(this, i);
-					const options = this.getNodeParameter('options', i, {}) as IDataObject;
-					const timeoutSeconds = (options.timeout as number) || 300;
 					responseData = await consumeSseStream.call(
 						this,
 						payload,
-						timeoutSeconds * 1000,
 					);
 				} else if (operation === 'runSync') {
 					const payload = buildAutomationPayload.call(this, i);
-					const options = this.getNodeParameter('options', i, {}) as IDataObject;
-					const timeoutSeconds = (options.timeout as number) || 300;
 					responseData = await tinyfishApiRequest.call(
 						this,
 						'POST',
 						'/v1/automation/run',
 						payload,
-						{},
-						{ timeout: timeoutSeconds * 1000 },
 					);
 				} else if (operation === 'runAsync') {
 					const payload = buildAutomationPayload.call(this, i);
