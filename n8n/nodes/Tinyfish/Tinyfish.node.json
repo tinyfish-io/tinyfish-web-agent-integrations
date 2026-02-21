@@ -2,7 +2,7 @@
 	"node": "n8n-nodes-tinyfish.tinyfish",
 	"nodeVersion": "1.0",
 	"codexVersion": "1.0",
-	"categories": ["AI"],
+	"categories": ["Development"],
 	"resources": {
 		"primaryDocumentation": [
 			{
@@ -27,6 +27,6 @@
 		"browse website"
 	],
 	"subcategories": {
-		"AI": ["Agents & Tools"]
+		"Development": ["Other"]
 	}
 }

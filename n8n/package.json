@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-tinyfish",
-	"version": "0.1.0",
+	"version": "0.1.5",
 	"description": "n8n community node for TinyFish Web Agent - AI-powered web automation using natural language",
 	"license": "MIT",
 	"homepage": "https://docs.mino.ai",

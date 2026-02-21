@@ -30,7 +30,7 @@ export class Tinyfish implements INodeType {
 		version: 1,
 		subtitle: '={{$parameter["operation"]}}',
 		description:
-			'Browse any website using an AI-powered remote browser to extract structured data, fill forms, navigate multi-step workflows, or interact with JavaScript-rendered pages. Works on bot-protected sites with stealth mode. Write goals in natural language and get clean JSON back.',
+			'Extract data, fill forms, and automate multi-step browser workflows using natural language',
 		defaults: {
 			name: 'TinyFish Web Agent',
 		},

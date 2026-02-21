@@ -28,7 +28,7 @@ Visit [TinyFish Dashboard](https://agent.tinyfish.ai/api-keys) and generate your
 
 Add the **TinyFish Web Agent** node to a workflow, click the **Credential** dropdown, and select **Create New Credential**. Paste your API key and click **Save**.
 
-![Credentials](./_assets/credentials.png)
+![Credentials](https://raw.githubusercontent.com/tinyfish-io/tinyfish-web-agent-integrations/main/n8n/_assets/credentials.png)
 
 ## Workflow Usage
 
@@ -39,7 +39,7 @@ Integrate TinyFish Web Agent into your pipeline by following these steps:
 3. Run the workflow to extract any information from a web page.
 
 <p align="center">
-  <img src="./_assets/node_configuration.png" alt="Node Configuration" width="400">
+  <img src="https://raw.githubusercontent.com/tinyfish-io/tinyfish-web-agent-integrations/main/n8n/_assets/node_configuration.png" alt="Node Configuration" width="400">
 </p>
 
 For example, to extract the top headlines from Hacker News:
@@ -63,7 +63,7 @@ The node returns structured JSON:
 
 The structured output can be piped into downstream n8n nodes — split the results, send Slack alerts, append rows to Google Sheets, or feed data into any other integration.
 
-![Workflow](./_assets/workflow.png)
+![Workflow](https://raw.githubusercontent.com/tinyfish-io/tinyfish-web-agent-integrations/main/n8n/_assets/workflow.png)
 
 ## Agent Usage
 
