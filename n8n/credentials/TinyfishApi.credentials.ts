@@ -10,7 +10,7 @@ export class TinyfishApi implements ICredentialType {
 
 	displayName = 'TinyFish Web Agent API';
 
-	icon = { light: 'file:tinyfish.svg', dark: 'file:tinyfish.svg' } as const;
+	icon = 'file:tinyfish.svg' as const;
 
 	documentationUrl = 'https://docs.mino.ai';
 

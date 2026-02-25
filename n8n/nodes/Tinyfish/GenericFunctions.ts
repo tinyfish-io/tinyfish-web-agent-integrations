@@ -9,9 +9,6 @@ import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
 const API_BASE_URL = 'https://agent.tinyfish.ai';
 
-const MAX_RETRIES = 3;
-const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
-
 /**
  * Map known TinyFish API error codes to actionable user messages.
  */
@@ -45,31 +42,12 @@ function getActionableMessage(error: unknown): string | undefined {
 			return `Invalid input: ${message || 'Validation failed'}. Check your URL and goal parameters.`;
 		}
 		case 'RATE_LIMIT_EXCEEDED':
-			return 'Rate limit exceeded after multiple retries. Wait a few minutes and try again, or reduce request frequency.';
+			return 'Rate limit exceeded. Wait a few minutes and try again, or reduce request frequency.';
 		case 'INTERNAL_ERROR':
-			return `TinyFish server error: ${message || 'An unexpected error occurred'}. Retries exhausted — try again later.`;
+			return `TinyFish server error: ${message || 'An unexpected error occurred'}. Try again later.`;
 		default:
 			return undefined;
 	}
-}
-
-/**
- * Check if an error has a retryable HTTP status code.
- */
-function isRetryable(error: unknown): boolean {
-	const httpCode = (error as Record<string, unknown>)?.httpCode as number | undefined;
-	if (httpCode && RETRYABLE_STATUS_CODES.has(httpCode)) return true;
-
-	const cause = (error as Record<string, unknown>)?.cause as Record<string, unknown> | undefined;
-	const status = cause?.status as number | undefined;
-	return status !== undefined && RETRYABLE_STATUS_CODES.has(status);
-}
-
-/**
- * Sleep for a given number of milliseconds.
- */
-function sleep(ms: number): Promise<void> {
-	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -96,35 +74,21 @@ export async function tinyfishApiRequest(
 		requestOptions.body = body;
 	}
 
-	let lastError: unknown;
-
-	for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-		try {
-			return (await this.helpers.httpRequestWithAuthentication.call(
-				this,
-				'tinyfishApi',
-				requestOptions,
-			)) as IDataObject;
-		} catch (error) {
-			lastError = error;
-
-			if (attempt < MAX_RETRIES && isRetryable(error)) {
-				await sleep(Math.pow(2, attempt) * 1000);
-				continue;
-			}
-
-			const actionableMessage = getActionableMessage(error);
-			if (actionableMessage) {
-				throw new NodeApiError(this.getNode(), error as JsonObject, {
-					message: actionableMessage,
-				});
-			}
-			throw new NodeApiError(this.getNode(), error as JsonObject);
+	try {
+		return (await this.helpers.httpRequestWithAuthentication.call(
+			this,
+			'tinyfishApi',
+			requestOptions,
+		)) as IDataObject;
+	} catch (error) {
+		const actionableMessage = getActionableMessage(error);
+		if (actionableMessage) {
+			throw new NodeApiError(this.getNode(), error as JsonObject, {
+				message: actionableMessage,
+			});
 		}
+		throw new NodeApiError(this.getNode(), error as JsonObject);
 	}
-
-	// Should not reach here, but TypeScript needs a return path
-	throw new NodeApiError(this.getNode(), lastError as JsonObject);
 }
 
 /**
@@ -164,13 +128,10 @@ export function buildAutomationPayload(
 export async function consumeSseStream(
 	this: IExecuteFunctions,
 	payload: IDataObject,
-	timeoutMs: number,
 ): Promise<IDataObject> {
 	const credentials = await this.getCredentials('tinyfishApi');
 	const apiKey = credentials.apiKey as string;
 
-	const controller = new AbortController();
-	const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 	let lastProgress = '';
 
 	try {
@@ -181,7 +142,6 @@ export async function consumeSseStream(
 				'Content-Type': 'application/json',
 			},
 			body: JSON.stringify(payload),
-			signal: controller.signal,
 		});
 
 		if (!response.ok) {
@@ -261,17 +221,6 @@ export async function consumeSseStream(
 
 		return finalResult;
 	} catch (error) {
-		if ((error as Error).name === 'AbortError') {
-			const progressHint = lastProgress
-				? ` Last progress: "${lastProgress}".`
-				: '';
-			throw new NodeOperationError(
-				this.getNode(),
-				`Automation timed out after ${Math.round(timeoutMs / 1000)} seconds.${progressHint} Try increasing the timeout or simplifying the goal.`,
-			);
-		}
 		throw error;
-	} finally {
-		clearTimeout(timeoutId);
 	}
 }
