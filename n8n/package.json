@@ -19,20 +19,24 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/tinyfish-io/tinyfish-web-agent-integrations/tree/main/n8n"
+		"url": "git+https://github.com/tinyfish-io/tinyfish-web-agent-integrations.git",
+		"directory": "n8n"
 	},
-	"main": "dist/nodes/Tinyfish/Tinyfish.node.js",
 	"scripts": {
-		"build": "tsc && cp nodes/Tinyfish/tinyfish.svg dist/nodes/Tinyfish/tinyfish.svg && cp credentials/tinyfish.svg dist/credentials/tinyfish.svg",
+		"build": "n8n-node build",
 		"build:watch": "tsc --watch",
-		"lint": "tsc --noEmit",
-		"prepublishOnly": "npm run build"
+		"dev": "n8n-node dev",
+		"lint": "n8n-node lint",
+		"lint:fix": "n8n-node lint --fix",
+		"release": "n8n-node release",
+		"prepublishOnly": "n8n-node prerelease"
 	},
 	"files": [
 		"dist"
 	],
 	"n8n": {
 		"n8nNodesApiVersion": 1,
+		"strict": true,
 		"credentials": [
 			"dist/credentials/TinyfishApi.credentials.js"
 		],
@@ -41,9 +45,12 @@
 		]
 	},
 	"devDependencies": {
-		"@types/node": "^22.0.0",
-		"n8n-workflow": "*",
-		"typescript": "~5.7.0"
+		"@n8n/node-cli": "*",
+		"@types/node": "^18.0.0",
+		"eslint": "9.32.0",
+		"prettier": "3.6.2",
+		"release-it": "^19.0.4",
+		"typescript": "5.9.2"
 	},
 	"peerDependencies": {
 		"n8n-workflow": "*"
