@@ -52,7 +52,6 @@ function getActionableMessage(error: unknown): string | undefined {
 
 /**
  * Make an authenticated request to the TinyFish API.
- * Retries on 429/5xx with exponential backoff (max 3 retries).
  */
 export async function tinyfishApiRequest(
 	this: IExecuteFunctions,
@@ -134,93 +133,89 @@ export async function consumeSseStream(
 
 	let lastProgress = '';
 
-	try {
-		const response = await fetch(`${API_BASE_URL}/v1/automation/run-sse`, {
-			method: 'POST',
-			headers: {
-				'X-API-Key': apiKey,
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify(payload),
-		});
+	const response = await fetch(`${API_BASE_URL}/v1/automation/run-sse`, {
+		method: 'POST',
+		headers: {
+			'X-API-Key': apiKey,
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify(payload),
+	});
 
-		if (!response.ok) {
-			const errorText = await response.text();
-			throw new NodeOperationError(this.getNode(), `API request failed with status ${response.status}: ${errorText}`);
-		}
-
-		if (!response.body) {
-			throw new NodeOperationError(this.getNode(), 'Response body is empty');
-		}
-
-		const reader = response.body.getReader();
-		const decoder = new TextDecoder();
-		let buffer = '';
-		let finalResult: IDataObject | null = null;
-		let runId = '';
-		let streamingUrl = '';
-
-		while (true) {
-			const { done, value } = await reader.read();
-
-			buffer += decoder.decode(value, { stream: true });
-			if (done) {
-				buffer += decoder.decode();
-			}
-			const lines = buffer.split('\n');
-			buffer = lines.pop() ?? '';
-
-			for (const line of lines) {
-				if (!line.startsWith('data: ')) continue;
-
-				let eventData: IDataObject;
-				try {
-					eventData = JSON.parse(line.slice(6)) as IDataObject;
-				} catch {
-					continue;
-				}
-
-				const eventType = eventData.type as string;
-
-				if (eventType === 'STARTED') {
-					runId = (eventData.runId as string) || '';
-				} else if (eventType === 'STREAMING_URL') {
-					streamingUrl = (eventData.streamingUrl as string) || '';
-				} else if (eventType === 'PROGRESS') {
-					lastProgress = (eventData.purpose as string) || '';
-				} else if (eventType === 'COMPLETE') {
-					const status = eventData.status as string;
-					if (status === 'COMPLETED') {
-						finalResult = {
-							status: 'COMPLETED',
-							runId,
-							streamingUrl,
-							lastProgress,
-							resultJson: eventData.resultJson || {},
-						};
-					} else {
-						finalResult = {
-							status: status || 'FAILED',
-							runId,
-							lastProgress,
-							error: eventData.error || 'Unknown error',
-						};
-					}
-				}
-			}
-
-			if (done) break;
-		}
-
-		if (!finalResult) {
-			throw new NodeOperationError(
-				this.getNode(),
-				'SSE stream ended without a COMPLETE event',
-			);
-		}
-
-		return finalResult;
-	} catch (error) {
-		throw error;
+	if (!response.ok) {
+		const errorText = await response.text();
+		throw new NodeOperationError(this.getNode(), `API request failed with status ${response.status}: ${errorText}`);
 	}
+
+	if (!response.body) {
+		throw new NodeOperationError(this.getNode(), 'Response body is empty');
+	}
+
+	const reader = response.body.getReader();
+	const decoder = new TextDecoder();
+	let buffer = '';
+	let finalResult: IDataObject | null = null;
+	let runId = '';
+	let streamingUrl = '';
+
+	while (true) {
+		const { done, value } = await reader.read();
+
+		buffer += decoder.decode(value, { stream: true });
+		if (done) {
+			buffer += decoder.decode();
+		}
+		const lines = buffer.split('\n');
+		buffer = lines.pop() ?? '';
+
+		for (const line of lines) {
+			if (!line.startsWith('data: ')) continue;
+
+			let eventData: IDataObject;
+			try {
+				eventData = JSON.parse(line.slice(6)) as IDataObject;
+			} catch {
+				continue;
+			}
+
+			const eventType = eventData.type as string;
+
+			if (eventType === 'STARTED') {
+				runId = (eventData.runId as string) || '';
+			} else if (eventType === 'STREAMING_URL') {
+				streamingUrl = (eventData.streamingUrl as string) || '';
+			} else if (eventType === 'PROGRESS') {
+				lastProgress = (eventData.purpose as string) || '';
+			} else if (eventType === 'COMPLETE') {
+				const status = eventData.status as string;
+				if (status === 'COMPLETED') {
+					finalResult = {
+						status: 'COMPLETED',
+						runId,
+						streamingUrl,
+						lastProgress,
+						resultJson: eventData.resultJson || {},
+					};
+				} else {
+					finalResult = {
+						status: status || 'FAILED',
+						runId,
+						lastProgress,
+						error: eventData.error || 'Unknown error',
+					};
+				}
+			}
+		}
+
+		if (done) break;
+	}
+
+	if (!finalResult) {
+		throw new NodeOperationError(
+			this.getNode(),
+			'SSE stream ended without a COMPLETE event',
+		);
+	}
+
+	return finalResult;
 }

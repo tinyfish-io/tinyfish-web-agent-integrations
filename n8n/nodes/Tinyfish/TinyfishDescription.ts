@@ -4,8 +4,27 @@ export const operationField: INodeProperties = {
 	displayName: 'Operation',
 	name: 'operation',
 	type: 'options',
+	noDataExpression: true,
 	default: 'runSse',
 	options: [
+		{
+			name: 'Get Run',
+			value: 'getRun',
+			action: 'Get run details',
+			description: 'Retrieve the status and result of a previously started async run by its ID',
+		},
+		{
+			name: 'List Runs',
+			value: 'listRuns',
+			action: 'List automation runs',
+			description: 'List past automation runs with optional status filter. Useful for monitoring or retrieving results.',
+		},
+		{
+			name: 'Run (Async)',
+			value: 'runAsync',
+			action: 'Run automation asynchronously',
+			description: 'Returns a run ID immediately without waiting. Use with Get Run to poll for results. Best for batch processing multiple URLs in parallel.',
+		},
 		{
 			name: 'Run (SSE Streaming)',
 			value: 'runSse',
@@ -18,24 +37,6 @@ export const operationField: INodeProperties = {
 			value: 'runSync',
 			action: 'Run automation synchronously',
 			description: 'Execute and wait for the complete result in a single response. Use for quick extractions under 60 seconds.',
-		},
-		{
-			name: 'Run (Async)',
-			value: 'runAsync',
-			action: 'Run automation asynchronously',
-			description: 'Returns a run ID immediately without waiting. Use with Get Run to poll for results. Best for batch processing multiple URLs in parallel.',
-		},
-		{
-			name: 'Get Run',
-			value: 'getRun',
-			action: 'Get run details',
-			description: 'Retrieve the status and result of a previously started async run by its ID',
-		},
-		{
-			name: 'List Runs',
-			value: 'listRuns',
-			action: 'List automation runs',
-			description: 'List past automation runs with optional status filter. Useful for monitoring or retrieving results.',
 		},
 	],
 };
@@ -171,7 +172,7 @@ export const listRunsFields: INodeProperties[] = [
 		displayName: 'Limit',
 		name: 'limit',
 		type: 'number',
-		default: 20,
+		default: 50,
 		description: 'Max number of results to return',
 		typeOptions: {
 			minValue: 1,
