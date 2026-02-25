@@ -2,8 +2,12 @@ name: n8n Node CI
 
 on:
   pull_request:
+    paths:
+      - 'n8n/**'
   push:
     branches: [main]
+    paths:
+      - 'n8n/**'
 
 jobs:
   build:
