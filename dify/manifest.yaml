@@ -1,4 +1,4 @@
-version: 0.0.2
+version: 0.0.3
 type: plugin
 author: tinyfish
 name: tinyfish-web-agent
@@ -29,8 +29,10 @@ resource:
 plugins:
   tools:
     - provider/tinyfish_web_agent.yaml
+tags:
+  - productivity
 meta:
-  version: 0.0.2
+  version: 0.0.3
   arch:
     - amd64
     - arm64
