@@ -3,9 +3,10 @@
 		"strict": true,
 		"module": "commonjs",
 		"moduleResolution": "node",
-		"target": "es2022",
-		"lib": ["es2022"],
+		"target": "es2019",
+		"lib": ["es2019", "es2020", "es2022.error"],
 		"removeComments": true,
+		"useUnknownInCatchVariables": false,
 		"forceConsistentCasingInFileNames": true,
 		"noImplicitAny": true,
 		"noImplicitReturns": true,
@@ -14,21 +15,11 @@
 		"preserveConstEnums": true,
 		"esModuleInterop": true,
 		"resolveJsonModule": true,
+		"incremental": true,
 		"declaration": true,
 		"sourceMap": true,
 		"skipLibCheck": true,
 		"outDir": "./dist/"
 	},
-	"include": [
-		"credentials/**/*.ts",
-		"nodes/**/*.ts",
-		"nodes/**/*.json",
-		"package.json"
-	],
-	"exclude": [
-		"node_modules",
-		"dist",
-		"__tests__",
-		"jest.config.js"
-	]
+	"include": ["credentials/**/*", "nodes/**/*", "nodes/**/*.json", "package.json"]
 }
