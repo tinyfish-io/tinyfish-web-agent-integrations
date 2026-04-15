@@ -49,6 +49,6 @@
 		"n8n-workflow": "*"
 	},
 	"overrides": {
-		"lodash": "^4.18.0"
+		"lodash": "4.18.1"
 	}
 }
