@@ -106,6 +106,7 @@ export function buildAutomationPayload(
 		url,
 		goal,
 		browser_profile: (options.browserProfile as string) || 'lite',
+		api_integration: 'n8n',
 	};
 
 	if (options.proxyEnabled) {

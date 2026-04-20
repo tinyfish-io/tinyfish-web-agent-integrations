@@ -49,4 +49,6 @@ class TinyfishMixin:
                 proxy_config["country_code"] = tool_parameters["proxy_country_code"]
             payload["proxy_config"] = proxy_config
 
+        payload["api_integration"] = "dify"
+
         return payload
