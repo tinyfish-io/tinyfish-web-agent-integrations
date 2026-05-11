@@ -13,4 +13,9 @@ def test_tinyfish_dependency_floor() -> None:
 
     dependencies = pyproject["project"]["dependencies"]
 
-    assert "tinyfish>=0.2.5" in dependencies
+    tinyfish_dep = next(
+        (dep for dep in dependencies if dep.startswith("tinyfish")),
+        None,
+    )
+    assert tinyfish_dep is not None
+    assert ">=0.2.5" in tinyfish_dep

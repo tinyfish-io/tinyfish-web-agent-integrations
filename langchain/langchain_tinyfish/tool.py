@@ -225,6 +225,7 @@ class TinyFishWebAutomation(BaseTool):
                 complete = self._dispatch_event(writer, event)
                 if complete is not None:
                     result = complete
+                    break
 
             if result is None:
                 raise RuntimeError("SSE stream ended without a COMPLETE event")
@@ -255,6 +256,7 @@ class TinyFishWebAutomation(BaseTool):
                 complete = self._dispatch_event(writer, event)
                 if complete is not None:
                     result = complete
+                    break
 
             if result is None:
                 raise RuntimeError("SSE stream ended without a COMPLETE event")
@@ -332,6 +334,8 @@ class TinyFishFetch(BaseTool):
         run_manager: Optional[CallbackManagerForToolRun] = None,
     ) -> str:
         try:
+            if not 1 <= len(urls) <= 10:
+                raise ValueError("urls must contain between 1 and 10 items")
             return self.api_wrapper.fetch(
                 urls=urls,
                 format=format,
@@ -351,6 +355,8 @@ class TinyFishFetch(BaseTool):
         run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
     ) -> str:
         try:
+            if not 1 <= len(urls) <= 10:
+                raise ValueError("urls must contain between 1 and 10 items")
             return await self.api_wrapper.afetch(
                 urls=urls,
                 format=format,
