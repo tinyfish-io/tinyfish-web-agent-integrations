@@ -1,0 +1,27 @@
+[project]
+name = "tinyfish-web-agent"
+version = "0.1.1"
+description = "Power up your crews with TinyFish Web Agent"
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "crewai[tools]>=0.203.1",
+    "tinyfish>=0.2.5",
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.crewai]
+type = "tool"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "T201", "W"]
