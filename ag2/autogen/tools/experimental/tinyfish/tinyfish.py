@@ -149,6 +149,8 @@ class TinyFishToolkit:
         ) -> str:
             """Run a web automation synchronously and return the result."""
             try:
+                if not url.startswith(("http://", "https://")):
+                    return "Invalid url. Must start with http:// or https://."
                 kwargs: dict = {"url": url, "goal": goal, "browser_profile": bp}
                 if proxy_config:
                     kwargs["proxy_config"] = proxy_config
@@ -180,6 +182,8 @@ class TinyFishToolkit:
         ) -> str:
             """Start a web automation asynchronously and return the run ID."""
             try:
+                if not url.startswith(("http://", "https://")):
+                    return "Invalid url. Must start with http:// or https://."
                 kwargs: dict = {"url": url, "goal": goal, "browser_profile": bp}
                 if proxy_config:
                     kwargs["proxy_config"] = proxy_config
@@ -249,7 +253,7 @@ class TinyFishToolkit:
                     run_id = getattr(run, "run_id", "?")
                     run_status = getattr(run, "status", "?")
                     run_url = getattr(run, "url", "?")
-                    run_goal = getattr(run, "goal", "")
+                    run_goal = str(getattr(run, "goal", "") or "")
                     goal_preview = (run_goal[:60] + "...") if len(run_goal) > 60 else run_goal
                     lines.append(f"- {run_id} | {run_status} | {run_url} | {goal_preview}")
 
@@ -298,6 +302,8 @@ class TinyFishToolkit:
         ) -> str:
             """Fetch readable content from web pages."""
             try:
+                if not 1 <= len(urls) <= 10:
+                    return "Invalid urls. Provide between 1 and 10 URLs."
                 if format not in {"markdown", "html", "json"}:
                     return 'Invalid format. Use "markdown", "html", or "json".'
 

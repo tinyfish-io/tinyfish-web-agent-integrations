@@ -238,6 +238,16 @@ class TestRunTool:
         assert "Error" in output
         assert "Network error" in output
 
+    def test_invalid_url_scheme(self, mock_tinyfish):
+        from autogen.tools.experimental.tinyfish import TinyFishToolkit
+
+        toolkit = TinyFishToolkit()
+        run_tool = next(t for t in toolkit.tools if t.name == "tinyfish_web_agent")
+        output = run_tool.func(url="ftp://example.com", goal="Extract data")
+
+        assert "Invalid url" in output
+        mock_tinyfish["client"].agent.run.assert_not_called()
+
 
 class TestQueueTool:
     """Test the async queue tool execution."""
@@ -266,6 +276,16 @@ class TestQueueTool:
         output = queue_tool.func(url="https://example.com", goal="Extract data")
 
         assert "Error" in output
+
+    def test_invalid_url_scheme(self, mock_tinyfish):
+        from autogen.tools.experimental.tinyfish import TinyFishToolkit
+
+        toolkit = TinyFishToolkit()
+        queue_tool = next(t for t in toolkit.tools if t.name == "tinyfish_web_agent_async")
+        output = queue_tool.func(url="ftp://example.com", goal="Extract data")
+
+        assert "Invalid url" in output
+        mock_tinyfish["client"].agent.queue.assert_not_called()
 
 
 class TestGetRunTool:
@@ -340,6 +360,26 @@ class TestListRunsTool:
         output = list_tool.func()
 
         assert "No runs found" in output
+
+    def test_list_handles_null_goal(self, mock_tinyfish):
+        from autogen.tools.experimental.tinyfish import TinyFishToolkit
+
+        mock_run = MagicMock()
+        mock_run.run_id = "run_abc123"
+        mock_run.status = "COMPLETED"
+        mock_run.url = "https://example.com"
+        mock_run.goal = None
+
+        mock_response = MagicMock()
+        mock_response.runs = [mock_run]
+        mock_tinyfish["client"].runs.list.return_value = mock_response
+
+        toolkit = TinyFishToolkit()
+        list_tool = next(t for t in toolkit.tools if t.name == "tinyfish_list_runs")
+        output = list_tool.func()
+
+        assert "run_abc123" in output
+        assert "COMPLETED" in output
 
 
 class TestSearchTool:
@@ -423,6 +463,16 @@ class TestFetchTool:
         output = fetch_tool.func(urls=["https://docs.tinyfish.ai"], format="xml")
 
         assert "Invalid format" in output
+        mock_tinyfish["client"].fetch.get_contents.assert_not_called()
+
+    def test_invalid_fetch_url_count(self, mock_tinyfish):
+        from autogen.tools.experimental.tinyfish import TinyFishToolkit
+
+        toolkit = TinyFishToolkit()
+        fetch_tool = next(t for t in toolkit.tools if t.name == "tinyfish_fetch")
+        output = fetch_tool.func(urls=[])
+
+        assert "Invalid urls" in output
         mock_tinyfish["client"].fetch.get_contents.assert_not_called()
 
     def test_fetch_exception(self, mock_tinyfish):
