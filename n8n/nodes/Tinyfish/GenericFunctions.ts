@@ -7,7 +7,10 @@ import type {
 } from 'n8n-workflow';
 import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
-const API_BASE_URL = 'https://agent.tinyfish.ai';
+export const AGENT_API_BASE_URL = 'https://agent.tinyfish.ai';
+export const BROWSER_API_BASE_URL = 'https://api.browser.tinyfish.ai';
+export const FETCH_API_BASE_URL = 'https://api.fetch.tinyfish.ai';
+export const SEARCH_API_BASE_URL = 'https://api.search.tinyfish.ai';
 
 /**
  * Map known TinyFish API error codes to actionable user messages.
@@ -36,7 +39,9 @@ function getActionableMessage(error: unknown): string | undefined {
 			return `${message || 'Resource not found'}. Verify the run ID is correct.`;
 		case 'INVALID_INPUT': {
 			if (details) {
-				const detailStr = Object.entries(details).map(([k, v]) => `${k}: ${v}`).join(', ');
+				const detailStr = Object.entries(details)
+					.map(([k, v]) => `${k}: ${v}`)
+					.join(', ');
 				return `Invalid input (${detailStr}). Check your URL and goal parameters.`;
 			}
 			return `Invalid input: ${message || 'Validation failed'}. Check your URL and goal parameters.`;
@@ -63,7 +68,7 @@ export async function tinyfishApiRequest(
 ): Promise<IDataObject> {
 	const requestOptions: IHttpRequestOptions = {
 		method,
-		url: `${API_BASE_URL}${path}`,
+		url: path.startsWith('http') ? path : `${AGENT_API_BASE_URL}${path}`,
 		qs,
 		json: true,
 		...options,
@@ -74,11 +79,13 @@ export async function tinyfishApiRequest(
 	}
 
 	try {
-		return (await this.helpers.httpRequestWithAuthentication.call(
+		const response = await this.helpers.httpRequestWithAuthentication.call(
 			this,
 			'tinyfishApi',
 			requestOptions,
-		)) as IDataObject;
+		);
+
+		return (response ?? {}) as IDataObject;
 	} catch (error) {
 		const actionableMessage = getActionableMessage(error);
 		if (actionableMessage) {
@@ -94,10 +101,7 @@ export async function tinyfishApiRequest(
  * Build the automation payload from node parameters.
  * Mirrors dify/tools/base.py _build_automation_payload().
  */
-export function buildAutomationPayload(
-	this: IExecuteFunctions,
-	itemIndex: number,
-): IDataObject {
+export function buildAutomationPayload(this: IExecuteFunctions, itemIndex: number): IDataObject {
 	const url = this.getNodeParameter('url', itemIndex) as string;
 	const goal = this.getNodeParameter('goal', itemIndex) as string;
 	const options = this.getNodeParameter('options', itemIndex, {}) as IDataObject;
@@ -120,6 +124,80 @@ export function buildAutomationPayload(
 	return payload;
 }
 
+export function buildSearchQuery(this: IExecuteFunctions, itemIndex: number): IDataObject {
+	const query = this.getNodeParameter('searchQuery', itemIndex) as string;
+	const options = this.getNodeParameter('searchOptions', itemIndex, {}) as IDataObject;
+
+	const qs: IDataObject = { query };
+
+	if (options.location) {
+		qs.location = options.location as string;
+	}
+	if (options.language) {
+		qs.language = options.language as string;
+	}
+	if (options.page !== undefined) {
+		qs.page = options.page as number;
+	}
+
+	return qs;
+}
+
+export function buildFetchPayload(this: IExecuteFunctions, itemIndex: number): IDataObject {
+	const fetchUrls = this.getNodeParameter('fetchUrls', itemIndex) as string;
+	const options = this.getNodeParameter('fetchOptions', itemIndex, {}) as IDataObject;
+	const urls = fetchUrls
+		.split(/[\n,]/)
+		.map((url) => url.trim())
+		.filter(Boolean);
+
+	if (urls.length === 0) {
+		throw new NodeOperationError(this.getNode(), 'At least one URL is required', {
+			itemIndex,
+		});
+	}
+
+	if (urls.length > 10) {
+		throw new NodeOperationError(this.getNode(), 'Fetch Content accepts a maximum of 10 URLs', {
+			itemIndex,
+		});
+	}
+
+	const payload: IDataObject = {
+		urls,
+		format: (options.format as string) || 'markdown',
+		links: Boolean(options.links),
+		image_links: Boolean(options.imageLinks),
+	};
+
+	if (options.proxyCountryCode) {
+		payload.proxy_config = {
+			country_code: options.proxyCountryCode as string,
+		};
+	}
+
+	return payload;
+}
+
+export function buildBrowserSessionPayload(
+	this: IExecuteFunctions,
+	itemIndex: number,
+): IDataObject {
+	const url = this.getNodeParameter('browserUrl', itemIndex, '') as string;
+	const options = this.getNodeParameter('browserOptions', itemIndex, {}) as IDataObject;
+	const payload: IDataObject = {};
+
+	if (url.trim()) {
+		payload.url = url.trim();
+	}
+
+	if (options.timeoutSeconds !== undefined) {
+		payload.timeout_seconds = options.timeoutSeconds as number;
+	}
+
+	return payload;
+}
+
 /**
  * Consume an SSE stream from the TinyFish run-sse endpoint.
  * Uses native fetch() for streaming support.
@@ -134,7 +212,7 @@ export async function consumeSseStream(
 
 	let lastProgress = '';
 
-	const response = await fetch(`${API_BASE_URL}/v1/automation/run-sse`, {
+	const response = await fetch(`${AGENT_API_BASE_URL}/v1/automation/run-sse`, {
 		method: 'POST',
 		headers: {
 			'X-API-Key': apiKey,
@@ -145,7 +223,10 @@ export async function consumeSseStream(
 
 	if (!response.ok) {
 		const errorText = await response.text();
-		throw new NodeOperationError(this.getNode(), `API request failed with status ${response.status}: ${errorText}`);
+		throw new NodeOperationError(
+			this.getNode(),
+			`API request failed with status ${response.status}: ${errorText}`,
+		);
 	}
 
 	if (!response.body) {
@@ -182,9 +263,10 @@ export async function consumeSseStream(
 			const eventType = eventData.type as string;
 
 			if (eventType === 'STARTED') {
-				runId = (eventData.runId as string) || '';
+				runId = (eventData.run_id as string) || (eventData.runId as string) || '';
 			} else if (eventType === 'STREAMING_URL') {
-				streamingUrl = (eventData.streamingUrl as string) || '';
+				streamingUrl =
+					(eventData.streaming_url as string) || (eventData.streamingUrl as string) || '';
 			} else if (eventType === 'PROGRESS') {
 				lastProgress = (eventData.purpose as string) || '';
 			} else if (eventType === 'COMPLETE') {
@@ -195,7 +277,7 @@ export async function consumeSseStream(
 						runId,
 						streamingUrl,
 						lastProgress,
-						resultJson: eventData.resultJson || {},
+						result: eventData.result || eventData.resultJson || {},
 					};
 				} else {
 					finalResult = {
@@ -212,10 +294,7 @@ export async function consumeSseStream(
 	}
 
 	if (!finalResult) {
-		throw new NodeOperationError(
-			this.getNode(),
-			'SSE stream ended without a COMPLETE event',
-		);
+		throw new NodeOperationError(this.getNode(), 'SSE stream ended without a COMPLETE event');
 	}
 
 	return finalResult;
