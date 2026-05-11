@@ -59,6 +59,7 @@ agent = Agent(
 ### Async workflow
 
 ```python
+from google.adk import Agent
 from tinyfish_adk import tinyfish_queue_run, tinyfish_get_run
 
 agent = Agent(
@@ -110,7 +111,7 @@ automatically. Each tool also accepts optional parameters:
 
 ## Example goals
 
-```
+```text
 "Extract all product names, prices, and ratings from this page"
 "Fill the contact form with name 'Jane Doe' and email 'jane@example.com', then submit"
 "Click 'Next Page' 3 times, extracting all listings from each page"

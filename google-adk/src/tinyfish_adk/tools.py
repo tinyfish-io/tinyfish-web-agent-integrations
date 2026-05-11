@@ -46,6 +46,11 @@ def _get_client() -> TinyFish:
     return _client
 
 
+def _get_client_safe() -> TinyFish | str:
+    """Return a TinyFish client or a tool-friendly error string."""
+    return _safe_call(_get_client)
+
+
 def _run_kwargs(browser_profile: str, proxy_country: str) -> dict[str, Any]:
     """Build common kwargs for SDK agent.run / agent.queue."""
     try:
@@ -131,7 +136,9 @@ def tinyfish_web_agent(
         JSON string with the automation result, or an error
         message.
     """
-    client = _get_client()
+    client = _get_client_safe()
+    if isinstance(client, str):
+        return client
     rk = _run_kwargs(browser_profile, proxy_country)
     if "_error" in rk:
         return f"Error: {rk['_error']}"
@@ -176,7 +183,9 @@ def tinyfish_queue_run(
     Returns:
         A message containing the run_id.
     """
-    client = _get_client()
+    client = _get_client_safe()
+    if isinstance(client, str):
+        return client
     rk = _run_kwargs(browser_profile, proxy_country)
     if "_error" in rk:
         return f"Error: {rk['_error']}"
@@ -202,7 +211,10 @@ def tinyfish_get_run(run_id: str) -> str:
         Status, result data, streaming URL, and/or error
         details.
     """
-    run = _safe_call(_get_client().runs.get, run_id)
+    client = _get_client_safe()
+    if isinstance(client, str):
+        return client
+    run = _safe_call(client.runs.get, run_id)
     if isinstance(run, str):
         return run
 
@@ -235,6 +247,8 @@ def tinyfish_list_runs(
     Returns:
         A formatted list of runs with IDs, statuses, and URLs.
     """
+    if not 1 <= limit <= 100:
+        return f"Error: Invalid limit: {limit!r}, must be between 1 and 100"
     kwargs: dict[str, Any] = {"limit": limit}
     if status:
         try:
@@ -242,11 +256,14 @@ def tinyfish_list_runs(
         except ValueError:
             return f"Error: Invalid status filter: {status!r}"
 
-    response = _safe_call(_get_client().runs.list, **kwargs)
+    client = _get_client_safe()
+    if isinstance(client, str):
+        return client
+    response = _safe_call(client.runs.list, **kwargs)
     if isinstance(response, str):
         return response
 
-    runs = getattr(response, "runs", [])
+    runs = getattr(response, "data", None) or getattr(response, "runs", [])
     if not runs:
         return "No runs found."
 
@@ -283,7 +300,10 @@ def tinyfish_search(
     if language:
         kwargs["language"] = language
 
-    response = _safe_call(_get_client().search.query, query=query, **kwargs)
+    client = _get_client_safe()
+    if isinstance(client, str):
+        return client
+    response = _safe_call(client.search.query, query=query, **kwargs)
     if isinstance(response, str):
         return response
     return _dump_json(response)
@@ -307,8 +327,11 @@ def tinyfish_fetch(
         JSON string with fetched results and errors, or an error
         message.
     """
+    client = _get_client_safe()
+    if isinstance(client, str):
+        return client
     response = _safe_call(
-        _get_client().fetch.get_contents,
+        client.fetch.get_contents,
         urls=urls,
         format=format,
         links=links,
@@ -334,8 +357,11 @@ def tinyfish_create_browser_session(
         JSON string with session_id, cdp_url, and base_url, or an
         error message.
     """
+    client = _get_client_safe()
+    if isinstance(client, str):
+        return client
     response = _safe_call(
-        _get_client().browser.sessions.create,
+        client.browser.sessions.create,
         url=url or None,
         timeout_seconds=timeout_seconds or None,
     )

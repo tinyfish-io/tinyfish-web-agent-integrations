@@ -48,6 +48,17 @@ def test_get_client_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
             _get_client()
 
 
+def test_web_agent_returns_error_when_api_key_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("TINYFISH_API_KEY", raising=False)
+    with patch("tinyfish_adk.tools._client", None):
+        result = tinyfish_web_agent("https://example.com", "Extract title")
+
+    assert result.startswith("Error:")
+    assert "TINYFISH_API_KEY" in result
+
+
 def test_get_client_sets_integration_tag(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TINYFISH_API_KEY", "sk-test")
     monkeypatch.delenv("TF_API_INTEGRATION", raising=False)
@@ -152,6 +163,31 @@ def test_list_runs_with_status_filter() -> None:
 
     assert "Found 1 runs" in result
     client.runs.list.assert_called_once_with(limit=5, status=RunStatus.COMPLETED)
+
+
+def test_list_runs_uses_sdk_data_field() -> None:
+    client = MagicMock()
+    client.runs.list.return_value = SimpleNamespace(
+        data=[
+            SimpleNamespace(
+                run_id="run-123",
+                status=RunStatus.COMPLETED,
+                url="https://example.com",
+            )
+        ]
+    )
+
+    with patch("tinyfish_adk.tools._get_client", return_value=client):
+        result = tinyfish_list_runs(limit=5)
+
+    assert "Found 1 runs" in result
+    assert "run-123" in result
+
+
+def test_list_runs_rejects_invalid_limit() -> None:
+    result = tinyfish_list_runs(limit=0)
+
+    assert result == "Error: Invalid limit: 0, must be between 1 and 100"
 
 
 def test_search_uses_sdk_resource() -> None:
