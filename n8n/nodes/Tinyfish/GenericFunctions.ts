@@ -210,17 +210,27 @@ export async function consumeSseStream(
 ): Promise<IDataObject> {
 	const credentials = await this.getCredentials('tinyfishApi');
 	const apiKey = credentials.apiKey as string;
+	const timeoutMs = 60_000;
 
 	let lastProgress = '';
 
-	const response = await fetch(`${AGENT_API_BASE_URL}/v1/automation/run-sse`, {
-		method: 'POST',
-		headers: {
-			'X-API-Key': apiKey,
-			'Content-Type': 'application/json',
-		},
-		body: JSON.stringify(payload),
-	});
+	let response: Response;
+	try {
+		response = await fetch(`${AGENT_API_BASE_URL}/v1/automation/run-sse`, {
+			method: 'POST',
+			headers: {
+				'X-API-Key': apiKey,
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(payload),
+			signal: AbortSignal.timeout(timeoutMs),
+		});
+	} catch (error) {
+		if ((error as Error).name === 'AbortError') {
+			throw new NodeOperationError(this.getNode(), `SSE request timed out after ${timeoutMs}ms`);
+		}
+		throw error;
+	}
 
 	if (!response.ok) {
 		const errorText = await response.text();
@@ -242,14 +252,28 @@ export async function consumeSseStream(
 	let streamingUrl = '';
 
 	while (true) {
-		const { done, value } = await reader.read();
+		let readResult;
+		try {
+			readResult = await reader.read();
+		} catch (error) {
+			if ((error as Error).name === 'AbortError') {
+				throw new NodeOperationError(this.getNode(), `SSE stream timed out after ${timeoutMs}ms`);
+			}
+			throw error;
+		}
 
-		buffer += decoder.decode(value, { stream: true });
+		const { done, value } = readResult;
+
+		buffer += decoder.decode(value, { stream: !done });
 		if (done) {
 			buffer += decoder.decode();
 		}
 		const lines = buffer.split('\n');
 		buffer = lines.pop() ?? '';
+		if (done && buffer.length > 0) {
+			lines.push(buffer);
+			buffer = '';
+		}
 
 		for (const line of lines) {
 			if (!line.startsWith('data: ')) continue;
@@ -291,7 +315,7 @@ export async function consumeSseStream(
 			}
 		}
 
-		if (done) break;
+		if (finalResult || done) break;
 	}
 
 	if (!finalResult) {
