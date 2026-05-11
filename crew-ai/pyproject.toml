@@ -3,7 +3,7 @@ name = "tinyfish-web-agent"
 version = "0.1.1"
 description = "Power up your crews with TinyFish Web Agent"
 readme = "README.md"
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.11,<3.14"
 dependencies = [
     "crewai[tools]>=0.203.1",
     "tinyfish>=0.2.5",
@@ -20,7 +20,7 @@ where = ["src"]
 type = "tool"
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 line-length = 88
 
 [tool.ruff.lint]

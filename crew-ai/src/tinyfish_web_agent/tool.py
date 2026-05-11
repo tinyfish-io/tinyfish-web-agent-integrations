@@ -117,6 +117,8 @@ class TinyfishFetchInput(BaseModel):
 
     urls: list[str] = Field(
         ...,
+        min_length=1,
+        max_length=10,
         description="One to ten URLs to fetch and extract clean content from.",
     )
     format: Literal["markdown", "html", "json"] = Field(
@@ -230,10 +232,11 @@ class _TinyfishBaseTool(BaseTool):
             bp = BrowserProfile.LITE
         kwargs: dict[str, Any] = {"browser_profile": bp}
         if self.proxy_country:
-            kwargs["proxy_config"] = ProxyConfig(
-                enabled=True,
-                country_code=ProxyCountryCode(self.proxy_country),
-            )
+            try:
+                country = ProxyCountryCode(self.proxy_country)
+            except ValueError:
+                return {"_error": f"Invalid proxy country: {self.proxy_country!r}"}
+            kwargs["proxy_config"] = ProxyConfig(enabled=True, country_code=country)
         return kwargs
 
     def _safe_call(
@@ -283,11 +286,15 @@ class TinyfishRun(_TinyfishBaseTool):
         if err:
             return err
 
+        kwargs = self._run_kwargs(browser_profile)
+        if "_error" in kwargs:
+            return f"Error: {kwargs['_error']}"
+
         result, err = self._safe_call(
             client.agent.run,
             url=url,
             goal=goal,
-            **self._run_kwargs(browser_profile),
+            **kwargs,
         )
         if err:
             return err
@@ -331,11 +338,15 @@ class TinyfishRunAsync(_TinyfishBaseTool):
         if err:
             return err
 
+        kwargs = self._run_kwargs(browser_profile)
+        if "_error" in kwargs:
+            return f"Error: {kwargs['_error']}"
+
         result, err = self._safe_call(
             client.agent.queue,
             url=url,
             goal=goal,
-            **self._run_kwargs(browser_profile),
+            **kwargs,
         )
         if err:
             return err
@@ -422,7 +433,7 @@ class TinyfishListRuns(_TinyfishBaseTool):
         if err:
             return err
 
-        runs = getattr(response, "runs", [])
+        runs = getattr(response, "data", None) or getattr(response, "runs", [])
         if not runs:
             return "No runs found."
 

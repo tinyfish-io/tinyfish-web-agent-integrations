@@ -75,6 +75,19 @@ def test_run_kwargs_adds_proxy_config() -> None:
     assert kwargs["proxy_config"].country_code == ProxyCountryCode("GB")
 
 
+def test_run_rejects_invalid_proxy_country() -> None:
+    client = MagicMock()
+
+    with patch.object(TinyfishRun, "_get_client", return_value=(client, None)):
+        result = TinyfishRun(proxy_country="XX")._run(
+            "https://example.com",
+            "Extract title",
+        )
+
+    assert result == "Error: Invalid proxy country: 'XX'"
+    client.agent.run.assert_not_called()
+
+
 def test_run_completed_result() -> None:
     client = MagicMock()
     client.agent.run.return_value = SimpleNamespace(
@@ -147,6 +160,25 @@ def test_list_runs_with_status_filter() -> None:
 
     assert "Found 1 runs" in result
     client.runs.list.assert_called_once_with(limit=5, status=RunStatus.COMPLETED)
+
+
+def test_list_runs_uses_sdk_data_field() -> None:
+    client = MagicMock()
+    client.runs.list.return_value = SimpleNamespace(
+        data=[
+            SimpleNamespace(
+                run_id="run-123",
+                status=RunStatus.COMPLETED,
+                url="https://example.com",
+            )
+        ]
+    )
+
+    with patch.object(TinyfishListRuns, "_get_client", return_value=(client, None)):
+        result = TinyfishListRuns()._run(limit=5)
+
+    assert "Found 1 runs" in result
+    assert "run-123" in result
 
 
 def test_search_uses_sdk_resource() -> None:
