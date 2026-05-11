@@ -177,10 +177,6 @@ export class Tinyfish implements INodeType {
 					continue;
 				}
 
-				if (error instanceof NodeOperationError) {
-					throw error;
-				}
-
 				throw new NodeOperationError(this.getNode(), error as Error, {
 					itemIndex: i,
 				});

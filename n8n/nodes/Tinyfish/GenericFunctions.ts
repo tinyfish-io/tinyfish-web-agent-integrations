@@ -229,7 +229,7 @@ export async function consumeSseStream(
 		if ((error as Error).name === 'AbortError') {
 			throw new NodeOperationError(this.getNode(), `SSE request timed out after ${timeoutMs}ms`);
 		}
-		throw error;
+		throw new NodeApiError(this.getNode(), error as JsonObject);
 	}
 
 	if (!response.ok) {
@@ -259,7 +259,7 @@ export async function consumeSseStream(
 			if ((error as Error).name === 'AbortError') {
 				throw new NodeOperationError(this.getNode(), `SSE stream timed out after ${timeoutMs}ms`);
 			}
-			throw error;
+			throw new NodeApiError(this.getNode(), error as JsonObject);
 		}
 
 		const { done, value } = readResult;
