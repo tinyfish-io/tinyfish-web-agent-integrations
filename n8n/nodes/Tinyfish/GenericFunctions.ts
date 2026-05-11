@@ -128,7 +128,7 @@ export function buildSearchQuery(this: IExecuteFunctions, itemIndex: number): ID
 	const query = this.getNodeParameter('searchQuery', itemIndex) as string;
 	const options = this.getNodeParameter('searchOptions', itemIndex, {}) as IDataObject;
 
-	const qs: IDataObject = { query };
+	const qs: IDataObject = { query, api_integration: 'n8n' };
 
 	if (options.location) {
 		qs.location = options.location as string;
@@ -168,6 +168,7 @@ export function buildFetchPayload(this: IExecuteFunctions, itemIndex: number): I
 		format: (options.format as string) || 'markdown',
 		links: Boolean(options.links),
 		image_links: Boolean(options.imageLinks),
+		api_integration: 'n8n',
 	};
 
 	if (options.proxyCountryCode) {
@@ -185,7 +186,7 @@ export function buildBrowserSessionPayload(
 ): IDataObject {
 	const url = this.getNodeParameter('browserUrl', itemIndex, '') as string;
 	const options = this.getNodeParameter('browserOptions', itemIndex, {}) as IDataObject;
-	const payload: IDataObject = {};
+	const payload: IDataObject = { api_integration: 'n8n' };
 
 	if (url.trim()) {
 		payload.url = url.trim();
