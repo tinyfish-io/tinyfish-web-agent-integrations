@@ -2,7 +2,7 @@
 
 ## Overview
 
-[TinyFish Web Agent](https://docs.mino.ai/) enables enterprises, builders, and developers to deploy AI agents that navigate real sites, complete real workflows across authenticated systems and dynamic interfaces, and return structured operational intelligence - through our visual platform or API. At scale. Reliably.
+[TinyFish Web Agent](https://docs.tinyfish.ai/) enables enterprises, builders, and developers to deploy AI agents that navigate real sites, complete real workflows across authenticated systems and dynamic interfaces, and return structured operational intelligence - through our visual platform or API. At scale. Reliably.
 
 ## Configuration
 
@@ -158,7 +158,7 @@ After confirming that the node works properly, submit a pull request to the `mai
 
 ## Resources
 
-- [Documentation](https://docs.mino.ai/)
+- [Documentation](https://docs.tinyfish.ai/)
 - [Cookbook](https://github.com/tinyfish-io/tinyfish-cookbook)
 - [Templates](https://agent.tinyfish.ai/examples)
 
