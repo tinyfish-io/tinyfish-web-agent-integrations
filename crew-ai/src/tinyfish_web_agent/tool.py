@@ -182,27 +182,33 @@ def _dump_json(value: Any) -> str:
     return json.dumps(value)
 
 
+_TINYFISH_ENV_VARS: List[EnvVar] = [
+    EnvVar(
+        name="TINYFISH_API_KEY",
+        description=(
+            "TinyFish Web Agent API key. "
+            "Get one at https://agent.tinyfish.ai/api-keys"
+        ),
+        required=True,
+    ),
+]
+
+
 # ---------------------------------------------------------------------------
 # Base tool
 # ---------------------------------------------------------------------------
 
 
 class _TinyfishBaseTool(BaseTool):
-    """Shared configuration and helpers for all Tinyfish tools."""
+    """Shared configuration and helpers for all Tinyfish tools.
+
+    Concrete subclasses redeclare ``api_key``, ``proxy_country``,
+    ``env_vars``, and ``package_dependencies`` as Pydantic Fields so the
+    CrewAI AMP UI surfaces them on each tool.
+    """
 
     api_key: Optional[str] = None
     proxy_country: Optional[str] = None
-
-    env_vars: List[EnvVar] = [
-        EnvVar(
-            name="TINYFISH_API_KEY",
-            description=(
-                "TinyFish Web Agent API key. "
-                "Get one at https://agent.tinyfish.ai/api-keys"
-            ),
-            required=True,
-        ),
-    ]
 
     # Cached per-instance to avoid re-creating on every call.
     _client: Optional[TinyFish] = None
@@ -275,6 +281,21 @@ class TinyfishRun(_TinyfishBaseTool):
         "JSON results."
     )
     args_schema: Type[BaseModel] = TinyfishRunInput
+    package_dependencies: List[str] = ["tinyfish"]
+    api_key: Optional[str] = Field(
+        default_factory=lambda: os.getenv("TINYFISH_API_KEY"),
+        description="TinyFish API key (overrides env var if provided).",
+        json_schema_extra={"required": False},
+    )
+    proxy_country: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional ISO country code for proxy routing "
+            "(US, GB, CA, DE, FR, JP, AU)."
+        ),
+        json_schema_extra={"required": False},
+    )
+    env_vars: List[EnvVar] = _TINYFISH_ENV_VARS
 
     def _run(
         self,
@@ -327,6 +348,21 @@ class TinyfishRunAsync(_TinyfishBaseTool):
         "and get results."
     )
     args_schema: Type[BaseModel] = TinyfishRunInput
+    package_dependencies: List[str] = ["tinyfish"]
+    api_key: Optional[str] = Field(
+        default_factory=lambda: os.getenv("TINYFISH_API_KEY"),
+        description="TinyFish API key (overrides env var if provided).",
+        json_schema_extra={"required": False},
+    )
+    proxy_country: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional ISO country code for proxy routing "
+            "(US, GB, CA, DE, FR, JP, AU)."
+        ),
+        json_schema_extra={"required": False},
+    )
+    env_vars: List[EnvVar] = _TINYFISH_ENV_VARS
 
     def _run(
         self,
@@ -366,6 +402,21 @@ class TinyfishGetRun(_TinyfishBaseTool):
         "and result data."
     )
     args_schema: Type[BaseModel] = TinyfishGetRunInput
+    package_dependencies: List[str] = ["tinyfish"]
+    api_key: Optional[str] = Field(
+        default_factory=lambda: os.getenv("TINYFISH_API_KEY"),
+        description="TinyFish API key (overrides env var if provided).",
+        json_schema_extra={"required": False},
+    )
+    proxy_country: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional ISO country code for proxy routing "
+            "(US, GB, CA, DE, FR, JP, AU)."
+        ),
+        json_schema_extra={"required": False},
+    )
+    env_vars: List[EnvVar] = _TINYFISH_ENV_VARS
 
     def _run(self, run_id: str) -> str:
         client, err = self._get_client()
@@ -400,6 +451,21 @@ class TinyfishListRuns(_TinyfishBaseTool):
         "COMPLETED, FAILED, CANCELLED)."
     )
     args_schema: Type[BaseModel] = TinyfishListRunsInput
+    package_dependencies: List[str] = ["tinyfish"]
+    api_key: Optional[str] = Field(
+        default_factory=lambda: os.getenv("TINYFISH_API_KEY"),
+        description="TinyFish API key (overrides env var if provided).",
+        json_schema_extra={"required": False},
+    )
+    proxy_country: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional ISO country code for proxy routing "
+            "(US, GB, CA, DE, FR, JP, AU)."
+        ),
+        json_schema_extra={"required": False},
+    )
+    env_vars: List[EnvVar] = _TINYFISH_ENV_VARS
 
     def _run(
         self,
@@ -457,6 +523,21 @@ class TinyfishSearch(_TinyfishBaseTool):
         "fetching content or running browser automation."
     )
     args_schema: Type[BaseModel] = TinyfishSearchInput
+    package_dependencies: List[str] = ["tinyfish"]
+    api_key: Optional[str] = Field(
+        default_factory=lambda: os.getenv("TINYFISH_API_KEY"),
+        description="TinyFish API key (overrides env var if provided).",
+        json_schema_extra={"required": False},
+    )
+    proxy_country: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional ISO country code for proxy routing "
+            "(US, GB, CA, DE, FR, JP, AU)."
+        ),
+        json_schema_extra={"required": False},
+    )
+    env_vars: List[EnvVar] = _TINYFISH_ENV_VARS
 
     def _run(
         self,
@@ -494,6 +575,21 @@ class TinyfishFetch(_TinyfishBaseTool):
         "metadata, links, or image links without controlling a browser."
     )
     args_schema: Type[BaseModel] = TinyfishFetchInput
+    package_dependencies: List[str] = ["tinyfish"]
+    api_key: Optional[str] = Field(
+        default_factory=lambda: os.getenv("TINYFISH_API_KEY"),
+        description="TinyFish API key (overrides env var if provided).",
+        json_schema_extra={"required": False},
+    )
+    proxy_country: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional ISO country code for proxy routing "
+            "(US, GB, CA, DE, FR, JP, AU)."
+        ),
+        json_schema_extra={"required": False},
+    )
+    env_vars: List[EnvVar] = _TINYFISH_ENV_VARS
 
     def _run(
         self,
@@ -528,6 +624,21 @@ class TinyfishBrowserSession(_TinyfishBaseTool):
         "control from external browser automation clients."
     )
     args_schema: Type[BaseModel] = TinyfishBrowserSessionInput
+    package_dependencies: List[str] = ["tinyfish"]
+    api_key: Optional[str] = Field(
+        default_factory=lambda: os.getenv("TINYFISH_API_KEY"),
+        description="TinyFish API key (overrides env var if provided).",
+        json_schema_extra={"required": False},
+    )
+    proxy_country: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional ISO country code for proxy routing "
+            "(US, GB, CA, DE, FR, JP, AU)."
+        ),
+        json_schema_extra={"required": False},
+    )
+    env_vars: List[EnvVar] = _TINYFISH_ENV_VARS
 
     def _run(
         self,

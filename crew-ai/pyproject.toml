@@ -1,6 +1,6 @@
 [project]
 name = "tinyfish-web-agent"
-version = "0.1.1"
+version = "0.1.2"
 description = "Power up your crews with TinyFish Web Agent"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
