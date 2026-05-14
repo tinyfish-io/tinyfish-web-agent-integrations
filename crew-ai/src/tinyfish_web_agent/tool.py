@@ -661,3 +661,7 @@ class TinyfishBrowserSession(_TinyfishBaseTool):
 
 # Backwards-compatible alias
 Tinyfish = TinyfishRun
+
+# Crew Studio auto-imports `CamelCase(package_name)` — alias so the
+# Studio-generated crew code can import this package without errors.
+TinyfishWebAgent = TinyfishRun

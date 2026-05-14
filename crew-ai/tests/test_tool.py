@@ -27,6 +27,8 @@ def _response(payload: dict):
 
 
 def test_public_exports() -> None:
+    from tinyfish_web_agent import TinyfishWebAgent
+
     assert sorted(__all__) == sorted(
         [
             "Tinyfish",
@@ -37,9 +39,11 @@ def test_public_exports() -> None:
             "TinyfishSearch",
             "TinyfishFetch",
             "TinyfishBrowserSession",
+            "TinyfishWebAgent",
         ]
     )
     assert Tinyfish is TinyfishRun
+    assert TinyfishWebAgent is TinyfishRun
 
 
 def test_get_client_requires_api_key(monkeypatch) -> None:

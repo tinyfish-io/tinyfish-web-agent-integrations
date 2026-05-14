@@ -7,6 +7,7 @@ from .tool import (
     TinyfishRun,
     TinyfishRunAsync,
     TinyfishSearch,
+    TinyfishWebAgent,
 )
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "TinyfishSearch",
     "TinyfishFetch",
     "TinyfishBrowserSession",
+    "TinyfishWebAgent",
 ]
