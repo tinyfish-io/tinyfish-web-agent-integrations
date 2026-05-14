@@ -5,13 +5,26 @@ from typing import Any, List, Literal, Optional, Type
 
 from crewai.tools import BaseTool, EnvVar
 from pydantic import BaseModel, Field, field_validator
-from tinyfish import (
-    BrowserProfile,
-    ProxyConfig,
-    ProxyCountryCode,
-    RunStatus,
-    TinyFish,
-)
+
+try:
+    from tinyfish import (
+        BrowserProfile,
+        ProxyConfig,
+        ProxyCountryCode,
+        RunStatus,
+        TinyFish,
+    )
+
+    _TINYFISH_AVAILABLE = True
+    _TINYFISH_IMPORT_ERROR: Optional[str] = None
+except ImportError as exc:
+    BrowserProfile = Any  # type: ignore[misc,assignment]
+    ProxyConfig = Any  # type: ignore[misc,assignment]
+    ProxyCountryCode = Any  # type: ignore[misc,assignment]
+    RunStatus = Any  # type: ignore[misc,assignment]
+    TinyFish = Any  # type: ignore[misc,assignment]
+    _TINYFISH_AVAILABLE = False
+    _TINYFISH_IMPORT_ERROR = str(exc)
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +169,7 @@ class TinyfishBrowserSessionInput(BaseModel):
 
 def _format_status(status: Any) -> str:
     """Convert a RunStatus enum (or any value) to a string."""
-    if isinstance(status, RunStatus):
+    if _TINYFISH_AVAILABLE and isinstance(status, RunStatus):
         return status.value
     return str(status)
 
@@ -213,8 +226,14 @@ class _TinyfishBaseTool(BaseTool):
     # Cached per-instance to avoid re-creating on every call.
     _client: Optional[TinyFish] = None
 
-    def _get_client(self) -> tuple[Optional[TinyFish], Optional[str]]:
+    def _get_client(self) -> tuple[Optional[Any], Optional[str]]:
         """Return (client, None) or (None, error_string)."""
+        if not _TINYFISH_AVAILABLE:
+            return None, (
+                "Error: the 'tinyfish' Python SDK is not installed in this "
+                "environment. Install with `pip install tinyfish`. "
+                f"(Import error: {_TINYFISH_IMPORT_ERROR})"
+            )
         if self._client is not None:
             return self._client, None
         _ensure_integration_tag()
