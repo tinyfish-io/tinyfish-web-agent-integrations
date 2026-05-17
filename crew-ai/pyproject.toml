@@ -1,6 +1,6 @@
 [project]
 name = "tinyfish-web-agent"
-version = "0.2.1"
+version = "0.2.2"
 description = "Run browser automations from natural-language goals on any website, powered by the TinyFish Web Agent API."
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
