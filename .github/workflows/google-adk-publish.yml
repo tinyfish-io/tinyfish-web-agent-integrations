@@ -1,34 +1,63 @@
-name: Google ADK Publish
+name: Google ADK CD - Publish to PyPI
 
 on:
-  push:
-    tags:
-      - "google-adk-v*"
-
-permissions:
-  contents: read
-  id-token: write
+  release:
+    types: [published]
 
 jobs:
-  publish:
-    if: startsWith(github.ref, 'refs/tags/google-adk-v')
+  build:
+    name: Build distribution
+    if: startsWith(github.ref_name, 'google-adk-v')
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: google-adk
-
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
-      - run: python -m pip install --upgrade pip build
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
 
-      - run: python -m build
+      - name: Validate tag matches pyproject.toml version
+        working-directory: ./google-adk
+        run: |
+          TAG="${GITHUB_REF_NAME#google-adk-}"
+          VERSION=$(python -c "import tomllib; f=open('pyproject.toml','rb'); d=tomllib.load(f); print(d['project']['version'])")
+          EXPECTED_TAG="v${VERSION}"
+          if [ "$TAG" != "$EXPECTED_TAG" ]; then
+            echo "Tag '${GITHUB_REF_NAME}' does not match pyproject.toml version 'v${VERSION}'"
+            exit 1
+          fi
+          echo "Tag ${GITHUB_REF_NAME} matches pyproject.toml version ${VERSION}"
 
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Build package
+        working-directory: ./google-adk
+        run: uv build
+
+      - name: Upload distribution artifact
+        uses: actions/upload-artifact@v7
         with:
-          packages-dir: google-adk/dist
+          name: python-package-distributions
+          path: google-adk/dist/
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          password: ${{ secrets.PYPI_API_TOKEN }}
