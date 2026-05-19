@@ -129,6 +129,29 @@ def test_queue_run() -> None:
     assert result == "Automation started. run_id: run-123"
 
 
+def test_queue_run_surfaces_sdk_error() -> None:
+    client = MagicMock()
+    client.agent.queue.return_value = SimpleNamespace(
+        run_id=None,
+        error=SimpleNamespace(message="Queue rejected"),
+    )
+
+    with patch("tinyfish_adk.tools._get_client", return_value=client):
+        result = tinyfish_queue_run("https://example.com", "Extract title")
+
+    assert result == "Automation failed to start: Queue rejected"
+
+
+def test_queue_run_rejects_missing_run_id() -> None:
+    client = MagicMock()
+    client.agent.queue.return_value = SimpleNamespace(run_id=None, error=None)
+
+    with patch("tinyfish_adk.tools._get_client", return_value=client):
+        result = tinyfish_queue_run("https://example.com", "Extract title")
+
+    assert result == "Automation failed to start: missing run_id in SDK response"
+
+
 def test_get_run_formats_details() -> None:
     client = MagicMock()
     client.runs.get.return_value = SimpleNamespace(

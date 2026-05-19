@@ -90,7 +90,10 @@ def _format_status(status: Union[RunStatus, str]) -> str:
 def _format_error(error: Union[dict, str, object]) -> str:
     """Extract a human-readable message from an error."""
     if isinstance(error, dict):
-        return error.get("message", str(error))
+        return str(error.get("message", error))
+    message = getattr(error, "message", None)
+    if message:
+        return str(message)
     return str(error)
 
 
@@ -198,7 +201,14 @@ def tinyfish_queue_run(
     if isinstance(result, str):
         return result
 
-    return f"Automation started. run_id: {result.run_id}"
+    error = getattr(result, "error", None)
+    if error:
+        return f"Automation failed to start: {_format_error(error)}"
+    run_id = getattr(result, "run_id", None)
+    if not run_id:
+        return "Automation failed to start: missing run_id in SDK response"
+
+    return f"Automation started. run_id: {run_id}"
 
 
 def tinyfish_get_run(run_id: str) -> str:
