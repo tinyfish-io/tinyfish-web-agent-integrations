@@ -1,16 +1,21 @@
 name: Google ADK CD - Publish to PyPI
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/google-adk-publish.yml"
+      - "google-adk/**"
 
 jobs:
   build:
     name: Build distribution
-    if: startsWith(github.ref_name, 'google-adk-v')
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    outputs:
+      version-exists: ${{ steps.version.outputs.exists }}
+      package-version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -23,23 +28,56 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v8.1.0
 
-      - name: Validate tag matches pyproject.toml version
+      - name: Check PyPI version availability
+        id: version
         working-directory: ./google-adk
         run: |
-          TAG="${GITHUB_REF_NAME#google-adk-}"
           VERSION=$(python -c "import tomllib; f=open('pyproject.toml','rb'); d=tomllib.load(f); print(d['project']['version'])")
-          EXPECTED_TAG="v${VERSION}"
-          if [ "$TAG" != "$EXPECTED_TAG" ]; then
-            echo "Tag '${GITHUB_REF_NAME}' does not match pyproject.toml version 'v${VERSION}'"
-            exit 1
-          fi
-          echo "Tag ${GITHUB_REF_NAME} matches pyproject.toml version ${VERSION}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          RESULT=$(python - "$VERSION" <<'PY'
+          import sys
+          import urllib.error
+          import urllib.request
+
+          version = sys.argv[1]
+          url = f"https://pypi.org/pypi/tinyfish-adk/{version}/json"
+          try:
+              with urllib.request.urlopen(url, timeout=10):
+                  pass
+          except urllib.error.HTTPError as exc:
+              if exc.code == 404:
+                  print("missing")
+                  sys.exit(0)
+              print(f"PyPI returned HTTP {exc.code} while checking {url}", file=sys.stderr)
+              sys.exit(2)
+          except Exception as exc:
+              print(f"Failed to check PyPI for {url}: {exc}", file=sys.stderr)
+              sys.exit(2)
+          print("exists")
+          PY
+          )
+          case "$RESULT" in
+            exists)
+              echo "exists=true" >> "$GITHUB_OUTPUT"
+              echo "tinyfish-adk ${VERSION} already exists on PyPI; skipping publish."
+              ;;
+            missing)
+              echo "exists=false" >> "$GITHUB_OUTPUT"
+              echo "tinyfish-adk ${VERSION} is available on PyPI; building distribution."
+              ;;
+            *)
+              echo "Unexpected PyPI availability result: $RESULT"
+              exit 1
+              ;;
+          esac
 
       - name: Build package
+        if: steps.version.outputs.exists == 'false'
         working-directory: ./google-adk
         run: uv build
 
       - name: Upload distribution artifact
+        if: steps.version.outputs.exists == 'false'
         uses: actions/upload-artifact@v7
         with:
           name: python-package-distributions
@@ -48,6 +86,7 @@ jobs:
   publish-pypi:
     name: Publish to PyPI
     needs: build
+    if: needs.build.outputs.version-exists == 'false'
     runs-on: ubuntu-latest
     steps:
       - name: Download distributions
