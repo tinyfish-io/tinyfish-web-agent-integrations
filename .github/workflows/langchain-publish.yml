@@ -1,34 +1,106 @@
-name: LangChain Publish
+name: LangChain CD - Publish to PyPI
 
 on:
   push:
-    tags:
-      - "langchain-v*"
-
-permissions:
-  contents: read
-  id-token: write
+    branches: [main]
+    paths:
+      - ".github/workflows/langchain-publish.yml"
+      - "langchain/**"
 
 jobs:
-  publish:
-    if: startsWith(github.ref, 'refs/tags/langchain-v')
+  build:
+    name: Build distribution
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: langchain
-
+    permissions:
+      contents: read
+    outputs:
+      version-exists: ${{ steps.version.outputs.exists }}
+      package-version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
-      - run: python -m pip install --upgrade pip build
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
 
-      - run: python -m build
+      - name: Check PyPI version availability
+        id: version
+        working-directory: ./langchain
+        run: |
+          PACKAGE=$(python -c "import tomllib; f=open('pyproject.toml','rb'); d=tomllib.load(f); print(d['project']['name'])")
+          VERSION=$(python -c "import tomllib; f=open('pyproject.toml','rb'); d=tomllib.load(f); print(d['project']['version'])")
+          echo "package=${PACKAGE}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          RESULT=$(python - "$PACKAGE" "$VERSION" <<'PY'
+          import sys
+          import urllib.error
+          import urllib.parse
+          import urllib.request
 
-      - uses: pypa/gh-action-pypi-publish@release/v1
+          package = sys.argv[1]
+          version = sys.argv[2]
+          url = f"https://pypi.org/pypi/{urllib.parse.quote(package)}/{version}/json"
+          try:
+              with urllib.request.urlopen(url, timeout=10):
+                  pass
+          except urllib.error.HTTPError as exc:
+              if exc.code == 404:
+                  print("missing")
+                  sys.exit(0)
+              print(f"PyPI returned HTTP {exc.code} while checking {url}", file=sys.stderr)
+              sys.exit(2)
+          except Exception as exc:
+              print(f"Failed to check PyPI for {url}: {exc}", file=sys.stderr)
+              sys.exit(2)
+          print("exists")
+          PY
+          )
+          case "$RESULT" in
+            exists)
+              echo "exists=true" >> "$GITHUB_OUTPUT"
+              echo "${PACKAGE} ${VERSION} already exists on PyPI; skipping publish."
+              ;;
+            missing)
+              echo "exists=false" >> "$GITHUB_OUTPUT"
+              echo "${PACKAGE} ${VERSION} is available on PyPI; building distribution."
+              ;;
+            *)
+              echo "Unexpected PyPI availability result: $RESULT"
+              exit 1
+              ;;
+          esac
+
+      - name: Build package
+        if: steps.version.outputs.exists == 'false'
+        working-directory: ./langchain
+        run: uv build
+
+      - name: Upload distribution artifact
+        if: steps.version.outputs.exists == 'false'
+        uses: actions/upload-artifact@v7
         with:
-          packages-dir: langchain/dist
+          name: python-package-distributions
+          path: langchain/dist/
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: build
+    if: needs.build.outputs.version-exists == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          password: ${{ secrets.PYPI_API_TOKEN }}
