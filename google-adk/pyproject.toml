@@ -1,6 +1,6 @@
 [project]
 name = "tinyfish-adk"
-version = "0.1.1"
+version = "0.1.2"
 description = "TinyFish Web Agent tools for Google Agent Development Kit (ADK)"
 readme = "README.md"
 license = { text = "MIT" }

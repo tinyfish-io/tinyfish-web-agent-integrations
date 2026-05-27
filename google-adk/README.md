@@ -50,7 +50,7 @@ from tinyfish_adk import tinyfish_web_agent
 
 agent = Agent(
     name="web_researcher",
-    model="gemini-2.5-flash",
+    model="gemini-3.5-flash",
     instruction="Use tinyfish_web_agent to browse and extract data from websites.",
     tools=[tinyfish_web_agent],
 )
@@ -64,7 +64,7 @@ from tinyfish_adk import tinyfish_queue_run, tinyfish_get_run
 
 agent = Agent(
     name="async_scraper",
-    model="gemini-2.5-flash",
+    model="gemini-3.5-flash",
     instruction="Queue long-running scrapes and poll for results.",
     tools=[tinyfish_queue_run, tinyfish_get_run],
 )
@@ -85,7 +85,7 @@ from tinyfish_adk import (
 
 agent = Agent(
     name="web_automation_agent",
-    model="gemini-2.5-flash",
+    model="gemini-3.5-flash",
     tools=[
         tinyfish_web_agent,
         tinyfish_queue_run,
