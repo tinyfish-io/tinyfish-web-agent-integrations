@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "langchain-tinyfish"
-version = "0.1.0"
+version = "0.1.1"
 description = "LangChain integration for TinyFish Web Agent - AI-powered web automation"
 readme = "README.md"
 license = { text = "MIT" }
