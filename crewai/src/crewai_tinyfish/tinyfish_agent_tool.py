@@ -7,6 +7,7 @@ target site to complete it and return structured results.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any, Dict, List, Optional, Type
 
@@ -185,7 +186,7 @@ class TinyFishAgentTool(BaseTool):
         return json.dumps(payload, ensure_ascii=False, indent=2, default=str)
 
     async def _arun(self, *args: Any, **kwargs: Any) -> str:
-        return self._run(*args, **kwargs)
+        return await asyncio.to_thread(self._run, *args, **kwargs)
 
 
 def _coerce_browser_profile(value: str) -> Any:

@@ -36,11 +36,15 @@ def supported_kwargs(func: Callable[..., Any], params: Dict[str, Any]) -> Dict[s
 
 
 def as_list(value: Any) -> list:
-    """Coerce ``value`` into a list (None -> [])."""
+    """Coerce ``value`` into a list (None -> [], scalars -> ``[value]``)."""
     if value is None:
         return []
     if isinstance(value, list):
         return value
+    # Treat str/bytes/dict as scalars so they wrap instead of splitting into
+    # characters or keys.
+    if isinstance(value, (str, bytes, dict)):
+        return [value]
     try:
         return list(value)
     except TypeError:

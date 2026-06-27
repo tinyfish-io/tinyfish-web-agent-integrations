@@ -21,7 +21,7 @@ conventions, so it can be contributed into the main repository with minimal chan
 
 In `crewai-tools`, tools live at `crewai_tools/tools/<tool_name>/`. Suggested layout:
 
-```
+```text
 crewai_tools/tools/tinyfish_search_tool/
     __init__.py
     tinyfish_search_tool.py      # from src/crewai_tinyfish/tinyfish_search_tool.py
@@ -45,7 +45,7 @@ Steps:
 4. Register the optional dependency in the repo's `pyproject.toml` under
    `[project.optional-dependencies]`:
    ```toml
-   tinyfish = ["tinyfish>=0.2.6"]
+   tinyfish = ["tinyfish>=0.2.5"]
    ```
 5. Add a short `README.md` per tool (the sections in this repo's README can be split).
 6. `uv run pytest` and run the repo's lint/type checks before opening the PR.

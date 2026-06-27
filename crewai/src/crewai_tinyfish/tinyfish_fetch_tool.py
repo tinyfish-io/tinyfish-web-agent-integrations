@@ -7,6 +7,7 @@ extracted content. Up to 10 URLs per call, each processed independently.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any, List, Optional, Type
 
@@ -146,4 +147,4 @@ class TinyFishFetchTool(BaseTool):
         return json.dumps({"results": pages, "errors": errors}, ensure_ascii=False, indent=2)
 
     async def _arun(self, *args: Any, **kwargs: Any) -> str:
-        return self._run(*args, **kwargs)
+        return await asyncio.to_thread(self._run, *args, **kwargs)

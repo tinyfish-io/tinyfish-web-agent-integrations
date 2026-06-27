@@ -7,6 +7,7 @@ consumption.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any, List, Optional, Type
 
@@ -131,4 +132,4 @@ class TinyFishSearchTool(BaseTool):
         )
 
     async def _arun(self, *args: Any, **kwargs: Any) -> str:
-        return self._run(*args, **kwargs)
+        return await asyncio.to_thread(self._run, *args, **kwargs)
