@@ -13,9 +13,10 @@ TinyFish Web Agent provides AI-powered web automation using natural language ins
 
 ## Integrations
 
-| Integration    | Description                                                    |
-| -------------- | -------------------------------------------------------------- |
-| [Dify](./dify) | Plugin for the [Dify](https://dify.ai) AI application platform |
+| Integration        | Description                                                    |
+| ------------------ | ---------------------------------------------------------------- |
+| [Dify](./dify)     | Plugin for the [Dify](https://dify.ai) AI application platform |
+| [Claude](./claude) | Plugin for [Claude Code](https://code.claude.com), Claude.ai, Claude Desktop, and Claude Cowork |
 
 ## Contribution guidelines
 
