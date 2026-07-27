@@ -43,7 +43,13 @@ the page might surprise it.
 |---|---|
 | `run_web_automation` | Default. Streams progress; you get the result in the same turn |
 | `run_web_automation_async` | Long tasks where you don't need to watch. Returns `run_id`; poll `get_run` |
-| `cancel_run` | Stop a pending or running run. Idempotent |
+| `get_run` / `cancel_run` | Check or stop a single run by `run_id`. `cancel_run` is idempotent |
+| `batch_status` | Poll **several** runs at once by ID — up to 8. Returns status, result, and error per run. Poll every 30–60s until every run is terminal (`COMPLETED`, `FAILED`, `CANCELLED`) |
+| `batch_cancel` | Cancel **several** runs at once by ID — up to 8. Idempotent; already-terminal runs return their current status |
+
+`batch_status` and `batch_cancel` operate on run IDs you already hold — use them to manage a fleet of
+`run_web_automation_async` runs without polling each one individually. This plugin does not start
+batches itself; kick off runs with `run_web_automation_async` and collect their `run_id`s.
 
 ## Parameters
 

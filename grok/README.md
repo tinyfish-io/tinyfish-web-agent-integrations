@@ -47,8 +47,10 @@ through the browser, and it works — there is no API key to paste.
 | `fetch_content` | Read up to 10 URLs per call as clean markdown; renders JavaScript; CSS-scoped extraction | Free |
 | `run_web_automation` | Multi-step browser automation from a natural-language goal — click, type, submit, navigate | 1 credit/step |
 | `run_web_automation_async` | The same, returning a run ID immediately for long tasks | 1 credit/step |
-| `get_run`, `cancel_run` | Check on or stop a run | — |
+| `get_run`, `cancel_run` | Check on or stop a single run | — |
+| `batch_status`, `batch_cancel` | Poll or cancel several runs at once by ID (up to 8) | — |
 | `create_browser_session` | Remote stealth Chrome with a CDP URL for Playwright, Puppeteer, or Selenium | 1 credit / 4 browser-minutes |
+| `close_browser_session` | Close a browser session by ID; idempotent | — |
 
 Automation supports structured output via `output_schema`, stealth mode and proxy routing for protected
 sites, and authenticated runs via saved Browser Context Profiles and Vault credentials.

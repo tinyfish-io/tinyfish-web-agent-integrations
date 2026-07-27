@@ -42,18 +42,21 @@ with sync_playwright() as p:
 ## Cost, and closing sessions
 
 **1 credit = 4 browser-minutes**, metered on wall-clock time the session is open — not on activity. An
-idle open session bills exactly like a busy one, so a leaked session quietly costs money.
+idle open session bills exactly like a busy one, so a leaked session quietly costs money. Close a
+session the moment you're done with it. Two paths, and they compose:
 
-**There is no terminate tool on the MCP server** — it exposes `create_browser_session` and
-`list_browser_sessions` only. Closing a session is done from the code that drives it, or through the
-REST API (`DELETE` on the session; idempotent, returns `204` even if already ended).
+- **`close_browser_session`** — the MCP tool. Pass the `session_id` returned by
+  `create_browser_session`. It's idempotent: closing an already-ended session still returns success.
+  This is the cleanup path you can drive directly from a plugin conversation, including sessions left
+  open by earlier work.
+- **Close the browser in the driving script too** — a `with` block or `finally`, so a script that
+  throws still tears the session down. Belt-and-suspenders with the tool above; a client-side
+  `browser.close()` and a server-side `close_browser_session` are not mutually exclusive.
 
 So:
 
-- **Close the browser in the script itself** — a `with` block or `finally`, so a script that throws
-  doesn't leak the session. This is the only cleanup path available from inside a plugin conversation.
-- Use `list_browser_sessions` to check for sessions still open from earlier work, and tell the user if
-  you find any — you can't close them for them, but they can.
+- Use `list_browser_sessions` to find sessions still running, then `close_browser_session` on each
+  stray `session_id`.
 - Don't open a session to do something `fetch_content` does for free.
 - Don't hold one open across a conversation while you think. Open, work, close.
 
