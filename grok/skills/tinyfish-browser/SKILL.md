@@ -42,9 +42,12 @@ from playwright.sync_api import sync_playwright
 
 with sync_playwright() as p:
     browser = p.chromium.connect_over_cdp(cdp_url)
-    page = browser.contexts[0].pages[0]
-    page.goto("https://example.com")
-    print(page.title())
+    try:
+        page = browser.contexts[0].pages[0]
+        page.goto("https://example.com")
+        print(page.title())
+    finally:
+        browser.close()
 ```
 
 `connect_over_cdp` — not `launch`. The browser is already running remotely. When the work is done, call

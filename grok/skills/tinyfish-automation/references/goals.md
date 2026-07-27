@@ -82,7 +82,7 @@ Every decision point is answered.
 **Forms are the counter-intuitive one.** Don't enumerate field-by-field instructions — describe the
 entity in prose and let the agent do the mapping:
 
-```
+```text
 Fill out the contact form with this information:
 
 Jordan Lee is a platform engineer at Acme Corp in Denver.
@@ -91,6 +91,10 @@ Interested in the Enterprise plan, wants a demo next week.
 
 Submit the form when complete.
 ```
+
+Submitting a contact form sends a message on the user's behalf, so confirm the details with the user
+before running a goal like this — see the safety rules in the `tinyfish-automation` skill. The example
+assumes that confirmation has already been given.
 
 The agent maps "platform engineer" to job title, "Acme Corp" to company, and so on. Field-by-field
 instructions break as soon as the form's layout differs from your assumption.

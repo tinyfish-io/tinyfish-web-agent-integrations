@@ -80,8 +80,10 @@ does it without the agent ever seeing a password.
 
 ## Security
 
-- **Network endpoints:** `https://agent.tinyfish.ai/mcp` — TinyFish's hosted MCP server (web search,
-  content extraction, browser automation). No other endpoint is contacted.
+- **Network endpoints:** The plugin declares a single MCP connection — `https://agent.tinyfish.ai/mcp`,
+  TinyFish's hosted server for web search, content extraction, and browser automation. It configures no
+  other endpoint. OAuth sign-in and any remote-browser CDP session the server hands back are carried out
+  by TinyFish, not by anything this plugin ships.
 - **Credentials:** OAuth 2.1 via the browser on first connection. **No API key is stored or read by
   this plugin.** It never reads environment variables, `.env` files, or any local secret.
 - **Contents:** Markdown and JSON only. No scripts, binaries, hooks, or install steps — nothing in this

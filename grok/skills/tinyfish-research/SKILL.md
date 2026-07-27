@@ -98,8 +98,9 @@ Your sub-question: [the specific angle, stated as a question]
 
 Return: [exact output format — e.g. "compact JSON with name, url, one-line evidence, per result"]
 
-End with EXACTLY: `sources_reviewed: N` where N = the total number of search results you looked at
-across every `search` call including retries, plus every URL you fetched.
+End with EXACTLY: `sources_reviewed: N` where N = the number of **unique** source URLs you reviewed —
+every distinct URL you saw in `search` results (across all calls and retries) or fetched. Count a URL
+once even if you both saw it in search and then fetched it.
 ```
 
 Pass the `sources_reviewed` line to every subagent verbatim. Don't paraphrase it.
