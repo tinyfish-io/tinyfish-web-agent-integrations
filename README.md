@@ -15,8 +15,12 @@ TinyFish Web Agent provides AI-powered web automation using natural language ins
 
 | Integration        | Description                                                    |
 | ------------------ | ---------------------------------------------------------------- |
-| [Dify](./dify)     | Plugin for the [Dify](https://dify.ai) AI application platform |
 | [Claude](./claude) | Plugin for [Claude Code](https://code.claude.com), Claude.ai, Claude Desktop, and Claude Cowork |
+| [Grok](./grok)     | Plugin for [Grok Build](https://x.ai) — search, fetch, and goal-driven web automation via TinyFish's hosted MCP server |
+| [Dify](./dify)     | Plugin for the [Dify](https://dify.ai) AI application platform |
+| [LangChain](./langchain) | `langchain-tinyfish` — TinyFish Search, Fetch, Web Agent, and Browser as LangChain tools |
+| [Google ADK](./google-adk) | `tinyfish-adk` — TinyFish tools for the Google Agent Development Kit |
+| [n8n](./n8n)       | Community node for the [n8n](https://n8n.io) workflow automation platform |
 
 ## Contribution guidelines
 

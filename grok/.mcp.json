@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "tinyfish": {
+      "type": "http",
+      "url": "https://agent.tinyfish.ai/mcp",
+      "note": "TinyFish hosted MCP server. Requires OAuth 2.1: on first connection you are prompted to sign in to your TinyFish account in the browser — there is no API key to paste. Tools this plugin uses: search and fetch_content (both free), run_web_automation and run_web_automation_async for goal-driven multi-step automation (including logged-in sites via use_profile and use_vault), get_run and cancel_run, batch_create/batch_status/batch_cancel for up to 8 concurrent automation runs, and create_browser_session for CDP control from Playwright or Puppeteer."
+    }
+  }
+}
