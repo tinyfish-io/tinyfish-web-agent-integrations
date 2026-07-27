@@ -8,6 +8,16 @@ description: "Create a remote stealth Chrome session with TinyFish and control i
 `create_browser_session` gives you a remote, stealth Chrome instance and a CDP WebSocket URL. You drive
 it from your own code.
 
+## Tools
+
+Three MCP tools make up this capability:
+
+| Tool | Purpose |
+|---|---|
+| `create_browser_session` | Start a remote stealth Chrome session; returns a `session_id` and `cdp_url`. Optionally takes a target URL for proxy selection |
+| `list_browser_sessions` | List sessions, filterable by `session_id` or status (`running`/`ended`) — use it to find sessions still open |
+| `close_browser_session` | Close a session by `session_id`. Idempotent — an already-ended session still returns success |
+
 ## When this, and not automation
 
 | Situation | Use |
@@ -37,7 +47,8 @@ with sync_playwright() as p:
     print(page.title())
 ```
 
-`connect_over_cdp` — not `launch`. The browser is already running remotely.
+`connect_over_cdp` — not `launch`. The browser is already running remotely. When the work is done, call
+`close_browser_session` with the `session_id` from `create_browser_session` to stop the meter.
 
 ## Cost, and closing sessions
 
