@@ -78,7 +78,6 @@ Every decision point is answered.
 | Price / product extraction | Specific, constrained | List exact fields, exclude everything else |
 | Form filling | **Natural language** | Describe the person or entity; let the agent map fields |
 | Multi-step workflow | Numbered steps | Enables cross-step memory references |
-| Batch execution | Minimal, strict schema | Only essential fields, for consistency across runs |
 
 **Forms are the counter-intuitive one.** Don't enumerate field-by-field instructions — describe the
 entity in prose and let the agent do the mapping:
@@ -126,16 +125,6 @@ Return as JSON array.
 ```
 
 `ONLY` and an explicit exclusion line both pull their weight here.
-
-## Single runs vs. batch
-
-**Single runs** — optimize for completeness. Rich results, detailed edge-case handling, verbose output
-you can debug against, because you can iterate.
-
-**Batch runs** — optimize for *consistency*. Every run must return an identical structure, so minimize
-fields to exactly what you need and pair the goal with a strict `output_schema`. A field that's
-sometimes-present breaks downstream processing across hundreds of runs. Test the goal on one URL
-before batching it.
 
 ## Costs
 

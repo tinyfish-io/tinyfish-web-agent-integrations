@@ -18,8 +18,6 @@ Do not use `run_web_automation` for research. It costs 1 credit per step and is 
 sites, not reading them. The only exception is a page that requires a login to read — that's
 `tinyfish-authenticated`.
 
-Do not call `run_big_search`. Use `search`.
-
 ## Auth
 
 The server is `https://agent.tinyfish.ai/mcp`, configured by this plugin, authenticated by OAuth on

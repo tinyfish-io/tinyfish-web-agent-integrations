@@ -17,7 +17,6 @@ is mostly about not paying for the second when the first would do.
 | Research a topic across many sources | `search` + `fetch_content`, fanned out across subagents | **free** | `tinyfish-research` |
 | Click, type, submit, navigate a flow, or extract data that only appears after interaction | `run_web_automation` | 1 credit/step | `tinyfish-automation` |
 | Do the above on a site the user is logged into | `run_web_automation` + `use_profile` / `use_vault` | 1 credit/step | `tinyfish-authenticated` |
-| Run many automations at once (up to 8) | `batch_create` | 1 credit/step each | `tinyfish-automation` → `references/batch.md` |
 | Drive a browser from Playwright, Puppeteer, or Selenium code | `create_browser_session` | 1 credit / 4 min | `tinyfish-browser` |
 
 ## The one rule that saves money
@@ -32,19 +31,12 @@ it's a read, and reads are free.**
 
 Using `run_web_automation` to read a page is the most common and most expensive mistake available here.
 
-## Don't call `run_big_search`
+## Reading many pages at once
 
-Use `search`. `run_big_search` is experimental, has no REST equivalent, and takes 2–15 minutes to
-return. Deep research is handled better by fanning `search` and `fetch_content` out across subagents —
-free, and progress stays visible. See `tinyfish-research`.
-
-## Batch means automation only
-
-Worth knowing because the natural assumption is wrong:
-
-- **Automation** batches via `batch_create` — up to 8 concurrent through MCP.
-- **Fetch** has no batch tool because it doesn't need one: `fetch_content` takes 10 URLs per call.
-- **Search** has no batch at any layer. Parallelism is just concurrent calls.
+- **Fetch** takes up to **10 URLs per `fetch_content` call** — that's how you read a batch of pages in
+  one shot, for free.
+- **Search** has no batch: parallelism is just concurrent `search` calls, which is what subagent
+  fan-out does. See `tinyfish-research`.
 
 ## Sequencing
 

@@ -48,7 +48,6 @@ through the browser, and it works — there is no API key to paste.
 | `run_web_automation` | Multi-step browser automation from a natural-language goal — click, type, submit, navigate | 1 credit/step |
 | `run_web_automation_async` | The same, returning a run ID immediately for long tasks | 1 credit/step |
 | `get_run`, `cancel_run` | Check on or stop a run | — |
-| `batch_create`, `batch_status`, `batch_cancel` | Run up to 8 automations concurrently | 1 credit/step each |
 | `create_browser_session` | Remote stealth Chrome with a CDP URL for Playwright, Puppeteer, or Selenium | 1 credit / 4 browser-minutes |
 
 Automation supports structured output via `output_schema`, stealth mode and proxy routing for protected
@@ -60,7 +59,7 @@ sites, and authenticated runs via saved Browser Context Profiles and Vault crede
 |---|---|
 | `tinyfish-web` | Router — picks the right tool for a web task, and keeps free reads from being done as metered automations |
 | `tinyfish-research` | Research orchestrator: plans the work, fans searches out across subagents, compiles deduplicated cited results |
-| `tinyfish-automation` | Goal-driven automation: goal writing, structured output, batching, and diagnosing bot detection |
+| `tinyfish-automation` | Goal-driven automation: goal writing, structured output, and diagnosing bot detection |
 | `tinyfish-authenticated` | Automating logged-in sites with Browser Context Profiles and Vault credentials |
 | `tinyfish-browser` | Remote browser sessions driven over CDP from your own code |
 

@@ -102,6 +102,5 @@ rewriting the schema.
   "never checked".
 - **Keep schemas flat.** Depth costs reliability well before it hits the limit of 10.
 - **`propertyOrdering`** is worth setting when a human reads the output or you're diffing runs.
-- **Reuse the identical schema across a batch.** Consistency is the whole point of batching.
 - Stored runs include the schema as `output_schema` on `get_run`, so you can confirm what a past run
   was asked for.

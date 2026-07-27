@@ -1,6 +1,6 @@
 ---
 name: tinyfish-automation
-description: "Goal-driven browser automation with TinyFish. Use when a task needs a real browser to act on a site — clicking, filling and submitting forms, navigating multi-step flows, working through pagination, or extracting data that only appears after interaction. Also for running many such automations at once."
+description: "Goal-driven browser automation with TinyFish. Use when a task needs a real browser to act on a site — clicking, filling and submitting forms, navigating multi-step flows, working through pagination, or extracting data that only appears after interaction."
 ---
 
 # TinyFish Web Automation
@@ -43,7 +43,6 @@ the page might surprise it.
 |---|---|
 | `run_web_automation` | Default. Streams progress; you get the result in the same turn |
 | `run_web_automation_async` | Long tasks where you don't need to watch. Returns `run_id`; poll `get_run` |
-| `batch_create` | Many independent automations at once — up to 8. See `references/batch.md` |
 | `cancel_run` | Stop a pending or running run. Idempotent |
 
 ## Parameters
