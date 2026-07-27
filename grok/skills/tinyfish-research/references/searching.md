@@ -3,10 +3,11 @@
 `search` returns ranked web results — `position`, `site_name`, `title`, `snippet`, `url`, and `date`
 when known. It is free, so run as many as the task needs.
 
-> **The tool schema is authoritative.** The parameters below are the ones the Search API accepts, and
-> `search` forwards to it. Your client shows you the tool's actual input schema — if a parameter here
-> isn't in that schema, it isn't available to you through MCP, so use the query string instead of
-> guessing. Never invent a parameter name.
+> **Full reference:** <https://docs.tinyfish.ai/api-reference/search-the-web> documents every
+> parameter, range, and response field. **The tool schema is authoritative** for what's callable
+> through MCP — your client shows you the tool's actual input schema; if a parameter isn't in it, it
+> isn't available to you here, so use the query string instead of guessing. Never invent a parameter
+> name.
 
 ## Always pass `purpose`
 
@@ -34,15 +35,10 @@ Max 2000 characters. Describe the goal, not the query.
 
 ## Filters
 
-| Parameter | Use |
-|---|---|
-| `include_domains` | Comma-separated allowlist, e.g. `github.com,arxiv.org` |
-| `exclude_domains` | Comma-separated blocklist, e.g. `pinterest.com,quora.com` |
-| `recency_minutes` | Freshness window, integer 1–5256000 (10 years). `1440` = last day |
-| `after_date` / `before_date` | `YYYY-MM-DD` bounds |
-| `domain_type` | `web` (default), `news`, `research_paper` |
-| `location` / `language` | `US`, `GB`, `FR` / `en`, `fr`, `ja` |
-| `page` | 0-indexed pagination, max `10` |
+`search` takes domain allow/blocklists, a `domain_type` (`web`/`news`/`research_paper`), date and
+recency windows, `location`/`language`, and pagination. Ranges, defaults, and examples are in the
+[reference](https://docs.tinyfish.ai/api-reference/search-the-web); the live tool schema is
+authoritative for what's callable through MCP. What the docs won't tell you is below.
 
 Prefer `include_domains`/`exclude_domains` over `site:`/`-site:` in the query string. The operators
 still work but collide with other query syntax; the parameters don't.
