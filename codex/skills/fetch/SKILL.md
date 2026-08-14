@@ -32,7 +32,7 @@ Response includes per URL: `url`, `final_url`, `title`, `language`, `author`, `p
 
 ## Examples
 
-```
+```text
 fetch_content(urls=["https://example.com/article"], format="markdown")
 
 fetch_content(

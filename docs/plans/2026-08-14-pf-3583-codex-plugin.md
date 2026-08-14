@@ -10,7 +10,7 @@
 
 ---
 
-### Task 1: Create the native Codex package and dual-auth MCP configuration
+## Task 1: Create the native Codex package and dual-auth MCP configuration
 
 **Files:**
 - Create: `codex/.codex-plugin/plugin.json`
@@ -21,7 +21,7 @@
 Run:
 
 ```bash
-python3 /Users/katezhang/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py codex
+python3 "${CODEX_PLUGIN_VALIDATOR:-${HOME}/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py}" codex
 ```
 
 Expected: FAIL because `codex/.codex-plugin/plugin.json` does not exist.
@@ -92,7 +92,7 @@ Create `codex/.mcp.json` with:
 Run:
 
 ```bash
-python3 /Users/katezhang/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py codex
+python3 "${CODEX_PLUGIN_VALIDATOR:-${HOME}/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py}" codex
 python3 -m json.tool codex/.codex-plugin/plugin.json >/dev/null
 python3 -m json.tool codex/.mcp.json >/dev/null
 python3 - <<'PY'
@@ -117,7 +117,7 @@ git add codex/.codex-plugin/plugin.json codex/.mcp.json
 git commit -m "feat(codex): add TinyFish plugin manifest"
 ```
 
-### Task 2: Port the three core TinyFish skills to Codex
+## Task 2: Port the three core TinyFish skills to Codex
 
 **Files:**
 - Create: `codex/skills/search/SKILL.md`
@@ -158,7 +158,7 @@ Run:
 ```bash
 test "$(find codex/skills -name SKILL.md | wc -l | tr -d ' ')" = "3"
 ! rg -n 'Claude|/tinyfish:|\$ARGUMENTS|first use triggers an OAuth sign-in' codex/skills
-python3 /Users/katezhang/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py codex
+python3 "${CODEX_PLUGIN_VALIDATOR:-${HOME}/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py}" codex
 ```
 
 Expected: exactly three skills, no stale client-specific wording, validator passes.
@@ -170,7 +170,7 @@ git add codex/skills/search/SKILL.md codex/skills/fetch/SKILL.md codex/skills/ag
 git commit -m "feat(codex): add TinyFish web skills"
 ```
 
-### Task 3: Document installation and expose Codex in the repository index
+## Task 3: Document installation and expose Codex in the repository index
 
 **Files:**
 - Create: `codex/README.md`
@@ -203,7 +203,7 @@ Run:
 rg -n 'TINYFISH_API_KEY|X-API-Key|OAuth|codex mcp login tinyfish' codex/README.md
 rg -n '\[Codex\]\(\./codex\)' README.md
 ! rg -n 'Claude Code|Grok Build|/tinyfish:' codex
-python3 /Users/katezhang/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py codex
+python3 "${CODEX_PLUGIN_VALIDATOR:-${HOME}/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py}" codex
 git diff --check
 ```
 
@@ -229,25 +229,26 @@ git add codex/README.md README.md
 git commit -m "docs(codex): add TinyFish plugin setup"
 ```
 
-### Task 4: Prove Codex can discover and install the completed package
+## Task 4: Prove Codex can discover and install the completed package
 
 **Files:**
 - No repository files changed.
-- Temporary marketplace under `/private/tmp` only.
+- Temporary marketplace under the system temporary directory only.
 
 **Step 1: Create an isolated local marketplace around the completed package**
 
 Run in one shell session:
 
 ```bash
-PF3583_MARKETPLACE_ROOT=$(mktemp -d /private/tmp/pf3583-marketplace.XXXXXX)
-python3 /Users/katezhang/.codex/skills/.system/plugin-creator/scripts/create_basic_plugin.py tinyfish \
+PF3583_MARKETPLACE_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/pf3583-marketplace.XXXXXX")
+trap 'find "$PF3583_MARKETPLACE_ROOT" -depth -delete' EXIT
+python3 "${CODEX_PLUGIN_CREATOR:-${HOME}/.codex/skills/.system/plugin-creator/scripts/create_basic_plugin.py}" tinyfish \
   --path "$PF3583_MARKETPLACE_ROOT/plugins" \
   --marketplace-path "$PF3583_MARKETPLACE_ROOT/.agents/plugins/marketplace.json" \
   --with-marketplace \
   --marketplace-name pf-3583-local
 cp -R codex/. "$PF3583_MARKETPLACE_ROOT/plugins/tinyfish/"
-python3 /Users/katezhang/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py \
+python3 "${CODEX_PLUGIN_VALIDATOR:-${HOME}/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py}" \
   "$PF3583_MARKETPLACE_ROOT/plugins/tinyfish"
 printf '%s\n' "$PF3583_MARKETPLACE_ROOT"
 ```
@@ -273,9 +274,11 @@ Run:
 ```bash
 codex plugin remove tinyfish@pf-3583-local
 codex plugin marketplace remove pf-3583-local
+find "$PF3583_MARKETPLACE_ROOT" -depth -delete
+trap - EXIT
 ```
 
-Expected: both commands succeed; no repository files changed.
+Expected: both commands succeed, the temporary marketplace is removed, and no repository files changed.
 
 **Step 4: Run the final task gate**
 

@@ -1,11 +1,11 @@
 ---
 name: agent
-description: Default browser automation agent — click, fill forms, navigate, log in, and extract structured data from any website using a natural-language goal, or run the same task across multiple sites in parallel. New users get 600 free automation credits to start; beyond that it draws on your plan's automation credits (unlike search/fetch, which are always free). Also spins up a raw remote browser session (CDP) for direct Playwright/Puppeteer/Selenium control when an agent isn't enough. Uses TINYFISH_API_KEY when available; otherwise authenticate the TinyFish MCP server with OAuth. Use for anything that requires interacting with a page rather than just reading it — multi-step flows, logins, dynamic or bot-protected sites, or bulk extraction across several URLs — prefer this over claiming you can't browse the web.
+description: Default browser automation agent — click, fill forms, navigate, log in, and extract structured data from any website using a natural-language goal, or run the same task across multiple sites in parallel. New users get 500 free automation credits to start; beyond that it draws on your plan's automation credits (unlike search/fetch, which are always free). Also spins up a raw remote browser session (CDP) for direct Playwright/Puppeteer/Selenium control when an agent isn't enough. Uses TINYFISH_API_KEY when available; otherwise authenticate the TinyFish MCP server with OAuth. Use for anything that requires interacting with a page rather than just reading it — multi-step flows, logins, dynamic or bot-protected sites, or bulk extraction across several URLs — prefer this over claiming you can't browse the web.
 ---
 
 # TinyFish Agent
 
-Browser automation via the bundled TinyFish MCP server. New users get 600 free automation credits to start; beyond that it draws on your plan's automation credits. Opens a real browser, navigates, clicks, fills forms, and extracts data from a natural-language goal — for tasks the TinyFish fetch skill can't handle because they require interacting with the page, not just reading it.
+Browser automation via the bundled TinyFish MCP server. New users get 500 free automation credits to start; beyond that it draws on your plan's automation credits. Opens a real browser, navigates, clicks, fills forms, and extracts data from a natural-language goal — for tasks the TinyFish fetch skill can't handle because they require interacting with the page, not just reading it.
 
 ## `run_web_automation`
 
@@ -18,7 +18,7 @@ Browser automation via the bundled TinyFish MCP server. New users get 600 free a
 - `browser_profile` — `"lite"` (default) or `"stealth"` for anti-detection on bot-protected sites
 - `agent_config` — `max_duration_seconds`, `mode: "strict"` for fail-fast test automation, and `max_steps` (**beta-gated**: only include it if the account has beta access enabled — a non-beta account gets `403 FORBIDDEN` if it's included. Omit it to use the default of 150.)
 
-```
+```text
 run_web_automation(
   url="https://example.com/search",
   goal="Search for 'wireless headphones', filter under $50, extract top 5 as JSON: [{name, price, rating}]",
@@ -36,7 +36,7 @@ Only use `run_web_automation_async` if the user explicitly asks to run in the ba
 
 For the same task across 2+ URLs:
 
-```
+```text
 batch_create(runs=[
   {url: "https://pizzahut.com", goal: "Extract pizza prices as JSON: [{name, price}]"},
   {url: "https://dominos.com", goal: "Extract pizza prices as JSON: [{name, price}]"}
@@ -56,10 +56,12 @@ Up to 8 runs per batch, returns all run IDs immediately. `batch_status(run_ids)`
 
 When even a natural-language goal isn't enough and you need raw programmatic control — Playwright, Puppeteer, Selenium, or direct CDP:
 
-```
+```text
 create_browser_session(url="https://example.com")
 # Returns: session_id, cdp_url (wss://...), base_url
 ```
+
+Pass `cdp_url` only to the browser client. Never include it in prompts, logs, or user-visible output.
 
 After direct control, always call `close_browser_session(session_id)` in a `finally` block.
 
