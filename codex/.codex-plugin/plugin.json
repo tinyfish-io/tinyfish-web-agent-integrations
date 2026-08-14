@@ -1,0 +1,39 @@
+{
+  "name": "tinyfish",
+  "version": "1.0.0",
+  "description": "Search, fetch, and automate the web with TinyFish.",
+  "author": {
+    "name": "TinyFish",
+    "email": "support@tinyfish.io",
+    "url": "https://tinyfish.ai"
+  },
+  "homepage": "https://docs.tinyfish.ai",
+  "repository": "https://github.com/tinyfish-io/tinyfish-web-agent-integrations",
+  "license": "MIT",
+  "keywords": [
+    "web-automation",
+    "web-agent",
+    "browser-automation",
+    "web-scraping",
+    "data-extraction",
+    "search",
+    "fetch"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "TinyFish",
+    "shortDescription": "Search, fetch, and automate the web",
+    "longDescription": "Use TinyFish for live web search, clean page extraction, and browser automation from Codex.",
+    "developerName": "TinyFish",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://tinyfish.ai",
+    "privacyPolicyURL": "https://www.tinyfish.ai/privacy-policy",
+    "defaultPrompt": "Use TinyFish to research the web or automate a website."
+  }
+}
