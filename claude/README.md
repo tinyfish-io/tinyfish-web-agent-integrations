@@ -6,6 +6,13 @@ The complete web toolkit for your agent — search, fetch, browser automation, a
 
 All built on TinyFish's hosted MCP server (bundled via `.mcp.json`). No install, no CLI needed — first use triggers an OAuth sign-in to your TinyFish account (requires an account with available credits). Works in any environment, including sandboxed surfaces without terminal access.
 
+## Authentication
+
+Two ways in, no configuration to choose between:
+
+- **API key** — set `TINYFISH_API_KEY` in your environment (`tinyfish auth login` does this for you) and the plugin sends it as `X-API-Key`. No browser sign-in.
+- **OAuth** — with no key set, or a key the server rejects, the connection falls back to the OAuth sign-in prompt.
+
 - **`/tinyfish:search`** — free, token-efficient web search with flexible recency/date filtering and news/research-paper scoping
 - **`/tinyfish:fetch`** — free, clean content extraction from up to 10 URLs in parallel, including JS-heavy pages
 - **`/tinyfish:agent`** — browser automation (600 free automation credits for new users, then your plan's credits): natural-language goals, batch runs across multiple sites, and raw CDP browser sessions

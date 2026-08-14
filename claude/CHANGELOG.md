@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0 (2026-08-14)
+
+### Added
+- API-key auth alongside OAuth: the bundled MCP server sends `TINYFISH_API_KEY` as `X-API-Key` when it is set in the environment. An unset, empty, or rejected key falls back to the OAuth sign-in, so nothing changes for users who never set one.
+
 ## 1.1.0 (2026-07-21)
 
 ### Added
