@@ -20,6 +20,7 @@ TinyFish Web Agent provides AI-powered web automation using natural language ins
 | [Dify](./dify)     | Plugin for the [Dify](https://dify.ai) AI application platform |
 | [LangChain](./langchain) | `langchain-tinyfish` — TinyFish Search, Fetch, Web Agent, and Browser as LangChain tools |
 | [Google ADK](./google-adk) | `tinyfish-adk` — TinyFish tools for the Google Agent Development Kit |
+| [AG2](./ag2)       | `TinyFishSearchToolkit` — TinyFish Search and Fetch built into [AG2](https://github.com/ag2ai/ag2) >= 1.0.0, no adapter package needed |
 | [n8n](./n8n)       | Community node for the [n8n](https://n8n.io) workflow automation platform |
 
 ## Contribution guidelines
