@@ -5,17 +5,27 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
 import {
 	operationField,
 	runFields,
 	getRunFields,
 	listRunsFields,
+	searchWebFields,
+	fetchContentFields,
+	createBrowserSessionFields,
+	terminateBrowserSessionFields,
 } from './TinyfishDescription';
 import {
+	BROWSER_API_BASE_URL,
+	FETCH_API_BASE_URL,
+	SEARCH_API_BASE_URL,
 	tinyfishApiRequest,
 	buildAutomationPayload,
+	buildBrowserSessionPayload,
+	buildFetchPayload,
+	buildSearchQuery,
 	consumeSseStream,
 } from './GenericFunctions';
 
@@ -34,8 +44,8 @@ export class Tinyfish implements INodeType {
 		defaults: {
 			name: 'TinyFish Web Agent',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionTypes.Main],
+		outputs: [NodeConnectionTypes.Main],
 		usableAsTool: true,
 		credentials: [
 			{
@@ -43,7 +53,16 @@ export class Tinyfish implements INodeType {
 				required: true,
 			},
 		],
-		properties: [operationField, ...runFields, ...getRunFields, ...listRunsFields],
+		properties: [
+			operationField,
+			...runFields,
+			...getRunFields,
+			...listRunsFields,
+			...searchWebFields,
+			...fetchContentFields,
+			...createBrowserSessionFields,
+			...terminateBrowserSessionFields,
+		],
 	};
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
@@ -55,20 +74,18 @@ export class Tinyfish implements INodeType {
 			try {
 				let responseData: IDataObject;
 
-				if (operation === 'runSse') {
+				if (operation === 'createBrowserSession') {
+					const payload = buildBrowserSessionPayload.call(this, i);
+					responseData = await tinyfishApiRequest.call(this, 'POST', BROWSER_API_BASE_URL, payload);
+				} else if (operation === 'fetchContent') {
+					const payload = buildFetchPayload.call(this, i);
+					responseData = await tinyfishApiRequest.call(this, 'POST', FETCH_API_BASE_URL, payload);
+				} else if (operation === 'runSse') {
 					const payload = buildAutomationPayload.call(this, i);
-					responseData = await consumeSseStream.call(
-						this,
-						payload,
-					);
+					responseData = await consumeSseStream.call(this, payload);
 				} else if (operation === 'runSync') {
 					const payload = buildAutomationPayload.call(this, i);
-					responseData = await tinyfishApiRequest.call(
-						this,
-						'POST',
-						'/v1/automation/run',
-						payload,
-					);
+					responseData = await tinyfishApiRequest.call(this, 'POST', '/v1/automation/run', payload);
 				} else if (operation === 'runAsync') {
 					const payload = buildAutomationPayload.call(this, i);
 					responseData = await tinyfishApiRequest.call(
@@ -79,18 +96,10 @@ export class Tinyfish implements INodeType {
 					);
 				} else if (operation === 'getRun') {
 					const runId = this.getNodeParameter('runId', i) as string;
-					responseData = await tinyfishApiRequest.call(
-						this,
-						'GET',
-						`/v1/runs/${runId}`,
-					);
+					responseData = await tinyfishApiRequest.call(this, 'GET', `/v1/runs/${runId}`);
 				} else if (operation === 'listRuns') {
 					const returnAll = this.getNodeParameter('returnAll', i) as boolean;
-					const filters = this.getNodeParameter(
-						'filters',
-						i,
-						{},
-					) as IDataObject;
+					const filters = this.getNodeParameter('filters', i, {}) as IDataObject;
 					const qs: IDataObject = {};
 
 					if (filters.status) {
@@ -105,13 +114,7 @@ export class Tinyfish implements INodeType {
 							if (cursor) qs.cursor = cursor;
 							qs.limit = 100;
 
-							const page = await tinyfishApiRequest.call(
-								this,
-								'GET',
-								'/v1/runs',
-								{},
-								qs,
-							);
+							const page = await tinyfishApiRequest.call(this, 'GET', '/v1/runs', {}, qs);
 
 							const data = (page.data as IDataObject[]) || [];
 							allRuns.push(...data);
@@ -121,9 +124,7 @@ export class Tinyfish implements INodeType {
 							}
 
 							const pagination = page.pagination as IDataObject | undefined;
-							cursor = pagination?.has_more
-								? (pagination.next_cursor as string)
-								: undefined;
+							cursor = pagination?.has_more ? (pagination.next_cursor as string) : undefined;
 						} while (cursor);
 
 						for (const run of allRuns.slice(0, MAX_PAGINATION_ITEMS)) {
@@ -134,13 +135,7 @@ export class Tinyfish implements INodeType {
 						const limit = this.getNodeParameter('limit', i) as number;
 						qs.limit = limit;
 
-						const page = await tinyfishApiRequest.call(
-							this,
-							'GET',
-							'/v1/runs',
-							{},
-							qs,
-						);
+						const page = await tinyfishApiRequest.call(this, 'GET', '/v1/runs', {}, qs);
 
 						const data = (page.data as IDataObject[]) || [];
 						for (const run of data) {
@@ -148,12 +143,24 @@ export class Tinyfish implements INodeType {
 						}
 						continue;
 					}
-				} else {
-					throw new NodeOperationError(
-						this.getNode(),
-						`Unknown operation: ${operation}`,
-						{ itemIndex: i },
+				} else if (operation === 'searchWeb') {
+					const qs = buildSearchQuery.call(this, i);
+					responseData = await tinyfishApiRequest.call(this, 'GET', SEARCH_API_BASE_URL, {}, qs);
+				} else if (operation === 'terminateBrowserSession') {
+					const sessionId = this.getNodeParameter('sessionId', i) as string;
+					await tinyfishApiRequest.call(
+						this,
+						'DELETE',
+						`${BROWSER_API_BASE_URL}/${encodeURIComponent(sessionId)}`,
 					);
+					responseData = {
+						session_id: sessionId,
+						success: true,
+					};
+				} else {
+					throw new NodeOperationError(this.getNode(), `Unknown operation: ${operation}`, {
+						itemIndex: i,
+					});
 				}
 
 				const executionData = this.helpers.constructExecutionMetaData(
@@ -168,10 +175,6 @@ export class Tinyfish implements INodeType {
 						pairedItem: { item: i },
 					});
 					continue;
-				}
-
-				if (error instanceof NodeOperationError) {
-					throw error;
 				}
 
 				throw new NodeOperationError(this.getNode(), error as Error, {

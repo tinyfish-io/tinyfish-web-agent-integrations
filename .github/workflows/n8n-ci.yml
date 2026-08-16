@@ -1,0 +1,33 @@
+name: n8n Node CI
+
+on:
+  pull_request:
+    paths:
+      - 'n8n/**'
+      - '.github/workflows/n8n-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'n8n/**'
+      - '.github/workflows/n8n-ci.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: n8n
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm install
+
+      - run: npm run lint
+
+      - run: npm run build
