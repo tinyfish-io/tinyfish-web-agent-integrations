@@ -9,7 +9,8 @@ clicks, fills forms, navigates flows, and works inside applications using saved 
 password-manager credentials. Search and page extraction are free.
 
 It uses TinyFish's hosted [MCP server](https://docs.tinyfish.ai/mcp-integration). Install once, sign in
-through the browser, and it works — there is no API key to paste.
+through the browser, and it works. The plugin path is OAuth-only; if you'd rather use a TinyFish API
+key, register the server with the CLI instead — see [Authentication](#authentication).
 
 ## Installation
 
@@ -38,6 +39,20 @@ through the browser, and it works — there is no API key to paste.
    here](https://agent.tinyfish.ai).
 
 6. Once **tinyfish** shows ready, ask Grok anything that needs the web.
+
+## Authentication
+
+- **OAuth (this plugin)** — the bundled `.mcp.json` authenticates by browser sign-in, step 5 above. It
+  carries no API key: Grok drops an `X-API-Key` header once a server advertises OAuth metadata, so a key
+  in the manifest would never reach TinyFish.
+- **API key (CLI)** — to use a TinyFish API key instead, register the server with the TinyFish CLI:
+
+  ```bash
+  npx -y @tiny-fish/cli@latest connect grok --api-key sk-tinyfish-...
+  ```
+
+  That writes an `Authorization: Bearer` header into your own Grok config, so no browser sign-in is
+  needed. Keys come from [agent.tinyfish.ai](https://agent.tinyfish.ai).
 
 ## Tools
 

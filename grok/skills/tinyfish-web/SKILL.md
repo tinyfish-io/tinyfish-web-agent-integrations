@@ -54,7 +54,7 @@ authenticated automation. Three tools, one task, and only the last one costs any
 ## Setup and auth
 
 All of this runs through the `tinyfish` MCP server (`https://agent.tinyfish.ai/mcp`), configured by this
-plugin and authenticated by OAuth on first use — there is no API key to paste.
+plugin and authenticated by OAuth on first use — the plugin's config carries no API key.
 
 On an auth error, tell the user to re-authenticate: in Grok Build, `/mcps`, select `tinyfish`, press
 `i`. On a credit or rate-limit error, say so plainly. **Never quietly fall back to a generic web search
