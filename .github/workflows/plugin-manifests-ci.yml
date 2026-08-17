@@ -1,0 +1,38 @@
+name: Plugin Manifests CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/plugin-manifests-ci.yml"
+      - ".claude-plugin/**"
+      - "claude/**"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/plugin-manifests-ci.yml"
+      - ".claude-plugin/**"
+      - "claude/**"
+
+permissions:
+  contents: read
+
+jobs:
+  versions-match:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # The marketplace entry is what /plugin lists and what external marketplaces re-pin
+      # against, so it drifting behind plugin.json ships a stale version to users.
+      - name: Marketplace entry matches the plugin manifest
+        run: |
+          set -euo pipefail
+          plugin=$(jq -re '.version' claude/.claude-plugin/plugin.json)
+          entry=$(jq -re '.plugins[] | select(.source == "./claude") | .version' .claude-plugin/marketplace.json)
+          echo "plugin.json=$plugin marketplace.json=$entry"
+          if [ "$plugin" != "$entry" ]; then
+            echo "::error file=.claude-plugin/marketplace.json::plugin entry is $entry but claude/.claude-plugin/plugin.json is $plugin"
+            exit 1
+          fi
