@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0 (2026-08-17)
+
+### Added
+- Skill: `/tinyfish:doctor` — runs the CLI's `doctor` for the config checks, then proves this harness can actually reach TinyFish, which the CLI cannot do (it has no way to borrow the harness's OAuth token). Degrades to the reach check alone on surfaces with no shell.
+- Skill: `/tinyfish:feedback` — files a structured GitHub issue, with a preview the user has to approve before anything is sent.
+
+Both skills were previously published only through the `tinyfish-cookbook` marketplace copy of this plugin. This version supersedes that copy's 1.2.3 — the plugin cache is keyed by version, so anything lower would keep serving the stale copy.
+
 ## 1.2.0 (2026-08-14)
 
 ### Added
