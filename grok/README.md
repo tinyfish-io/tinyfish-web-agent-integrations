@@ -51,8 +51,11 @@ key, register the server with the CLI instead — see [Authentication](#authenti
   npx -y @tiny-fish/cli@latest connect grok --api-key sk-tinyfish-...
   ```
 
-  That writes an `Authorization: Bearer` header into your own Grok config, so no browser sign-in is
-  needed. Keys come from [agent.tinyfish.ai](https://agent.tinyfish.ai).
+  That exports `TINYFISH_API_KEY` to your shell profile and writes an `Authorization: Bearer
+  ${TINYFISH_API_KEY}` header into your own Grok config, so no browser sign-in is needed — open a new
+  terminal before starting Grok, or the header reads an unset variable. A keyed registration has no
+  OAuth fallback: if the key is unset or revoked, Grok fails rather than prompting you to sign in. Keys
+  come from [agent.tinyfish.ai/api-keys](https://agent.tinyfish.ai/api-keys).
 
 ## Tools
 
@@ -100,7 +103,8 @@ does it without the agent ever seeing a password.
   other endpoint. OAuth sign-in and any remote-browser CDP session the server hands back are carried out
   by TinyFish, not by anything this plugin ships.
 - **Credentials:** OAuth 2.1 via the browser on first connection. **No API key is stored or read by
-  this plugin.** It never reads environment variables, `.env` files, or any local secret.
+  this plugin's bundled `.mcp.json`.** It never reads environment variables, `.env` files, or any local
+  secret; the CLI key path in [Authentication](#authentication) uses your own environment and Grok config.
 - **Contents:** Markdown and JSON only. No scripts, binaries, hooks, or install steps — nothing in this
   plugin executes.
 - **Website credentials** used during authenticated runs are supplied by TinyFish Vault from the user's
