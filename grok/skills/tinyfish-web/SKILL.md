@@ -58,8 +58,10 @@ plugin, it authenticates by OAuth on first use and carries no API key. Registere
 connect grok --api-key`, it sends a `${TINYFISH_API_KEY}` Bearer header and has no OAuth fallback.
 
 On an auth error, check which setup this is. Plugin: tell the user to re-authenticate — in Grok Build,
-`/mcps`, select `tinyfish`, press `i`. Keyed: signing in there fixes nothing; the key is unset in the
-shell Grok was started from, or revoked. On a credit or rate-limit error, say so plainly. **Never
+`/mcps`, select `tinyfish`, press `i`. Keyed: signing in there fixes nothing — the key is unset in the
+shell Grok was started from, or revoked; tell the user to re-run `npx -y @tiny-fish/cli@latest connect
+grok --api-key <key>` and start Grok from a new terminal. On a credit or rate-limit error, say so
+plainly. **Never
 quietly fall back to a generic web search tool** — a degraded answer that looks like a TinyFish answer
 is worse than a clear error.
 
