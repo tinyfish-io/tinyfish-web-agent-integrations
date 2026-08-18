@@ -9,7 +9,8 @@ clicks, fills forms, navigates flows, and works inside applications using saved 
 password-manager credentials. Search and page extraction are free.
 
 It uses TinyFish's hosted [MCP server](https://docs.tinyfish.ai/mcp-integration). Install once, sign in
-through the browser, and it works — there is no API key to paste.
+through the browser, and it works. The plugin path is OAuth-only; if you'd rather use a TinyFish API
+key, register the server with the CLI instead — see [Authentication](#authentication).
 
 ## Installation
 
@@ -38,6 +39,23 @@ through the browser, and it works — there is no API key to paste.
    here](https://agent.tinyfish.ai).
 
 6. Once **tinyfish** shows ready, ask Grok anything that needs the web.
+
+## Authentication
+
+- **OAuth (this plugin)** — the bundled `.mcp.json` authenticates by browser sign-in, step 5 above. It
+  carries no API key: Grok drops an `X-API-Key` header once a server advertises OAuth metadata, so a key
+  in the manifest would never reach TinyFish.
+- **API key (CLI)** — to use a TinyFish API key instead, register the server with the TinyFish CLI:
+
+  ```bash
+  npx -y @tiny-fish/cli@latest connect grok --api-key sk-tinyfish-...
+  ```
+
+  That exports `TINYFISH_API_KEY` to your shell profile and writes an `Authorization: Bearer
+  ${TINYFISH_API_KEY}` header into your own Grok config, so no browser sign-in is needed — open a new
+  terminal before starting Grok, or the header reads an unset variable. A keyed registration has no
+  OAuth fallback: if the key is unset or revoked, Grok fails rather than prompting you to sign in. Keys
+  come from [agent.tinyfish.ai/api-keys](https://agent.tinyfish.ai/api-keys).
 
 ## Tools
 
@@ -85,7 +103,8 @@ does it without the agent ever seeing a password.
   other endpoint. OAuth sign-in and any remote-browser CDP session the server hands back are carried out
   by TinyFish, not by anything this plugin ships.
 - **Credentials:** OAuth 2.1 via the browser on first connection. **No API key is stored or read by
-  this plugin.** It never reads environment variables, `.env` files, or any local secret.
+  this plugin's bundled `.mcp.json`.** It never reads environment variables, `.env` files, or any local
+  secret; the CLI key path in [Authentication](#authentication) uses your own environment and Grok config.
 - **Contents:** Markdown and JSON only. No scripts, binaries, hooks, or install steps — nothing in this
   plugin executes.
 - **Website credentials** used during authenticated runs are supplied by TinyFish Vault from the user's
