@@ -149,6 +149,11 @@ REST_CALLS = [
         lambda: rest_client.fetch(["https://example.com"], api_key="tf_test"),
         "TinyFish Fetch",
     ),
+    (
+        "post",
+        lambda: rest_client.create_browser_session(api_key="tf_test"),
+        "TinyFish Browser",
+    ),
 ]
 
 
@@ -211,3 +216,168 @@ def test_rest_methods_report_invalid_json(
         rest_client.TinyFishRestError, match=f"{service} returned invalid JSON"
     ):
         call()
+
+
+def test_create_browser_session_sends_only_configured_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_post(url: str, **kwargs: Any) -> httpx.Response:
+        captured.update(url=url, **kwargs)
+        return _response("POST", url, payload={"session_id": "sess_123"})
+
+    monkeypatch.setattr(rest_client.httpx, "post", fake_post)
+
+    result = rest_client.create_browser_session(
+        api_key="tf_test",
+        url="https://example.com",
+        timeout_seconds=120,
+        timeout=8.0,
+    )
+
+    assert result == {"session_id": "sess_123"}
+    assert captured["url"] == rest_client.BROWSER_URL
+    assert captured["json"] == {"url": "https://example.com", "timeout_seconds": 120}
+    assert captured["timeout"] == 8.0
+    assert captured["headers"]["X-API-Key"] == "tf_test"
+
+
+def test_create_browser_session_omits_unset_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_post(url: str, **kwargs: Any) -> httpx.Response:
+        captured.update(kwargs)
+        return _response("POST", url, payload={"session_id": "sess_123"})
+
+    monkeypatch.setattr(rest_client.httpx, "post", fake_post)
+
+    rest_client.create_browser_session(api_key="tf_test")
+
+    assert captured["json"] == {}
+
+
+@pytest.mark.parametrize("status", [200, 201, 202, 204, 299])
+def test_close_browser_session_accepts_any_success_status(
+    monkeypatch: pytest.MonkeyPatch, status: int
+) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_delete(url: str, **kwargs: Any) -> httpx.Response:
+        captured.update(url=url, **kwargs)
+        return _response("DELETE", url, status=status)
+
+    monkeypatch.setattr(rest_client.httpx, "delete", fake_delete)
+
+    assert (
+        rest_client.close_browser_session("sess_123", api_key="tf_test", timeout=9.0)
+        is True
+    )
+    assert captured["url"] == f"{rest_client.BROWSER_URL}/sess_123"
+    assert captured["headers"] == {"X-API-Key": "tf_test", "Accept": "application/json"}
+    assert captured["timeout"] == 9.0
+
+
+def test_close_browser_session_rejects_404_without_retry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = 0
+
+    def fake_delete(url: str, **kwargs: Any) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return _response("DELETE", url, status=404)
+
+    monkeypatch.setattr(rest_client.httpx, "delete", fake_delete)
+    monkeypatch.setattr(
+        rest_client.time, "sleep", lambda delay: pytest.fail("must not retry")
+    )
+
+    assert rest_client.close_browser_session("sess_123", api_key="tf_test") is False
+    assert calls == 1
+
+
+@pytest.mark.parametrize("status", [409, 429, 500, 503, 504])
+def test_close_browser_session_retries_documented_transient_statuses(
+    monkeypatch: pytest.MonkeyPatch,
+    status: int,
+) -> None:
+    statuses = iter([status, 204])
+    sleeps: list[float] = []
+    monkeypatch.setattr(
+        rest_client.httpx,
+        "delete",
+        lambda url, **kwargs: _response("DELETE", url, status=next(statuses)),
+    )
+    monkeypatch.setattr(rest_client.time, "sleep", sleeps.append)
+
+    assert rest_client.close_browser_session("sess_123", api_key="tf_test") is True
+    assert sleeps == [0.25]
+
+
+def test_close_browser_session_honors_bounded_retry_after(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = iter(
+        [
+            _response(
+                "DELETE",
+                rest_client.BROWSER_URL,
+                status=429,
+                headers={"Retry-After": "60"},
+            ),
+            _response("DELETE", rest_client.BROWSER_URL, status=204),
+        ]
+    )
+    sleeps: list[float] = []
+    monkeypatch.setattr(
+        rest_client.httpx, "delete", lambda url, **kwargs: next(responses)
+    )
+    monkeypatch.setattr(rest_client.time, "sleep", sleeps.append)
+
+    assert rest_client.close_browser_session("sess_123", api_key="tf_test") is True
+    assert sleeps == [5.0]
+
+
+def test_close_browser_session_retries_transport_failure_then_succeeds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = 0
+    sleeps: list[float] = []
+
+    def flaky_delete(url: str, **kwargs: Any) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise httpx.ConnectError(
+                "network unavailable", request=httpx.Request("DELETE", url)
+            )
+        return _response("DELETE", url, status=204)
+
+    monkeypatch.setattr(rest_client.httpx, "delete", flaky_delete)
+    monkeypatch.setattr(rest_client.time, "sleep", sleeps.append)
+
+    assert rest_client.close_browser_session("sess_123", api_key="tf_test") is True
+    assert calls == 2
+    assert sleeps == [0.25]
+
+
+def test_close_browser_session_returns_false_after_bounded_retries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = 0
+    sleeps: list[float] = []
+
+    def fail(url: str, **kwargs: Any) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return _response("DELETE", url, status=503)
+
+    monkeypatch.setattr(rest_client.httpx, "delete", fail)
+    monkeypatch.setattr(rest_client.time, "sleep", sleeps.append)
+
+    assert rest_client.close_browser_session("sess_123", api_key="tf_test") is False
+    assert calls == 3
+    assert sleeps == [0.25, 0.5]

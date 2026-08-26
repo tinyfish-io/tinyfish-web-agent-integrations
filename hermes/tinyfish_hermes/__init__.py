@@ -36,11 +36,19 @@ __version__ = _resolve_version()
 
 
 def register(ctx: Any) -> None:
-    """Register the TinyFish web search provider with Hermes."""
+    """Register TinyFish providers and lifecycle hooks with Hermes."""
 
+    from .browser_provider import TinyFishBrowserProvider
+    from .credit_policy import pre_tool_call_policy
     from .provider import TinyFishWebSearchProvider
+    from .routing_context import routing_context_hook
 
     ctx.register_web_search_provider(TinyFishWebSearchProvider())
+    if hasattr(ctx, "register_browser_provider"):
+        ctx.register_browser_provider(TinyFishBrowserProvider())
+    if hasattr(ctx, "register_hook"):
+        ctx.register_hook("pre_tool_call", pre_tool_call_policy)
+        ctx.register_hook("pre_llm_call", routing_context_hook)
 
 
 def __getattr__(name: str) -> Any:
@@ -48,7 +56,16 @@ def __getattr__(name: str) -> Any:
         from .provider import TinyFishWebSearchProvider
 
         return TinyFishWebSearchProvider
+    if name == "TinyFishBrowserProvider":
+        from .browser_provider import TinyFishBrowserProvider
+
+        return TinyFishBrowserProvider
     raise AttributeError(name)
 
 
-__all__ = ["TinyFishWebSearchProvider", "__version__", "register"]
+__all__ = [
+    "TinyFishBrowserProvider",
+    "TinyFishWebSearchProvider",
+    "__version__",
+    "register",
+]
