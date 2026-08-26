@@ -14,12 +14,25 @@ The plugin authenticates with a TinyFish API key — create one at [agent.tinyfi
 
 | Env var | Source |
 | ------- | ------ |
-| `TINYFISH_API_KEY` | Set it yourself (shell env, or Hermes' env file) |
+| `TINYFISH_API_KEY` | Set it yourself (shell env, or `hermes tinyfish setup --api-key`) |
 | `MCP_TINYFISH_API_KEY` | Seeded by the TinyFish npm CLI during `tinyfish connect hermes` |
+
+## CLI
+
+The plugin registers a `hermes tinyfish` command and an in-session `/tinyfish-status [live]` command:
+
+| Subcommand | Purpose |
+| ---------- | ------- |
+| `setup [--yes] [--api-key KEY] [--no-web-backend] [--live]` | Route web tools to TinyFish and save the API key |
+| `status [--json]` | Non-secret configuration status |
+| `doctor [--json] [--live] [--live-paid]` | Diagnostics; `--live` runs one real search+fetch, `--live-paid` a browser session per credit policy |
+| `credits {status,set,reset}` | Inspect or change `tinyfish.credit_policy.browser` |
+| `browser {enable,disable,status}` | Toggle `browser.cloud_provider: tinyfish` |
+| `usage [--json]` | Wallet balance, auto-reload, and billing rates |
 
 ## Configuration
 
-Route Hermes' web tools to TinyFish in Hermes' configuration:
+`hermes tinyfish setup` routes Hermes' web tools to TinyFish; the equivalent Hermes configuration is:
 
 ```yaml
 web:

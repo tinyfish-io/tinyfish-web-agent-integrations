@@ -36,20 +36,56 @@ __version__ = _resolve_version()
 
 
 def register(ctx: Any) -> None:
-    """Register TinyFish providers and lifecycle hooks with Hermes."""
+    """Register TinyFish providers, lifecycle hooks, and CLI commands with Hermes."""
 
     from .browser_provider import TinyFishBrowserProvider
     from .credit_policy import pre_tool_call_policy
     from .provider import TinyFishWebSearchProvider
     from .routing_context import routing_context_hook
+    from .setup_cli import (
+        dispatch_tinyfish_cli,
+        setup_tinyfish_cli,
+        tinyfish_status_command,
+    )
 
-    ctx.register_web_search_provider(TinyFishWebSearchProvider())
+    provider = TinyFishWebSearchProvider()
+    ctx.register_web_search_provider(provider)
     if hasattr(ctx, "register_hook"):
         # Only offer the browser provider where the pre_tool_call credit gate lands.
         if hasattr(ctx, "register_browser_provider"):
             ctx.register_browser_provider(TinyFishBrowserProvider())
         ctx.register_hook("pre_tool_call", pre_tool_call_policy)
         ctx.register_hook("pre_llm_call", routing_context_hook)
+
+    if hasattr(ctx, "register_cli_command"):
+
+        def _dispatch_cli(args: Any) -> int:
+            exit_code = dispatch_tinyfish_cli(args, provider=provider)
+            if exit_code:
+                raise SystemExit(exit_code)
+            return 0
+
+        ctx.register_cli_command(
+            name="tinyfish",
+            help="Configure and diagnose the TinyFish web provider",
+            setup_fn=setup_tinyfish_cli,
+            handler_fn=_dispatch_cli,
+            description=(
+                "Route Hermes web tools to TinyFish and manage the API key, "
+                "credit policies, and browser sessions."
+            ),
+        )
+    if hasattr(ctx, "register_command"):
+        ctx.register_command(
+            name="tinyfish-status",
+            handler=lambda raw_args: tinyfish_status_command(
+                raw_args, provider=provider
+            ),
+            description=(
+                "Show TinyFish provider status; pass 'live' to test Search and Fetch."
+            ),
+            args_hint="[live]",
+        )
 
 
 def __getattr__(name: str) -> Any:

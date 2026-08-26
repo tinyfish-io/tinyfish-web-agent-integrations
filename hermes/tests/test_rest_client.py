@@ -154,6 +154,13 @@ REST_CALLS = [
         lambda: rest_client.create_browser_session(api_key="tf_test"),
         "TinyFish Browser",
     ),
+    (
+        "get",
+        lambda: rest_client.search_usage(api_key="tf_test"),
+        "TinyFish Search usage",
+    ),
+    ("get", lambda: rest_client.fetch_usage(api_key="tf_test"), "TinyFish Fetch usage"),
+    ("get", lambda: rest_client.wallet(api_key="tf_test"), "TinyFish Wallet"),
 ]
 
 
@@ -381,3 +388,62 @@ def test_close_browser_session_returns_false_after_bounded_retries(
     assert rest_client.close_browser_session("sess_123", api_key="tf_test") is False
     assert calls == 3
     assert sleeps == [0.25, 0.5]
+
+
+@pytest.mark.parametrize(
+    ("call", "expected_url"),
+    [
+        (
+            lambda: rest_client.search_usage(api_key="tf_test", timeout=11.0),
+            "https://api.search.tinyfish.ai/usage",
+        ),
+        (
+            lambda: rest_client.fetch_usage(api_key="tf_test", timeout=11.0),
+            "https://api.fetch.tinyfish.ai/usage",
+        ),
+        (
+            lambda: rest_client.wallet(api_key="tf_test", timeout=11.0),
+            "https://agent.tinyfish.ai/v1/wallet",
+        ),
+    ],
+    ids=["search_usage", "fetch_usage", "wallet"],
+)
+def test_wallet_and_usage_use_documented_endpoints(
+    monkeypatch: pytest.MonkeyPatch,
+    call: RestCall,
+    expected_url: str,
+) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_get(url: str, **kwargs: Any) -> httpx.Response:
+        captured.update(url=url, **kwargs)
+        return _response("GET", url, payload={"items": []})
+
+    monkeypatch.setattr(rest_client.httpx, "get", fake_get)
+
+    assert call() == {"items": []}
+    assert captured == {
+        "url": expected_url,
+        "headers": {"X-API-Key": "tf_test", "Accept": "application/json"},
+        "timeout": 11.0,
+    }
+
+
+def test_wallet_reports_documented_not_found_account_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_get(url: str, **kwargs: Any) -> httpx.Response:
+        return _response(
+            "GET",
+            url,
+            status=404,
+            payload={"error": {"code": "NOT_FOUND", "message": "Wallet not found"}},
+        )
+
+    monkeypatch.setattr(rest_client.httpx, "get", fake_get)
+
+    with pytest.raises(
+        rest_client.TinyFishWalletNotFound,
+        match="legacy billing or no Metronome customer yet",
+    ):
+        rest_client.wallet(api_key="tf_test")
