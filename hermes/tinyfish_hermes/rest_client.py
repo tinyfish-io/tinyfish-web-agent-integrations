@@ -12,6 +12,9 @@ SEARCH_URL = "https://api.search.tinyfish.ai"
 FETCH_URL = "https://api.fetch.tinyfish.ai"
 FETCH_MAX_URLS = 10
 BROWSER_URL = "https://api.browser.tinyfish.ai"
+WALLET_URL = "https://agent.tinyfish.ai/v1/wallet"
+SEARCH_USAGE_URL = f"{SEARCH_URL}/usage"
+FETCH_USAGE_URL = f"{FETCH_URL}/usage"
 
 _BROWSER_CLOSE_MAX_ATTEMPTS = 3
 _BROWSER_CLOSE_RETRYABLE_STATUSES = frozenset({409, 429, 500, 503, 504})
@@ -21,6 +24,10 @@ _BROWSER_CLOSE_RETRY_BASE_SECONDS = 0.25
 
 class TinyFishRestError(RuntimeError):
     """Raised for TinyFish REST transport or HTTP failures."""
+
+
+class TinyFishWalletNotFound(TinyFishRestError):
+    """Raised when an account uses legacy billing or has no wallet yet."""
 
 
 def _headers(api_key: str) -> dict[str, str]:
@@ -198,3 +205,64 @@ def close_browser_session(
         if delay > 0:
             time.sleep(delay)
     return False
+
+
+def _read_usage(
+    url: str,
+    *,
+    service: str,
+    api_key: str,
+    timeout: float,
+) -> dict[str, Any]:
+    try:
+        response = httpx.get(url, headers=_headers(api_key), timeout=timeout)
+        response.raise_for_status()
+        return cast(dict[str, Any], response.json())
+    except httpx.HTTPStatusError as exc:
+        _raise_http_error(service, exc)
+    except httpx.RequestError as exc:
+        raise TinyFishRestError(f"Could not reach {service}: {exc}") from exc
+    except ValueError as exc:
+        raise TinyFishRestError(f"{service} returned invalid JSON") from exc
+
+
+def search_usage(*, api_key: str, timeout: float = 30.0) -> dict[str, Any]:
+    """Return TinyFish Search operation history."""
+
+    return _read_usage(
+        SEARCH_USAGE_URL,
+        service="TinyFish Search usage",
+        api_key=api_key,
+        timeout=timeout,
+    )
+
+
+def fetch_usage(*, api_key: str, timeout: float = 30.0) -> dict[str, Any]:
+    """Return TinyFish Fetch operation history."""
+
+    return _read_usage(
+        FETCH_USAGE_URL,
+        service="TinyFish Fetch usage",
+        api_key=api_key,
+        timeout=timeout,
+    )
+
+
+def wallet(*, api_key: str, timeout: float = 30.0) -> dict[str, Any]:
+    """Return the caller's TinyFish wallet balance and billing rates."""
+
+    try:
+        response = httpx.get(WALLET_URL, headers=_headers(api_key), timeout=timeout)
+        response.raise_for_status()
+        return cast(dict[str, Any], response.json())
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            raise TinyFishWalletNotFound(
+                "TinyFish has no wallet for this account "
+                "(legacy billing or no Metronome customer yet)."
+            ) from exc
+        _raise_http_error("TinyFish Wallet", exc)
+    except httpx.RequestError as exc:
+        raise TinyFishRestError(f"Could not reach TinyFish Wallet: {exc}") from exc
+    except ValueError as exc:
+        raise TinyFishRestError("TinyFish Wallet returned invalid JSON") from exc

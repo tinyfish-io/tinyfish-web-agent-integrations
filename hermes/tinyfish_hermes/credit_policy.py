@@ -44,7 +44,8 @@ def block_message(feature: CreditFeature | str) -> str:
     return (
         f"BLOCKED: {policy_message(normalized, 'deny')} "
         f"Set `tinyfish.credit_policy.{normalized}` to `request` (per-session "
-        "approval) or `allow` in Hermes config."
+        "approval) or `allow` in Hermes config; `hermes tinyfish browser` "
+        "manages this setting."
     )
 
 
