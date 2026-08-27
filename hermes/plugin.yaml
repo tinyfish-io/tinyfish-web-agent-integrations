@@ -5,5 +5,7 @@ author: TinyFish
 kind: backend
 provides_web_providers:
   - tinyfish
+requires_env:
+  - TINYFISH_API_KEY
 homepage: "https://tinyfish.ai"
 license: MIT

@@ -1,34 +1,28 @@
 from __future__ import annotations
 
-import pytest
+import json
 
 from tinyfish_hermes.normalize import (
-    TinyFishPayloadError,
     normalize_fetch_documents,
     normalize_search_response,
-    parse_jsonish,
 )
 
 
-def test_parse_jsonish_decodes_json_strings() -> None:
-    assert parse_jsonish('{"a": 1}') == {"a": 1}
-    assert parse_jsonish("  ") == ""
-    assert parse_jsonish("not json") == "not json"
-    assert parse_jsonish({"a": 1}) == {"a": 1}
-
-
-def test_normalize_search_rest_envelope() -> None:
+def test_normalize_search_live_item_shape() -> None:
+    # Pinned to the live Search API item keys: position, site_name, snippet, title, url.
     payload = {
-        "data": {
-            "web": [
-                {
-                    "title": "TinyFish",
-                    "url": "https://www.tinyfish.ai/",
-                    "description": "Search and fetch",
-                    "position": 1,
-                }
-            ]
-        }
+        "query": "tinyfish",
+        "total_results": 1,
+        "page": 1,
+        "results": [
+            {
+                "position": 1,
+                "site_name": "TinyFish",
+                "snippet": "Search and fetch",
+                "title": "TinyFish Web Agent",
+                "url": "https://www.tinyfish.ai/",
+            }
+        ],
     }
 
     assert normalize_search_response(payload, limit=5) == {
@@ -36,7 +30,7 @@ def test_normalize_search_rest_envelope() -> None:
         "data": {
             "web": [
                 {
-                    "title": "TinyFish",
+                    "title": "TinyFish Web Agent",
                     "url": "https://www.tinyfish.ai/",
                     "description": "Search and fetch",
                     "position": 1,
@@ -46,30 +40,19 @@ def test_normalize_search_rest_envelope() -> None:
     }
 
 
-def test_normalize_search_results_fallback_shape() -> None:
+def test_normalize_search_title_falls_back_to_site_name_then_url() -> None:
     payload = {
-        "query": "tinyfish",
         "results": [
-            {
-                "position": 1,
-                "title": "TinyFish",
-                "snippet": "Search and fetch",
-                "url": "https://www.tinyfish.ai/",
-            }
-        ],
+            {"site_name": "TinyFish", "url": "https://a.example", "snippet": ""},
+            {"url": "https://b.example"},
+        ]
     }
 
-    result = normalize_search_response(payload, limit=5)
+    web = normalize_search_response(payload, limit=5)["data"]["web"]
 
-    assert result["success"] is True
-    assert result["data"]["web"] == [
-        {
-            "title": "TinyFish",
-            "url": "https://www.tinyfish.ai/",
-            "description": "Search and fetch",
-            "position": 1,
-        }
-    ]
+    assert web[0]["title"] == "TinyFish"
+    assert web[1]["title"] == "https://b.example"
+    assert web[1]["position"] == 2
 
 
 def test_normalize_search_applies_limit() -> None:
@@ -85,9 +68,10 @@ def test_normalize_search_applies_limit() -> None:
     assert len(result["data"]["web"]) == 3
 
 
-def test_normalize_search_raises_on_error_payload() -> None:
-    with pytest.raises(TinyFishPayloadError, match="quota exceeded"):
-        normalize_search_response({"error": "quota exceeded"})
+def test_normalize_search_tolerates_malformed_payloads() -> None:
+    assert normalize_search_response(None)["data"]["web"] == []
+    assert normalize_search_response({"results": "nope"})["data"]["web"] == []
+    assert normalize_search_response({"results": ["nope"]})["data"]["web"] == []
 
 
 def test_normalize_fetch_rest_shape() -> None:
@@ -112,6 +96,16 @@ def test_normalize_fetch_rest_shape() -> None:
     assert docs[0]["content"] == "# TinyFish"
     assert docs[0]["raw_content"] == "# TinyFish"
     assert docs[0]["metadata"]["sourceURL"] == "https://docs.tinyfish.ai/"
+
+
+def test_normalize_fetch_json_format_serializes_document_tree() -> None:
+    tree = {"type": "root", "children": [{"type": "heading", "text": "TinyFish"}]}
+    payload = {"results": [{"url": "https://example.com", "text": tree}], "errors": []}
+
+    docs = normalize_fetch_documents(payload)
+
+    assert docs[0]["content"] == json.dumps(tree, separators=(",", ":"))
+    assert docs[0]["raw_content"] == docs[0]["content"]
 
 
 def test_normalize_fetch_reports_per_url_errors() -> None:
@@ -141,22 +135,7 @@ def test_normalize_fetch_empty_payload_reports_fallback_urls() -> None:
     assert docs[0]["error"] == "TinyFish returned no content"
 
 
-def test_normalize_fetch_string_documents_use_fallback_urls() -> None:
-    docs = normalize_fetch_documents(
-        {"results": ["plain text"]}, fallback_urls=["https://example.com"]
-    )
-
-    assert docs == [
-        {
-            "url": "https://example.com",
-            "title": "",
-            "content": "plain text",
-            "raw_content": "plain text",
-            "metadata": {"sourceURL": "https://example.com"},
-        }
-    ]
-
-
-def test_normalize_fetch_raises_on_error_payload() -> None:
-    with pytest.raises(TinyFishPayloadError, match="invalid key"):
-        normalize_fetch_documents({"error": "invalid key"})
+def test_normalize_fetch_tolerates_malformed_payloads() -> None:
+    assert normalize_fetch_documents(None) == []
+    assert normalize_fetch_documents({"results": "nope", "errors": "nope"}) == []
+    assert normalize_fetch_documents({"results": ["nope"], "errors": [None]}) == []

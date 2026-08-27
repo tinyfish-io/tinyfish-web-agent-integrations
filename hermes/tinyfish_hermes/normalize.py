@@ -6,66 +6,36 @@ import json
 from typing import Any
 
 
-class TinyFishPayloadError(ValueError):
-    """Raised when a TinyFish payload reports an error."""
-
-
-def parse_jsonish(value: Any) -> Any:
-    """Parse JSON strings when possible and return other values unchanged."""
-
+def _document_text(value: Any) -> str:
+    # With format=json the Fetch API returns a document tree, not a string.
     if isinstance(value, str):
-        text = value.strip()
-        if not text:
-            return text
-        try:
-            return json.loads(text)
-        except json.JSONDecodeError:
-            return value
-    return value
-
-
-def _unwrap(raw: Any) -> Any:
-    payload = parse_jsonish(raw)
-    if isinstance(payload, dict) and payload.get("error"):
-        raise TinyFishPayloadError(str(payload["error"]))
-    return payload
+        return value
+    if value is None:
+        return ""
+    try:
+        return json.dumps(value, separators=(",", ":"))
+    except (TypeError, ValueError):
+        return str(value)
 
 
 def normalize_search_response(payload: Any, limit: int = 5) -> dict[str, Any]:
     """Return Hermes' standard web-search response envelope."""
 
-    data = _unwrap(payload)
-    if isinstance(data, list):
-        results = data
-    elif isinstance(data, dict):
-        if isinstance(data.get("data"), dict) and isinstance(
-            data["data"].get("web"), list
-        ):
-            return {
-                "success": True,
-                "data": {"web": data["data"]["web"][: max(1, int(limit or 5))]},
-            }
-        results = data.get("results") or data.get("web") or []
-    else:
+    results = payload.get("results") if isinstance(payload, dict) else None
+    if not isinstance(results, list):
         results = []
 
     count = max(1, int(limit or 5))
     web_results: list[dict[str, Any]] = []
-    for idx, item in enumerate(list(results)[:count]):
+    for idx, item in enumerate(results[:count]):
         if not isinstance(item, dict):
             continue
-        url = str(item.get("url") or item.get("link") or "")
+        url = str(item.get("url") or "")
         web_results.append(
             {
                 "title": str(item.get("title") or item.get("site_name") or url),
                 "url": url,
-                "description": str(
-                    item.get("snippet")
-                    or item.get("description")
-                    or item.get("content")
-                    or item.get("text")
-                    or ""
-                ),
+                "description": str(item.get("snippet") or ""),
                 "position": int(item.get("position") or idx + 1),
             }
         )
@@ -78,32 +48,15 @@ def normalize_fetch_documents(
     """Return Hermes' standard extract document list."""
 
     urls = list(fallback_urls or [])
-    data = _unwrap(payload)
-
-    if isinstance(data, dict):
-        results = data.get("results") or data.get("documents") or []
-        errors = data.get("errors") or data.get("failed_results") or []
-    elif isinstance(data, list):
-        results = data
-        errors = []
-    else:
+    results = payload.get("results") if isinstance(payload, dict) else None
+    errors = payload.get("errors") if isinstance(payload, dict) else None
+    if not isinstance(results, list):
         results = []
+    if not isinstance(errors, list):
         errors = []
 
     documents: list[dict[str, Any]] = []
-    for idx, item in enumerate(list(results)):
-        if isinstance(item, str):
-            url = urls[idx] if idx < len(urls) else ""
-            documents.append(
-                {
-                    "url": url,
-                    "title": "",
-                    "content": item,
-                    "raw_content": item,
-                    "metadata": {"sourceURL": url},
-                }
-            )
-            continue
+    for idx, item in enumerate(results):
         if not isinstance(item, dict):
             continue
         url = str(
@@ -111,13 +64,7 @@ def normalize_fetch_documents(
             or item.get("final_url")
             or (urls[idx] if idx < len(urls) else "")
         )
-        raw = str(
-            item.get("text")
-            or item.get("markdown")
-            or item.get("raw_content")
-            or item.get("content")
-            or ""
-        )
+        raw = _document_text(item.get("text"))
         documents.append(
             {
                 "url": url,
@@ -133,20 +80,17 @@ def normalize_fetch_documents(
             }
         )
 
-    for idx, item in enumerate(list(errors)):
-        if isinstance(item, dict):
-            url = str(item.get("url") or (urls[idx] if idx < len(urls) else ""))
-            error = str(item.get("error") or item.get("message") or "fetch failed")
-        else:
-            url = urls[idx] if idx < len(urls) else ""
-            error = str(item)
+    for idx, item in enumerate(errors):
+        if not isinstance(item, dict):
+            continue
+        url = str(item.get("url") or (urls[idx] if idx < len(urls) else ""))
         documents.append(
             {
                 "url": url,
                 "title": "",
                 "content": "",
                 "raw_content": "",
-                "error": error,
+                "error": str(item.get("error") or "fetch failed"),
                 "metadata": {"sourceURL": url},
             }
         )
