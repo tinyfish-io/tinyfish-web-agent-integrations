@@ -1,6 +1,6 @@
 # TinyFish for Hermes Agent
 
-`tinyfish-hermes` is the first-party TinyFish plugin for [Hermes Agent](https://github.com/NousResearch/Hermes-Agent). It registers a `tinyfish` web provider that serves Hermes' web search and extract tools through the TinyFish Search and Fetch REST APIs.
+`tinyfish-hermes` is the first-party TinyFish plugin for [Hermes Agent](https://github.com/NousResearch/Hermes-Agent). It registers a `tinyfish` web provider that serves Hermes' web search and extract tools through the TinyFish Search and Fetch REST APIs, plus a `tinyfish` cloud browser provider for credit-gated remote browser sessions.
 
 ## Install
 
@@ -38,6 +38,30 @@ tinyfish:
     format: markdown      # default output format for extract
     ttl: 300              # also: per_url_timeout_ms, links, image_links
 ```
+
+## Browser sessions
+
+Setting `browser.cloud_provider: tinyfish` routes Hermes' browser tools through TinyFish remote browser sessions. Each session consumes TinyFish credits, so sessions are policy-gated via `tinyfish.credit_policy.browser`:
+
+| Policy | Behavior |
+| ------ | -------- |
+| `request` (default) | Every session goes through Hermes' approval gate |
+| `allow` | Sessions start without per-session approval |
+| `deny` | Browser tools are blocked while routed to TinyFish |
+
+```yaml
+browser:
+  cloud_provider: tinyfish
+tinyfish:
+  credit_policy:
+    browser: request
+  browser:
+    timeout_seconds: 300  # optional session timeout
+```
+
+## Tool-routing guidance
+
+When the `tinyfish` MCP server is also configured in Hermes (`mcp_servers.tinyfish.url: https://agent.tinyfish.ai/mcp`), the plugin injects once-per-context guidance steering the model between the generic web tools and the native MCP tools. Disable with `tinyfish.routing_context: false`.
 
 ## Development
 

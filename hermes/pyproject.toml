@@ -46,6 +46,10 @@ line-length = 88
 [tool.ruff.lint]
 select = ["E", "F", "I", "T201", "W"]
 
+[tool.ruff.lint.per-file-ignores]
+# ROUTING_GUIDANCE is injected verbatim into LLM context, one bullet per line.
+"tinyfish_hermes/routing_context.py" = ["E501"]
+
 [tool.mypy]
 python_version = "3.10"
 # The directory-install shim (./__init__.py) would otherwise make mypy see the package twice.

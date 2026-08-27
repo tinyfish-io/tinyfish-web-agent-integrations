@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+import time
 from typing import Any, NoReturn, cast
 
 import httpx
@@ -9,6 +11,12 @@ import httpx
 SEARCH_URL = "https://api.search.tinyfish.ai"
 FETCH_URL = "https://api.fetch.tinyfish.ai"
 FETCH_MAX_URLS = 10
+BROWSER_URL = "https://api.browser.tinyfish.ai"
+
+_BROWSER_CLOSE_MAX_ATTEMPTS = 3
+_BROWSER_CLOSE_RETRYABLE_STATUSES = frozenset({409, 429, 500, 503, 504})
+_BROWSER_CLOSE_RETRY_AFTER_CAP_SECONDS = 5.0
+_BROWSER_CLOSE_RETRY_BASE_SECONDS = 0.25
 
 
 class TinyFishRestError(RuntimeError):
@@ -120,3 +128,73 @@ def fetch(
         raise TinyFishRestError(f"Could not reach TinyFish Fetch: {exc}") from exc
     except ValueError as exc:
         raise TinyFishRestError("TinyFish Fetch returned invalid JSON") from exc
+
+
+def create_browser_session(
+    *,
+    api_key: str,
+    url: str | None = None,
+    timeout_seconds: int | None = None,
+    timeout: float = 90.0,
+) -> dict[str, Any]:
+    """Create a TinyFish Browser session."""
+
+    body: dict[str, Any] = {}
+    if url:
+        body["url"] = url
+    if timeout_seconds is not None:
+        body["timeout_seconds"] = timeout_seconds
+    try:
+        response = httpx.post(
+            BROWSER_URL,
+            json=body,
+            headers=_json_headers(api_key),
+            timeout=timeout,
+        )
+        response.raise_for_status()
+        return cast(dict[str, Any], response.json())
+    except httpx.HTTPStatusError as exc:
+        _raise_http_error("TinyFish Browser", exc)
+    except httpx.RequestError as exc:
+        raise TinyFishRestError(f"Could not reach TinyFish Browser: {exc}") from exc
+    except ValueError as exc:
+        raise TinyFishRestError("TinyFish Browser returned invalid JSON") from exc
+
+
+def _browser_close_retry_delay(response: httpx.Response | None, attempt: int) -> float:
+    if response is not None:
+        retry_after = str(response.headers.get("Retry-After", "") or "").strip()
+        if retry_after:
+            try:
+                seconds = float(retry_after)
+            except ValueError:
+                seconds = -1.0
+            if math.isfinite(seconds) and seconds >= 0:
+                return min(seconds, _BROWSER_CLOSE_RETRY_AFTER_CAP_SECONDS)
+    return _BROWSER_CLOSE_RETRY_BASE_SECONDS * (2.0**attempt)
+
+
+def close_browser_session(
+    session_id: str, *, api_key: str, timeout: float = 15.0
+) -> bool:
+    """Terminate a Browser session with bounded transient-failure retries."""
+
+    # A 404 is not success: it can also mean the session belongs to another key.
+    url = f"{BROWSER_URL}/{session_id}"
+    for attempt in range(_BROWSER_CLOSE_MAX_ATTEMPTS):
+        response: httpx.Response | None = None
+        try:
+            response = httpx.delete(url, headers=_headers(api_key), timeout=timeout)
+        except httpx.RequestError:
+            retry = True
+        else:
+            if 200 <= response.status_code < 300:
+                return True
+            retry = response.status_code in _BROWSER_CLOSE_RETRYABLE_STATUSES
+
+        if not retry or attempt + 1 >= _BROWSER_CLOSE_MAX_ATTEMPTS:
+            return False
+        delay = _browser_close_retry_delay(response, attempt)
+        if delay > 0:
+            time.sleep(delay)
+    return False

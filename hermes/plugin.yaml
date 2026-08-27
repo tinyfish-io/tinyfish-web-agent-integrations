@@ -1,9 +1,11 @@
 name: tinyfish
 version: 0.1.0
-description: "First-party TinyFish web provider for Hermes Agent: Search and Fetch over the TinyFish REST APIs with API-key auth."
+description: "First-party TinyFish provider plugin for Hermes Agent: Search and Fetch over the TinyFish REST APIs with API-key auth, plus credit-gated Browser sessions."
 author: TinyFish
 kind: backend
 provides_web_providers:
+  - tinyfish
+provides_browser_providers:
   - tinyfish
 requires_env:
   - TINYFISH_API_KEY
