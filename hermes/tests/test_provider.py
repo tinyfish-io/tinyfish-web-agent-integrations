@@ -230,6 +230,28 @@ def test_extract_chunk_failure_only_errors_that_chunk(
     assert docs[10]["content"] == "x"
 
 
+def test_extract_interruption_stops_remaining_chunks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("TINYFISH_API_KEY", "tf_test")
+    fetch_calls: list[int] = []
+
+    def fake_fetch(urls: list[str], **kwargs: Any) -> dict[str, Any]:
+        fetch_calls.append(len(urls))
+        return {"results": [{"url": u, "title": "t", "text": "x"} for u in urls]}
+
+    checks = iter([False, True])
+    monkeypatch.setattr(rest_client, "fetch", fake_fetch)
+    monkeypatch.setattr(provider_mod, "_is_interrupted", lambda: next(checks))
+    urls = [f"https://example.com/{i}" for i in range(11)]
+
+    docs = TinyFishWebSearchProvider().extract(urls)
+
+    assert fetch_calls == [10]
+    assert [d["content"] for d in docs[:10]] == ["x"] * 10
+    assert docs[10]["error"] == "Interrupted"
+
+
 def test_extract_defaults_to_configured_format(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TINYFISH_API_KEY", "tf_test")
     monkeypatch.setattr(provider_mod, "default_fetch_format", lambda: "text")

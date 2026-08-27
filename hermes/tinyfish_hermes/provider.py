@@ -140,6 +140,11 @@ class TinyFishWebSearchProvider(_HermesWebSearchProvider):  # type: ignore[misc]
         documents: list[dict[str, Any]] = []
         # The Fetch API caps a request at 10 URLs; oversized batches 400.
         for start in range(0, len(urls), rest_client.FETCH_MAX_URLS):
+            if start and _is_interrupted():
+                documents.extend(
+                    _error_document(url, "Interrupted") for url in urls[start:]
+                )
+                break
             chunk = urls[start : start + rest_client.FETCH_MAX_URLS]
             try:
                 raw = rest_client.fetch(
