@@ -136,16 +136,23 @@ class TinyFishWebSearchProvider(_HermesWebSearchProvider):  # type: ignore[misc]
             or kwargs.get("output_format")
             or default_fetch_format()
         )
-        try:
-            raw = rest_client.fetch(
-                urls,
-                api_key=api_key,
-                output_format=output_format,
-                **fetch_options(),
-            )
-            return normalize_fetch_documents(raw, fallback_urls=urls)
-        except Exception as exc:  # noqa: BLE001 - controlled failure envelope
-            logger.warning("TinyFish REST fetch failed (%s)", type(exc).__name__)
-            return [
-                _error_document(url, _safe_rest_failure("fetch", exc)) for url in urls
-            ]
+        options = fetch_options()
+        documents: list[dict[str, Any]] = []
+        # The Fetch API caps a request at 10 URLs; oversized batches 400.
+        for start in range(0, len(urls), rest_client.FETCH_MAX_URLS):
+            chunk = urls[start : start + rest_client.FETCH_MAX_URLS]
+            try:
+                raw = rest_client.fetch(
+                    chunk,
+                    api_key=api_key,
+                    output_format=output_format,
+                    **options,
+                )
+                documents.extend(normalize_fetch_documents(raw, fallback_urls=chunk))
+            except Exception as exc:  # noqa: BLE001 - controlled failure envelope
+                logger.warning("TinyFish REST fetch failed (%s)", type(exc).__name__)
+                documents.extend(
+                    _error_document(url, _safe_rest_failure("fetch", exc))
+                    for url in chunk
+                )
+        return documents

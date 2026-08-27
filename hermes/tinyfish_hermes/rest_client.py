@@ -8,6 +8,7 @@ import httpx
 
 SEARCH_URL = "https://api.search.tinyfish.ai"
 FETCH_URL = "https://api.fetch.tinyfish.ai"
+FETCH_MAX_URLS = 10
 
 
 class TinyFishRestError(RuntimeError):
@@ -89,7 +90,8 @@ def fetch(
     image_links: bool | None = None,
     ttl: int | None = None,
     per_url_timeout_ms: int | None = None,
-    timeout: float = 60.0,
+    # Batches can run ~120s server-side; docs recommend a client timeout >= 150s.
+    timeout: float = 150.0,
 ) -> dict[str, Any]:
     """Run the TinyFish Fetch API for one or more URLs."""
 

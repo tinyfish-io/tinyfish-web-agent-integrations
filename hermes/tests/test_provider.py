@@ -189,6 +189,47 @@ def test_extract_success_with_format_kwarg(monkeypatch: pytest.MonkeyPatch) -> N
     assert seen == {"api_key": "tf_test", "output_format": "html"}
 
 
+def test_extract_chunks_batches_beyond_the_fetch_url_cap(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("TINYFISH_API_KEY", "tf_test")
+    batches: list[list[str]] = []
+
+    def fake_fetch(urls: list[str], **kwargs: Any) -> dict[str, Any]:
+        batches.append(list(urls))
+        return {"results": [{"url": u, "title": "t", "text": "x"} for u in urls]}
+
+    monkeypatch.setattr(rest_client, "fetch", fake_fetch)
+    urls = [f"https://example.com/{i}" for i in range(11)]
+
+    docs = TinyFishWebSearchProvider().extract(urls)
+
+    assert [len(b) for b in batches] == [10, 1]
+    assert [d["url"] for d in docs] == urls
+
+
+def test_extract_chunk_failure_only_errors_that_chunk(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("TINYFISH_API_KEY", "tf_test")
+    calls = iter([rest_client.TinyFishRestError("boom"), None])
+
+    def fake_fetch(urls: list[str], **kwargs: Any) -> dict[str, Any]:
+        exc = next(calls)
+        if exc is not None:
+            raise exc
+        return {"results": [{"url": u, "title": "t", "text": "x"} for u in urls]}
+
+    monkeypatch.setattr(rest_client, "fetch", fake_fetch)
+    urls = [f"https://example.com/{i}" for i in range(11)]
+
+    docs = TinyFishWebSearchProvider().extract(urls)
+
+    assert len(docs) == 11
+    assert all("boom" in d["error"] for d in docs[:10])
+    assert docs[10]["content"] == "x"
+
+
 def test_extract_defaults_to_configured_format(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TINYFISH_API_KEY", "tf_test")
     monkeypatch.setattr(provider_mod, "default_fetch_format", lambda: "text")
