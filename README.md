@@ -20,6 +20,7 @@ TinyFish Web Agent provides AI-powered web automation using natural language ins
 | [Dify](./dify)     | Plugin for the [Dify](https://dify.ai) AI application platform |
 | [LangChain](./langchain) | `langchain-tinyfish` — TinyFish Search, Fetch, Web Agent, and Browser as LangChain tools |
 | [Google ADK](./google-adk) | `tinyfish-adk` — TinyFish tools for the Google Agent Development Kit |
+| [Hermes](./hermes) | `tinyfish-hermes` — TinyFish Search and Fetch as a [Hermes Agent](https://github.com/NousResearch/Hermes-Agent) web provider plugin |
 | [n8n](./n8n)       | Community node for the [n8n](https://n8n.io) workflow automation platform |
 
 ## Contribution guidelines
