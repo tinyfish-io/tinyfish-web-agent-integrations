@@ -70,13 +70,20 @@ def env(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
         cli, "_save_config", lambda config: state["saved_configs"].append(config)
     )
     monkeypatch.setattr(cli, "_get_env", lambda name: state["env"].get(name, ""))
+
+    def fake_save_env_secure(name: str, value: str) -> dict[str, Any]:
+        state["saved_env"].append((name, value))
+        return {"success": True, "stored_as": name, "validated": False}
+
+    monkeypatch.setattr(cli, "_save_env_secure", fake_save_env_secure)
     monkeypatch.setattr(
-        cli, "_save_env", lambda name, value: state["saved_env"].append((name, value))
+        cli, "_read_saved_env", lambda name: dict(state["saved_env"]).get(name, "")
     )
     monkeypatch.setattr(
         cli, "_api_key", lambda: state["env"].get("TINYFISH_API_KEY", "")
     )
     monkeypatch.setattr(cli, "TinyFishWebSearchProvider", lambda: state["provider"])
+    monkeypatch.delenv("TINYFISH_API_KEY", raising=False)
     return state
 
 
@@ -112,7 +119,17 @@ def test_setup_respects_no_web_backend(env: dict[str, Any]) -> None:
 
     cli.dispatch_tinyfish_cli(args)
 
-    assert env["saved_configs"][-1] == {}
+    assert env["saved_configs"] == []
+
+
+def test_setup_non_tty_without_yes_does_not_write_config(env: dict[str, Any]) -> None:
+    # A piped setup must not rewrite config without explicit --yes opt-in.
+    env["config"] = {}
+    args = _parser().parse_args(["setup"])
+
+    assert cli.dispatch_tinyfish_cli(args) == 0
+
+    assert env["saved_configs"] == []
 
 
 def test_setup_saves_api_key(
@@ -120,10 +137,41 @@ def test_setup_saves_api_key(
 ) -> None:
     args = _parser().parse_args(["setup", "--yes", "--api-key", "tf_new"])
 
-    cli.dispatch_tinyfish_cli(args)
+    assert cli.dispatch_tinyfish_cli(args) == 0
 
     assert env["saved_env"] == [("TINYFISH_API_KEY", "tf_new")]
     assert "Saved TINYFISH_API_KEY" in capsys.readouterr().out
+
+
+def test_setup_key_save_refusal_exits_nonzero(
+    env: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # A managed install refuses the write while the secure save still reports success.
+    monkeypatch.setattr(cli, "_read_saved_env", lambda name: "")
+    args = _parser().parse_args(["setup", "--yes", "--api-key", "tf_new"])
+
+    assert cli.dispatch_tinyfish_cli(args) == 1
+
+    captured = capsys.readouterr()
+    assert "Could not save TINYFISH_API_KEY" in captured.err
+    assert "Saved TINYFISH_API_KEY" not in captured.out
+
+
+def test_setup_warns_when_shell_var_shadows_saved_key(
+    env: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("TINYFISH_API_KEY", "tf_stale_shell_value")
+    args = _parser().parse_args(["setup", "--yes", "--api-key", "tf_new"])
+
+    assert cli.dispatch_tinyfish_cli(args) == 0
+
+    out = capsys.readouterr().out
+    assert "Saved TINYFISH_API_KEY" in out
+    assert "shadows it at runtime" in out
 
 
 def test_setup_never_writes_mcp_config(env: dict[str, Any]) -> None:
@@ -309,6 +357,31 @@ def test_doctor_live_paid_success(
     payload = json.loads(capsys.readouterr().out)
     assert payload["live_paid_ok"] is True
     assert payload["live_paid_browser_cleanup_ok"] is True
+
+
+def test_doctor_live_paid_missing_session_id_notes_inactivity_expiry(
+    env: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(
+        cli,
+        "request_credit_approval",
+        lambda feature, operation, target=None: (True, ""),
+    )
+    monkeypatch.setattr(rest_client, "create_browser_session", lambda **kwargs: {})
+    monkeypatch.setattr(
+        rest_client,
+        "close_browser_session",
+        lambda session_id, *, api_key: pytest.fail("nothing closeable"),
+    )
+    args = _parser().parse_args(["doctor", "--live-paid", "--json"])
+
+    assert cli.dispatch_tinyfish_cli(args, provider=env["provider"]) == 1
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["live_paid_ok"] is False
+    assert "1h inactivity timeout" in payload["live_paid_error"]
 
 
 def test_doctor_live_paid_cleanup_failure_fails_and_recommends_policy_review(
@@ -524,6 +597,21 @@ def test_usage_requires_api_key(
 
     assert cli.dispatch_tinyfish_cli(_parser().parse_args(["usage"])) == 1
     assert "TINYFISH_API_KEY" in capsys.readouterr().err
+
+
+def test_usage_missing_key_with_json_emits_json_payload(
+    env: dict[str, Any], capsys: pytest.CaptureFixture[str]
+) -> None:
+    env["env"] = {}
+
+    assert cli.dispatch_tinyfish_cli(_parser().parse_args(["usage", "--json"])) == 1
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    assert payload["success"] is False
+    assert payload["wallet_available"] is None
+    assert "TINYFISH_API_KEY" in payload["error"]
+    assert captured.err == ""
 
 
 def test_in_session_status_command(env: dict[str, Any]) -> None:

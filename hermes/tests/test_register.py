@@ -90,7 +90,7 @@ def test_register_wires_cli_and_in_session_commands() -> None:
     assert ctx.commands[0]["handler"]("unexpected") == "Usage: /tinyfish-status [live]"
 
 
-def test_registered_cli_handler_propagates_nonzero_exit_status(
+def test_registered_cli_handler_returns_nonzero_exit_status(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from tinyfish_hermes import setup_cli
@@ -101,7 +101,5 @@ def test_registered_cli_handler_propagates_nonzero_exit_status(
     ctx = FullContext()
     tinyfish_hermes.register(ctx)
 
-    with pytest.raises(SystemExit) as exc_info:
-        ctx.cli_commands[0]["handler_fn"](object())
-
-    assert exc_info.value.code == 7
+    # Hermes' CLI main() forwards a nonzero int return to sys.exit.
+    assert ctx.cli_commands[0]["handler_fn"](object()) == 7

@@ -60,10 +60,8 @@ def register(ctx: Any) -> None:
     if hasattr(ctx, "register_cli_command"):
 
         def _dispatch_cli(args: Any) -> int:
-            exit_code = dispatch_tinyfish_cli(args, provider=provider)
-            if exit_code:
-                raise SystemExit(exit_code)
-            return 0
+            # Hermes' CLI main() propagates a nonzero int return to sys.exit.
+            return dispatch_tinyfish_cli(args, provider=provider)
 
         ctx.register_cli_command(
             name="tinyfish",

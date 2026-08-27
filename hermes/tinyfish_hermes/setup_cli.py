@@ -146,10 +146,19 @@ def _get_env(name: str) -> str:
         return str(os.getenv(name, "") or "").strip()
 
 
-def _save_env(name: str, value: str) -> None:
-    from hermes_cli.config import save_env_value
+def _save_env_secure(name: str, value: str) -> dict[str, Any]:
+    from hermes_cli.config import save_env_value_secure
 
-    save_env_value(name, value)
+    return dict(save_env_value_secure(name, value) or {})
+
+
+def _read_saved_env(name: str) -> str:
+    try:
+        from hermes_cli.config import get_env_value_prefer_dotenv
+
+        return str(get_env_value_prefer_dotenv(name) or "").strip()
+    except Exception:
+        return ""
 
 
 def _api_key_env_var() -> str:
@@ -163,7 +172,8 @@ def _confirm(question: str, *, default: bool = True, assume_yes: bool = False) -
     if assume_yes:
         return True
     if not sys.stdin.isatty():
-        return default
+        # A piped run must not accept config changes without an explicit --yes.
+        return False
     suffix = "Y/n" if default else "y/N"
     try:
         answer = input(f"{question} [{suffix}]: ").strip().lower()
@@ -193,6 +203,29 @@ def _apply_web_backend_config(config: dict[str, Any]) -> None:
         web["backend"] = "tinyfish"
 
 
+def _store_api_key(api_key: str) -> bool:
+    try:
+        outcome = _save_env_secure("TINYFISH_API_KEY", api_key)
+    except Exception as exc:
+        outcome = {"success": False, "error": type(exc).__name__}
+    # The secure save reports success even on managed-install refusal; trust read-back.
+    if outcome.get("success") and _read_saved_env("TINYFISH_API_KEY") == api_key:
+        print("Saved TINYFISH_API_KEY in Hermes .env")
+        shell_value = str(os.environ.get("TINYFISH_API_KEY", "") or "").strip()
+        if shell_value and shell_value != api_key:
+            print(
+                "Warning: the TINYFISH_API_KEY exported in this shell differs "
+                "from the saved key and shadows it at runtime."
+            )
+        return True
+    print(
+        "Could not save TINYFISH_API_KEY (managed install or managed key); "
+        "set it in your environment instead.",
+        file=sys.stderr,
+    )
+    return False
+
+
 def cmd_setup(
     args: argparse.Namespace,
     *,
@@ -206,8 +239,8 @@ def cmd_setup(
         assume_yes=bool(getattr(args, "yes", False)),
     ):
         _apply_web_backend_config(config)
+        _save_config(config)
         print("Configured Hermes web backends to use TinyFish")
-    _save_config(config)
 
     api_key = (getattr(args, "api_key", None) or "").strip()
     if (
@@ -217,9 +250,8 @@ def cmd_setup(
         and _confirm("Add TINYFISH_API_KEY now?", default=True, assume_yes=False)
     ):
         api_key = _prompt_secret(f"TinyFish API key (create at {API_KEY_URL}): ")
-    if api_key:
-        _save_env("TINYFISH_API_KEY", api_key)
-        print("Saved TINYFISH_API_KEY in Hermes .env")
+    if api_key and not _store_api_key(api_key):
+        return 1
 
     if getattr(args, "live", False):
         doctor_args = argparse.Namespace(json=False, live=True, live_paid=False)
@@ -421,7 +453,9 @@ def _run_live_paid_checks(status: dict[str, Any]) -> bool:
         session_id = str(session.get("session_id") or session.get("id") or "").strip()
         if not session_id:
             status["live_paid_error"] = (
-                "TinyFish Browser did not return a valid session ID."
+                "TinyFish Browser returned no session ID; a session it may still "
+                "have created cannot be closed and will expire via the server's "
+                "1h inactivity timeout."
             )
     except Exception as exc:  # noqa: BLE001 - diagnostics must not crash
         status["live_paid_error"] = (
@@ -465,11 +499,11 @@ def cmd_credits(args: argparse.Namespace) -> int:
         print(f"Set TinyFish {feature} credit policy to {policy}.")
         return 0
     if subcommand == "reset":
-        set_credit_policy(config, "browser", DEFAULT_CREDIT_POLICY)
+        for feature in CREDIT_FEATURES:
+            set_credit_policy(config, feature, DEFAULT_CREDIT_POLICY)
         _save_config(config)
         print(
-            f"Reset TinyFish browser credit policy to {DEFAULT_CREDIT_POLICY} "
-            "(the default)."
+            f"Reset TinyFish credit policies to {DEFAULT_CREDIT_POLICY} (the default)."
         )
         return 0
     print("Usage: hermes tinyfish credits {status,set,reset}", file=sys.stderr)
@@ -521,10 +555,18 @@ def cmd_browser(args: argparse.Namespace) -> int:
     return 2
 
 
-def _api_key_or_error() -> str | None:
+def _api_key_or_error(*, as_json: bool = False) -> str | None:
     api_key = _api_key()
     if not api_key:
-        print(MISSING_KEY_ERROR, file=sys.stderr)
+        if as_json:
+            payload = {
+                "success": False,
+                "wallet_available": None,
+                "error": MISSING_KEY_ERROR,
+            }
+            print(json.dumps(payload, indent=2, sort_keys=True))
+        else:
+            print(MISSING_KEY_ERROR, file=sys.stderr)
         return None
     return api_key
 
@@ -595,7 +637,7 @@ def _wallet_text_lines(wallet: dict[str, Any]) -> list[str]:
 
 
 def cmd_usage(args: argparse.Namespace) -> int:
-    api_key = _api_key_or_error()
+    api_key = _api_key_or_error(as_json=bool(getattr(args, "json", False)))
     if not api_key:
         return 1
     payload: dict[str, Any]
