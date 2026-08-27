@@ -44,9 +44,10 @@ def register(ctx: Any) -> None:
     from .routing_context import routing_context_hook
 
     ctx.register_web_search_provider(TinyFishWebSearchProvider())
-    if hasattr(ctx, "register_browser_provider"):
-        ctx.register_browser_provider(TinyFishBrowserProvider())
     if hasattr(ctx, "register_hook"):
+        # Only offer the browser provider where the pre_tool_call credit gate lands.
+        if hasattr(ctx, "register_browser_provider"):
+            ctx.register_browser_provider(TinyFishBrowserProvider())
         ctx.register_hook("pre_tool_call", pre_tool_call_policy)
         ctx.register_hook("pre_llm_call", routing_context_hook)
 

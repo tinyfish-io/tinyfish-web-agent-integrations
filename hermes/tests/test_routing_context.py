@@ -46,6 +46,35 @@ def test_routing_context_gates_on_url_not_auth_mode(
 
 
 @pytest.mark.parametrize(
+    "url",
+    [
+        "https://agent.tinyfish.ai/mcp",
+        "https://agent.tinyfish.ai/mcp/",
+        "https://AGENT.TINYFISH.AI/mcp",
+    ],
+    ids=["exact", "trailing-slash", "uppercase-host"],
+)
+def test_tinyfish_mcp_configured_normalizes_url_variants(url: str) -> None:
+    assert routing.tinyfish_mcp_configured({"mcp_servers": {"tinyfish": {"url": url}}})
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://agent.tinyfish.ai/mcp",
+        "https://agent.tinyfish.ai/mcp/extra",
+        "https://agent.tinyfish.ai.evil.example/mcp",
+        "",
+    ],
+    ids=["http-scheme", "wrong-path", "lookalike-host", "empty"],
+)
+def test_tinyfish_mcp_configured_rejects_non_matching_urls(url: str) -> None:
+    assert not routing.tinyfish_mcp_configured(
+        {"mcp_servers": {"tinyfish": {"url": url}}}
+    )
+
+
+@pytest.mark.parametrize(
     "message",
     [
         {"role": "user", "content": "search", "api_content": routing.ROUTING_GUIDANCE},

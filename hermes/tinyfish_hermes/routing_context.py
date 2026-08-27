@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from typing import Any
+from urllib.parse import urlparse
 
-from .config import TINYFISH_MCP_URL, load_config, routing_context_enabled
+from .config import load_config, routing_context_enabled
 
 ROUTING_CONTEXT_MARKER = '<tinyfish-routing-context version="1">'
 ROUTING_GUIDANCE = f"""{ROUTING_CONTEXT_MARKER}
@@ -20,8 +21,15 @@ def tinyfish_mcp_configured(config: dict[str, Any]) -> bool:
     if not isinstance(servers, dict):
         return False
     tinyfish = servers.get("tinyfish") or {}
+    if not isinstance(tinyfish, dict):
+        return False
     # Any auth mode counts: the first-party MCP entry uses an API-key header, not OAuth.
-    return bool(isinstance(tinyfish, dict) and tinyfish.get("url") == TINYFISH_MCP_URL)
+    parsed = urlparse(str(tinyfish.get("url") or ""))
+    return (
+        parsed.scheme == "https"
+        and (parsed.hostname or "").lower() == "agent.tinyfish.ai"
+        and parsed.path.rstrip("/") == "/mcp"
+    )
 
 
 def _contains_routing_marker(value: object) -> bool:

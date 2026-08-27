@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-TINYFISH_MCP_URL = "https://agent.tinyfish.ai/mcp"
-
 CreditFeature = Literal["browser"]
 CreditPolicy = Literal["deny", "request", "allow"]
 

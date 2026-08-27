@@ -91,7 +91,29 @@ def test_browser_provider_create_session_blocked_when_denied(
         TinyFishBrowserProvider().create_session("task")
 
 
-def test_browser_provider_create_session_rejects_incomplete_response(
+def test_browser_provider_closes_half_created_session_before_raising(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("TINYFISH_API_KEY", "tf_test")
+    monkeypatch.setattr(
+        rest_client,
+        "create_browser_session",
+        lambda **kwargs: {"session_id": "sess_123"},
+    )
+    closed: list[str] = []
+    monkeypatch.setattr(
+        rest_client,
+        "close_browser_session",
+        lambda session_id, *, api_key: closed.append(session_id) or True,
+    )
+
+    with pytest.raises(RuntimeError, match="session_id and cdp_url"):
+        TinyFishBrowserProvider().create_session("task")
+
+    assert closed == ["sess_123"]
+
+
+def test_browser_provider_incomplete_response_raise_survives_close_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("TINYFISH_API_KEY", "tf_test")
@@ -101,8 +123,52 @@ def test_browser_provider_create_session_rejects_incomplete_response(
         lambda **kwargs: {"session_id": "sess_123"},
     )
 
+    def raise_close(session_id: str, *, api_key: str) -> bool:
+        raise RuntimeError("close exploded")
+
+    monkeypatch.setattr(rest_client, "close_browser_session", raise_close)
+
     with pytest.raises(RuntimeError, match="session_id and cdp_url"):
         TinyFishBrowserProvider().create_session("task")
+
+
+def test_browser_provider_create_session_rejects_response_without_ids(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("TINYFISH_API_KEY", "tf_test")
+    monkeypatch.setattr(rest_client, "create_browser_session", lambda **kwargs: {})
+    monkeypatch.setattr(
+        rest_client,
+        "close_browser_session",
+        lambda session_id, *, api_key: pytest.fail("nothing to close"),
+    )
+
+    with pytest.raises(RuntimeError, match="session_id and cdp_url"):
+        TinyFishBrowserProvider().create_session("task")
+
+
+def test_browser_provider_warns_on_malformed_session_timeout(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setenv("TINYFISH_API_KEY", "tf_test")
+    monkeypatch.setattr(
+        "tinyfish_hermes.browser_provider.tinyfish_config",
+        lambda: {"browser": {"timeout_seconds": "soon"}},
+    )
+    seen: dict[str, Any] = {}
+
+    def fake_create(**kwargs: Any) -> dict[str, Any]:
+        seen.update(kwargs)
+        return {"session_id": "sess_123", "cdp_url": "wss://example.com/devtools"}
+
+    monkeypatch.setattr(rest_client, "create_browser_session", fake_create)
+
+    with caplog.at_level(logging.WARNING):
+        TinyFishBrowserProvider().create_session("task")
+
+    assert seen == {"api_key": "tf_test", "timeout_seconds": None}
+    assert "tinyfish.browser.timeout_seconds" in caplog.text
+    assert "'soon'" in caplog.text
 
 
 def test_browser_provider_passes_configured_session_timeout(

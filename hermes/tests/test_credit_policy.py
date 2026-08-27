@@ -47,11 +47,17 @@ def test_credit_policy_handles_malformed_section() -> None:
     )
 
 
+def _gated_config(policy: str | None = None) -> dict[str, object]:
+    config: dict[str, object] = {"browser": {"cloud_provider": "tinyfish"}}
+    if policy is not None:
+        config["tinyfish"] = {"credit_policy": {"browser": policy}}
+    return config
+
+
 def test_pre_tool_policy_requests_browser_by_default(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(policy_mod, "browser_cloud_provider", lambda: "tinyfish")
-    monkeypatch.setattr(policy_mod, "credit_policy", lambda feature: "request")
+    monkeypatch.setattr(policy_mod, "load_config", _gated_config)
 
     directive = pre_tool_call_policy(
         "browser_navigate", {"url": "https://example.com/path"}
@@ -60,14 +66,47 @@ def test_pre_tool_policy_requests_browser_by_default(
     assert directive is not None
     assert directive["action"] == "approve"
     assert "example.com" in directive["message"]
-    assert directive["rule_key"] == "tinyfish:browser:browser_navigate:example.com"
+    assert directive["rule_key"] == "tinyfish:browser:example.com"
+
+
+def test_pre_tool_policy_rule_key_is_domain_grained(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # One [a]lways answer must cover every browser_* step on the same domain.
+    monkeypatch.setattr(policy_mod, "load_config", _gated_config)
+
+    navigate = pre_tool_call_policy(
+        "browser_navigate", {"url": "https://example.com/a"}
+    )
+    click = pre_tool_call_policy("browser_click", {"url": "https://example.com/b"})
+    other = pre_tool_call_policy("browser_navigate", {"url": "https://other.example"})
+
+    assert navigate is not None and click is not None and other is not None
+    assert navigate["rule_key"] == click["rule_key"] == "tinyfish:browser:example.com"
+    assert other["rule_key"] == "tinyfish:browser:other.example"
+
+
+def test_pre_tool_policy_reads_config_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = 0
+
+    def counting_load_config() -> dict[str, object]:
+        nonlocal calls
+        calls += 1
+        return _gated_config()
+
+    monkeypatch.setattr(policy_mod, "load_config", counting_load_config)
+
+    pre_tool_call_policy("browser_navigate", {"url": "https://example.com"})
+    assert calls == 1
+
+    pre_tool_call_policy("web_search", {"query": "tinyfish"})
+    assert calls == 1
 
 
 def test_pre_tool_policy_blocks_browser_when_denied(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(policy_mod, "browser_cloud_provider", lambda: "tinyfish")
-    monkeypatch.setattr(policy_mod, "credit_policy", lambda feature: "deny")
+    monkeypatch.setattr(policy_mod, "load_config", lambda: _gated_config("deny"))
 
     directive = pre_tool_call_policy("browser_open", {"target": "example.com"})
 
@@ -80,8 +119,7 @@ def test_pre_tool_policy_blocks_browser_when_denied(
 def test_pre_tool_policy_allows_browser_when_configured(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(policy_mod, "browser_cloud_provider", lambda: "tinyfish")
-    monkeypatch.setattr(policy_mod, "credit_policy", lambda feature: "allow")
+    monkeypatch.setattr(policy_mod, "load_config", lambda: _gated_config("allow"))
 
     assert (
         pre_tool_call_policy("browser_navigate", {"url": "https://example.com"}) is None
@@ -91,7 +129,9 @@ def test_pre_tool_policy_allows_browser_when_configured(
 def test_pre_tool_policy_does_not_gate_other_browser_providers(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(policy_mod, "browser_cloud_provider", lambda: "local")
+    monkeypatch.setattr(
+        policy_mod, "load_config", lambda: {"browser": {"cloud_provider": "local"}}
+    )
 
     assert (
         pre_tool_call_policy("browser_navigate", {"url": "https://example.com"}) is None
@@ -101,7 +141,7 @@ def test_pre_tool_policy_does_not_gate_other_browser_providers(
 def test_pre_tool_policy_ignores_non_browser_tools(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(policy_mod, "browser_cloud_provider", lambda: "tinyfish")
+    monkeypatch.setattr(policy_mod, "load_config", _gated_config)
 
     assert pre_tool_call_policy("web_search", {"query": "tinyfish"}) is None
 
@@ -121,20 +161,25 @@ def test_request_credit_approval_honors_deny(monkeypatch: pytest.MonkeyPatch) ->
     assert message.startswith("BLOCKED:")
 
 
-def test_request_credit_approval_uses_hermes_gate(
+def test_request_credit_approval_uses_hermes_gate_with_domain_rule_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(policy_mod, "credit_policy", lambda feature: "request")
+    seen: dict[str, object] = {}
+
+    def fake_approval(name: str, reason: str, **kwargs: object) -> dict[str, object]:
+        seen.update(name=name, reason=reason, **kwargs)
+        return {"approved": True}
+
     approval_mod = types.ModuleType("tools.approval")
-    approval_mod.request_tool_approval = (  # type: ignore[attr-defined]
-        lambda *args, **kwargs: {"approved": True}
-    )
+    approval_mod.request_tool_approval = fake_approval  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "tools.approval", approval_mod)
 
     assert request_credit_approval("browser", "create", "https://example.com/path") == (
         True,
         "",
     )
+    assert seen["rule_key"] == "tinyfish:browser:example.com"
 
 
 def test_request_credit_approval_reports_gate_denial(

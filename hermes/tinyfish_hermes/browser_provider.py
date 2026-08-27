@@ -39,8 +39,17 @@ class TinyFishBrowserProvider(_HermesBrowserProvider):  # type: ignore[misc]
     def create_session(self, task_id: str) -> dict[str, object]:
         api_key = _api_key()
         if not api_key:
+            # Hermes falls back to a local browser on raise; the hook is the real gate.
+            logger.warning(
+                "TinyFish Browser create_session refused (missing API key); "
+                "Hermes will fall back to a local browser"
+            )
             raise ValueError(MISSING_KEY_ERROR)
         if credit_policy("browser") == "deny":
+            logger.warning(
+                "TinyFish Browser create_session refused (policy deny); "
+                "Hermes will fall back to a local browser"
+            )
             raise ValueError(block_message("browser"))
         browser_cfg = tinyfish_config().get("browser") or {}
         timeout_seconds = None
@@ -51,6 +60,10 @@ class TinyFishBrowserProvider(_HermesBrowserProvider):  # type: ignore[misc]
             try:
                 timeout_seconds = int(browser_cfg["timeout_seconds"])
             except (TypeError, ValueError):
+                logger.warning(
+                    "Ignoring malformed tinyfish.browser.timeout_seconds %r",
+                    browser_cfg["timeout_seconds"],
+                )
                 timeout_seconds = None
 
         data = rest_client.create_browser_session(
@@ -59,6 +72,12 @@ class TinyFishBrowserProvider(_HermesBrowserProvider):  # type: ignore[misc]
         session_id = str(data.get("session_id") or data.get("id") or "")
         cdp_url = str(data.get("cdp_url") or data.get("cdpUrl") or "")
         if not session_id or not cdp_url:
+            if session_id:
+                # A half-created session bills until the server's inactivity GC.
+                try:
+                    rest_client.close_browser_session(session_id, api_key=api_key)
+                except Exception:
+                    pass
             raise RuntimeError(
                 "TinyFish Browser did not return session_id and cdp_url."
             )

@@ -36,6 +36,24 @@ def test_register_with_minimal_context_adds_only_web_provider() -> None:
     assert isinstance(ctx.providers[0], tinyfish_hermes.TinyFishWebSearchProvider)
 
 
+def test_register_skips_browser_provider_when_host_has_no_hooks() -> None:
+    # Without pre_tool_call there is no credit gate, so the provider must not land.
+    class HooklessContext(MinimalContext):
+        def __init__(self) -> None:
+            super().__init__()
+            self.browser_providers: list[Any] = []
+
+        def register_browser_provider(self, provider: Any) -> None:
+            self.browser_providers.append(provider)
+
+    ctx = HooklessContext()
+
+    tinyfish_hermes.register(ctx)
+
+    assert ctx.browser_providers == []
+    assert len(ctx.providers) == 1
+
+
 def test_register_with_full_context_adds_browser_provider_and_hooks() -> None:
     ctx = FullContext()
 

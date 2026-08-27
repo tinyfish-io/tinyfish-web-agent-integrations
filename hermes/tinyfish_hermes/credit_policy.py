@@ -10,6 +10,7 @@ from .config import (
     CreditPolicy,
     browser_cloud_provider,
     credit_policy,
+    load_config,
     normalize_feature,
 )
 
@@ -43,8 +44,7 @@ def block_message(feature: CreditFeature | str) -> str:
     return (
         f"BLOCKED: {policy_message(normalized, 'deny')} "
         f"Set `tinyfish.credit_policy.{normalized}` to `request` (per-session "
-        "approval) or `allow` in Hermes config; `hermes tinyfish browser` "
-        "manages this setting."
+        "approval) or `allow` in Hermes config."
     )
 
 
@@ -74,10 +74,11 @@ def request_credit_approval(
     try:
         from tools.approval import request_tool_approval
 
+        # Domain-grained key: one [a]lways covers the browse; new domains still prompt.
         result = request_tool_approval(
             f"tinyfish_{normalized}",
             reason,
-            rule_key=f"tinyfish:{normalized}:{operation}:{target_domain(target)}",
+            rule_key=f"tinyfish:{normalized}:{target_domain(target)}",
         )
     except Exception as exc:
         return False, (
@@ -93,16 +94,19 @@ def request_credit_approval(
 
 
 def _directive_for_feature(
-    feature: CreditFeature, operation: str, target: str | None
+    feature: CreditFeature,
+    operation: str,
+    target: str | None,
+    config: dict[str, Any] | None = None,
 ) -> dict[str, str] | None:
-    policy = credit_policy(feature)
+    policy = credit_policy(feature, config)
     if policy == "deny":
         return {"action": "block", "message": block_message(feature)}
     if policy == "request":
         return {
             "action": "approve",
             "message": approval_reason(feature, operation, target),
-            "rule_key": f"tinyfish:{feature}:{operation}:{target_domain(target)}",
+            "rule_key": f"tinyfish:{feature}:{target_domain(target)}",
         }
     return None
 
@@ -114,8 +118,10 @@ def pre_tool_call_policy(
 
     params = args or {}
 
-    if tool_name.startswith("browser_") and browser_cloud_provider() == "tinyfish":
-        target = str(params.get("url") or params.get("target") or "")
-        return _directive_for_feature("browser", tool_name, target)
-
-    return None
+    if not tool_name.startswith("browser_"):
+        return None
+    config = load_config()
+    if browser_cloud_provider(config) != "tinyfish":
+        return None
+    target = str(params.get("url") or params.get("target") or "")
+    return _directive_for_feature("browser", tool_name, target, config)
