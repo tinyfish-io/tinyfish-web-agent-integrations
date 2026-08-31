@@ -1,0 +1,43 @@
+---
+name: Hermes CD - Tag release
+
+# Renovate reads these tags to bump the ux-labs plugin pin.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/hermes-release.yml"
+      - "hermes/**"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hermes-release
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Tag hermes-v<version> unless it already exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' hermes/pyproject.toml | head -1)
+          [ -n "$version" ] || { echo "::error file=hermes/pyproject.toml::no version found"; exit 1; }
+          tag="hermes-v${version}"
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" >/dev/null 2>&1; then
+            echo "${tag} already exists; nothing to do"
+            exit 0
+          fi
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f "ref=refs/tags/${tag}" -f "sha=${GITHUB_SHA}"
+          echo "tagged ${tag} at ${GITHUB_SHA}"
