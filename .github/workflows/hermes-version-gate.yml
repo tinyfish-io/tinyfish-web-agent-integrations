@@ -1,0 +1,47 @@
+---
+name: Hermes Version Gate
+
+on:  # yamllint disable-line rule:truthy
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # Required check; unfiltered and unconditional so it reports on every PR.
+  version-bumped:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: hermes/pyproject.toml version must move
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          NO_PLUGIN_RELEASE: ${{ contains(github.event.pull_request.labels.*.name, 'no-plugin-release') }}
+        run: |
+          set -euo pipefail
+          if [ "$NO_PLUGIN_RELEASE" = "true" ]; then
+            echo "no-plugin-release label present; version bump not required"
+            exit 0
+          fi
+          version() { sed -n 's/^version = "\(.*\)"$/\1/p' "$1" | head -1; }
+          base=$(git merge-base "origin/${BASE_REF}" HEAD)
+          if git diff --quiet "$base" HEAD -- hermes/; then
+            echo "no hermes/ changes in this PR; version bump not required"
+            exit 0
+          fi
+          head_version=$(version hermes/pyproject.toml)
+          git show "${base}:hermes/pyproject.toml" > "$RUNNER_TEMP/base-pyproject.toml"
+          base_version=$(version "$RUNNER_TEMP/base-pyproject.toml")
+          echo "base=${base_version} head=${head_version}"
+          [ -n "$head_version" ] || { echo "::error file=hermes/pyproject.toml::no version found"; exit 1; }
+          if [ "$head_version" = "$base_version" ]; then
+            echo "::error file=hermes/pyproject.toml::this PR changes hermes/ but leaves version at ${base_version}; bump it, or label the PR no-plugin-release"
+            exit 1
+          fi
