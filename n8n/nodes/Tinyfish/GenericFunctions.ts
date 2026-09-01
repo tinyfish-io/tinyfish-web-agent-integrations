@@ -7,6 +7,8 @@ import type {
 } from 'n8n-workflow';
 import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
+import { CLIENT_HEADERS } from './clientHeaders';
+
 const API_BASE_URL = 'https://agent.tinyfish.ai';
 
 /**
@@ -141,6 +143,7 @@ export async function consumeSseStream(
 			headers: {
 				'X-API-Key': apiKey,
 				'Content-Type': 'application/json',
+				...CLIENT_HEADERS,
 			},
 			body: JSON.stringify(payload),
 		});
