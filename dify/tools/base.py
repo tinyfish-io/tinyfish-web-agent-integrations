@@ -10,7 +10,7 @@ class TinyfishMixin:
 
     @property
     def _api_headers(self) -> dict[str, str]:
-        # Without these the server files every call as untagged `api`.
+        # Without these, telemetry cannot tell the plugin from raw curl.
         return {
             "X-API-Key": self.runtime.credentials["api_key"],
             "X-TF-Client-Name": "tinyfish-dify",

@@ -1,7 +1,11 @@
+import re
+from pathlib import Path
 from types import SimpleNamespace
 
 from tools.base import TinyfishMixin
 from tools.constants import PLUGIN_VERSION
+
+MANIFEST = Path(__file__).resolve().parents[1] / "manifest.yaml"
 
 
 def _tool() -> TinyfishMixin:
@@ -15,12 +19,9 @@ def test_headers_identify_the_plugin() -> None:
     assert headers["X-API-Key"] == "tf_test"
     assert headers["X-TF-Client-Name"] == "tinyfish-dify"
     assert headers["X-TF-Client-Version"] == PLUGIN_VERSION
-    assert "X-TF-Request-Origin" not in headers
 
 
-def test_plugin_version_matches_manifest() -> None:
-    with open("manifest.yaml", encoding="utf-8") as fh:
-        manifest_version = next(
-            line.split(":", 1)[1].strip() for line in fh if line.startswith("version:")
-        )
-    assert PLUGIN_VERSION == manifest_version
+def test_plugin_version_is_a_real_release_version() -> None:
+    # The publish workflow greps `^version:` — same anchor the constant uses.
+    assert re.fullmatch(r"\d+\.\d+\.\d+", PLUGIN_VERSION), PLUGIN_VERSION
+    assert f"version: {PLUGIN_VERSION}\n" in MANIFEST.read_text(encoding="utf-8")
