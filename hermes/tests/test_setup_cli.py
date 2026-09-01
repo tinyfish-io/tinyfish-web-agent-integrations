@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -628,3 +629,50 @@ def test_in_session_status_command(env: dict[str, Any]) -> None:
     assert cli.tinyfish_status_command("bogus", provider=provider) == (
         "Usage: /tinyfish-status [live]"
     )
+
+
+# Mirrors hermesPluginStatusSchema in ux-labs sdk/cli/src/lib/hermes-plugin.ts.
+_TINYFISH_CLI_STATUS_KEYS = frozenset(
+    {
+        "ok",
+        "api_key_configured",
+        "api_key_env_var",
+        "plugin_version",
+        "provider_available",
+        "web_backend_configured",
+    }
+)
+
+
+def test_status_json_carries_every_key_the_tinyfish_cli_parses(
+    env: dict[str, Any], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A missing key degrades `tinyfish doctor` to 'unparseable output'."""
+    args = _parser().parse_args(["status", "--json"])
+
+    assert cli.dispatch_tinyfish_cli(args) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    assert _TINYFISH_CLI_STATUS_KEYS <= payload.keys()
+
+
+def test_status_json_exits_zero_even_when_unhealthy(
+    env: dict[str, Any], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A non-zero exit reads as 'plugin not installed' in `tinyfish doctor`."""
+    env["config"] = {}
+
+    assert cli.dispatch_tinyfish_cli(_parser().parse_args(["status", "--json"])) == 0
+    assert json.loads(capsys.readouterr().out)["ok"] is False
+
+
+def test_plugin_manifest_name_is_what_uninstall_keys_on() -> None:
+    """`tinyfish connect --uninstall` runs `hermes plugins uninstall tinyfish`."""
+    manifest = Path(__file__).resolve().parents[1] / "plugin.yaml"
+    names = [
+        line.partition(":")[2].strip().strip("'\"")
+        for line in manifest.read_text(encoding="utf-8").splitlines()
+        if line.startswith("name:")
+    ]
+
+    assert names == ["tinyfish"]

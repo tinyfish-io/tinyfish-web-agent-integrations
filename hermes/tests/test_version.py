@@ -4,6 +4,7 @@ from importlib import metadata
 from pathlib import Path
 
 import pytest
+import tomllib
 
 import tinyfish_hermes as plugin
 
@@ -53,3 +54,13 @@ def test_public_version_is_exported() -> None:
     assert isinstance(plugin.__version__, str)
     assert plugin.__version__
     assert "__version__" in plugin.__all__
+
+
+def test_plugin_manifest_version_matches_the_distribution_version() -> None:
+    """Both feed `plugin_version`; drift makes one install report two versions."""
+    hermes_root = Path(plugin.__file__).resolve().parents[1]
+    pyproject = tomllib.loads(
+        (hermes_root / "pyproject.toml").read_text(encoding="utf-8")
+    )
+
+    assert plugin._version_from_plugin_manifest() == pyproject["project"]["version"]
