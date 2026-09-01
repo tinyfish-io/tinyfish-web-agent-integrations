@@ -33,7 +33,7 @@ class TinyFishWalletNotFound(TinyFishRestError):
 
 
 def _headers(api_key: str) -> dict[str, str]:
-    # Without these the server files every call as untagged `api`.
+    # Without these, telemetry cannot tell the plugin from raw curl.
     return {
         "X-API-Key": api_key,
         "Accept": "application/json",

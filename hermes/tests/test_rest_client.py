@@ -8,6 +8,13 @@ import pytest
 
 from tinyfish_hermes import __version__, rest_client
 
+_AUTH_HEADERS = {
+    "X-API-Key": "tf_test",
+    "Accept": "application/json",
+    "X-TF-Client-Name": "tinyfish-hermes",
+    "X-TF-Client-Version": __version__,
+}
+
 
 def _response(
     method: str,
@@ -61,12 +68,7 @@ def test_search_sends_supported_query_options(monkeypatch: pytest.MonkeyPatch) -
             "page": 2,
             "purpose": "research",
         },
-        "headers": {
-            "X-API-Key": "tf_test",
-            "Accept": "application/json",
-            "X-TF-Client-Name": "tinyfish-hermes",
-            "X-TF-Client-Version": __version__,
-        },
+        "headers": _AUTH_HEADERS,
         "timeout": 12.5,
     }
 
@@ -120,13 +122,7 @@ def test_fetch_sends_supported_body_options(monkeypatch: pytest.MonkeyPatch) -> 
             "ttl": 300,
             "per_url_timeout_ms": 2500,
         },
-        "headers": {
-            "X-API-Key": "tf_test",
-            "Accept": "application/json",
-            "X-TF-Client-Name": "tinyfish-hermes",
-            "X-TF-Client-Version": __version__,
-            "Content-Type": "application/json",
-        },
+        "headers": {**_AUTH_HEADERS, "Content-Type": "application/json"},
         "timeout": 22.0,
     }
 
@@ -436,12 +432,7 @@ def test_wallet_and_usage_use_documented_endpoints(
     assert call() == {"items": []}
     assert captured == {
         "url": expected_url,
-        "headers": {
-            "X-API-Key": "tf_test",
-            "Accept": "application/json",
-            "X-TF-Client-Name": "tinyfish-hermes",
-            "X-TF-Client-Version": __version__,
-        },
+        "headers": _AUTH_HEADERS,
         "timeout": 11.0,
     }
 
@@ -464,18 +455,3 @@ def test_wallet_reports_documented_not_found_account_state(
         match="legacy billing or no Metronome customer yet",
     ):
         rest_client.wallet(api_key="tf_test")
-
-
-def test_every_request_identifies_the_plugin(monkeypatch: pytest.MonkeyPatch) -> None:
-    captured: dict[str, Any] = {}
-
-    def fake_get(url: str, **kwargs: Any) -> httpx.Response:
-        captured.update(url=url, **kwargs)
-        return _response("GET", url, payload={"results": []})
-
-    monkeypatch.setattr(rest_client.httpx, "get", fake_get)
-    rest_client.search("q", api_key="tf_test", timeout=1.0)
-
-    assert captured["headers"]["X-TF-Client-Name"] == "tinyfish-hermes"
-    assert captured["headers"]["X-TF-Client-Version"] == __version__
-    assert "X-TF-Request-Origin" not in captured["headers"]
