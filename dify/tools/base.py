@@ -13,7 +13,7 @@ class TinyfishMixin:
         # Without these, telemetry cannot tell the plugin from raw curl.
         return {
             "X-API-Key": self.runtime.credentials["api_key"],
-            "X-TF-Client-Name": "tinyfish-dify",
+            "X-TF-Client-Name": "dify",
             "X-TF-Client-Version": PLUGIN_VERSION,
         }
 

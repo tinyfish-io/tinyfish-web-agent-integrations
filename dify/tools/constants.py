@@ -1,18 +1,19 @@
 from pathlib import Path
 
+import yaml
+
 API_BASE_URL = "https://agent.tinyfish.ai"
 
+# Top-level `version` is the plugin; `meta.version` is the manifest format.
 _MANIFEST = Path(__file__).resolve().parents[1] / "manifest.yaml"
 
 
 def _manifest_version() -> str:
     try:
-        for line in _MANIFEST.read_text(encoding="utf-8").splitlines():
-            if line.startswith("version:"):
-                return line.split(":", 1)[1].split("#", 1)[0].strip().strip("'\"")
-    except OSError:
-        pass
-    return "0+unknown"
+        version = yaml.safe_load(_MANIFEST.read_text(encoding="utf-8")).get("version")
+    except (OSError, yaml.YAMLError, AttributeError):
+        version = None
+    return str(version) if version else "0+unknown"
 
 
 PLUGIN_VERSION = _manifest_version()

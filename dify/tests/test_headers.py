@@ -17,7 +17,7 @@ def _tool() -> TinyfishMixin:
 def test_headers_identify_the_plugin() -> None:
     headers = _tool()._api_headers
     assert headers["X-API-Key"] == "tf_test"
-    assert headers["X-TF-Client-Name"] == "tinyfish-dify"
+    assert headers["X-TF-Client-Name"] == "dify"
     assert headers["X-TF-Client-Version"] == PLUGIN_VERSION
 
 
@@ -28,5 +28,5 @@ def test_plugin_version_is_a_real_release_version() -> None:
     assert re.search(
         rf"^version: {re.escape(PLUGIN_VERSION)}$",
         MANIFEST.read_text(encoding="utf-8"),
-        re.M,
+        re.MULTILINE,
     )
