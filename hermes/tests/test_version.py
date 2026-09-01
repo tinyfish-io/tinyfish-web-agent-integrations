@@ -8,12 +8,21 @@ import pytest
 import tinyfish_hermes as plugin
 
 
-def test_version_prefers_installed_distribution_metadata(
+def test_version_prefers_adjacent_manifest_over_stale_metadata(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     manifest = tmp_path / "plugin.yaml"
     manifest.write_text("version: 1.2.3\n", encoding="utf-8")
     monkeypatch.setattr(plugin, "_PLUGIN_MANIFEST", manifest)
+    monkeypatch.setattr(plugin.metadata, "version", lambda name: "9.8.7")
+
+    assert plugin._resolve_version() == "1.2.3"
+
+
+def test_version_uses_installed_metadata_when_no_manifest(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(plugin, "_PLUGIN_MANIFEST", tmp_path / "missing.yaml")
     monkeypatch.setattr(plugin.metadata, "version", lambda name: "9.8.7")
 
     assert plugin._resolve_version() == "9.8.7"

@@ -25,11 +25,13 @@ def _version_from_plugin_manifest(path: Path | None = None) -> str | None:
 
 
 def _resolve_version() -> str:
-    try:
-        installed_version = metadata.version(_DISTRIBUTION_NAME)
-    except Exception:  # directory installs must not depend on package metadata
-        installed_version = ""
-    version = installed_version or _version_from_plugin_manifest() or ""
+    # Wheels omit plugin.yaml: an adjacent manifest beats stale dist metadata.
+    version = _version_from_plugin_manifest()
+    if not version:
+        try:
+            version = metadata.version(_DISTRIBUTION_NAME)
+        except Exception:  # directory installs must not depend on package metadata
+            version = ""
     # httpx sends headers as ASCII; one stray byte fails every request.
     return version if version and version.isascii() else "0+unknown"
 
