@@ -1,7 +1,7 @@
 import { version } from '../../package.json';
 
-// Without these the server files every call as untagged `api`.
-export const CLIENT_HEADERS: Record<string, string> = {
+// Without these, telemetry cannot tell the node from raw curl.
+export const CLIENT_HEADERS = {
 	'X-TF-Client-Name': 'tinyfish-n8n',
 	'X-TF-Client-Version': version,
 };
