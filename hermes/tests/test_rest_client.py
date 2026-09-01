@@ -11,7 +11,7 @@ from tinyfish_hermes import __version__, rest_client
 _AUTH_HEADERS = {
     "X-API-Key": "tf_test",
     "Accept": "application/json",
-    "X-TF-Client-Name": "tinyfish-hermes",
+    "X-TF-Client-Name": "hermes",
     "X-TF-Client-Version": __version__,
 }
 
@@ -286,12 +286,7 @@ def test_close_browser_session_accepts_any_success_status(
         is True
     )
     assert captured["url"] == f"{rest_client.BROWSER_URL}/sess_123"
-    assert captured["headers"] == {
-        "X-API-Key": "tf_test",
-        "Accept": "application/json",
-        "X-TF-Client-Name": "tinyfish-hermes",
-        "X-TF-Client-Version": __version__,
-    }
+    assert captured["headers"] == _AUTH_HEADERS
     assert captured["timeout"] == 9.0
 
 

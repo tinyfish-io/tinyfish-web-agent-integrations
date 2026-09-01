@@ -37,7 +37,7 @@ def _headers(api_key: str) -> dict[str, str]:
     return {
         "X-API-Key": api_key,
         "Accept": "application/json",
-        "X-TF-Client-Name": "tinyfish-hermes",
+        "X-TF-Client-Name": "hermes",
         "X-TF-Client-Version": __version__,
     }
 

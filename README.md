@@ -30,3 +30,14 @@ Want to contribute to these integrations? We love adding TinyFish Web Agent to n
 ## License
 
 These integrations are licensed under the MIT License.
+
+## Identifying your integration to TinyFish
+
+Every integration that calls the REST API directly sends two headers on every request:
+
+| header | value |
+|---|---|
+| `X-TF-Client-Name` | the bare integration token — the same value used for `api_integration` where one exists: `hermes`, `dify`, `n8n` |
+| `X-TF-Client-Version` | the integration's own published version |
+
+Do not send `X-TF-Request-Origin`; `api` is the transport and the server derives it. Integrations that wrap the `tinyfish` SDK set `TF_CLIENT_NAME` / `TF_CLIENT_VERSION` alongside `TF_API_INTEGRATION` instead. Without these, telemetry cannot tell the integration from a hand-written curl.
