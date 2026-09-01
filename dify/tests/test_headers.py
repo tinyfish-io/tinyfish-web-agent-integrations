@@ -24,4 +24,9 @@ def test_headers_identify_the_plugin() -> None:
 def test_plugin_version_is_a_real_release_version() -> None:
     # The publish workflow greps `^version:` — same anchor the constant uses.
     assert re.fullmatch(r"\d+\.\d+\.\d+", PLUGIN_VERSION), PLUGIN_VERSION
-    assert f"version: {PLUGIN_VERSION}\n" in MANIFEST.read_text(encoding="utf-8")
+    # Column 0 only: meta.version is indented and is the manifest-format version.
+    assert re.search(
+        rf"^version: {re.escape(PLUGIN_VERSION)}$",
+        MANIFEST.read_text(encoding="utf-8"),
+        re.M,
+    )
