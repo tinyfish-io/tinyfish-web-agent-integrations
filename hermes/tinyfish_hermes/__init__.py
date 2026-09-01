@@ -29,7 +29,9 @@ def _resolve_version() -> str:
         installed_version = metadata.version(_DISTRIBUTION_NAME)
     except Exception:  # directory installs must not depend on package metadata
         installed_version = ""
-    return installed_version or _version_from_plugin_manifest() or "0+unknown"
+    version = installed_version or _version_from_plugin_manifest() or ""
+    # httpx sends headers as ASCII; one stray byte fails every request.
+    return version if version and version.isascii() else "0+unknown"
 
 
 __version__ = _resolve_version()

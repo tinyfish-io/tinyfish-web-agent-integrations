@@ -53,3 +53,18 @@ def test_public_version_is_exported() -> None:
     assert isinstance(plugin.__version__, str)
     assert plugin.__version__
     assert "__version__" in plugin.__all__
+
+
+def test_version_rejects_non_ascii_manifest_value(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    manifest = tmp_path / "plugin.yaml"
+    manifest.write_text("version: 0.1.1é\n", encoding="utf-8")
+    monkeypatch.setattr(plugin, "_PLUGIN_MANIFEST", manifest)
+
+    def missing_distribution(name: str) -> str:
+        raise metadata.PackageNotFoundError(name)
+
+    monkeypatch.setattr(plugin.metadata, "version", missing_distribution)
+
+    assert plugin._resolve_version() == "0+unknown"
