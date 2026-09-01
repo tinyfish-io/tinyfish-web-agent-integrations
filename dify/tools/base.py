@@ -2,7 +2,7 @@ from typing import Any
 
 import httpx
 
-from tools.constants import API_BASE_URL
+from tools.constants import API_BASE_URL, PLUGIN_VERSION
 
 
 class TinyfishMixin:
@@ -10,7 +10,12 @@ class TinyfishMixin:
 
     @property
     def _api_headers(self) -> dict[str, str]:
-        return {"X-API-Key": self.runtime.credentials["api_key"]}
+        # Without these the server files every call as untagged `api`.
+        return {
+            "X-API-Key": self.runtime.credentials["api_key"],
+            "X-TF-Client-Name": "tinyfish-dify",
+            "X-TF-Client-Version": PLUGIN_VERSION,
+        }
 
     def _tf_request(
         self,
