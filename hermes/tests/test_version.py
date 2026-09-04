@@ -77,3 +77,19 @@ def test_version_rejects_non_ascii_manifest_value(
     monkeypatch.setattr(plugin.metadata, "version", missing_distribution)
 
     assert plugin._resolve_version() == "0+unknown"
+
+
+def test_version_degrades_to_metadata_when_manifest_is_non_ascii(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    manifest = tmp_path / "plugin.yaml"
+    manifest.write_text("version: 0.1.1é\n", encoding="utf-8")
+    monkeypatch.setattr(plugin, "_PLUGIN_MANIFEST", manifest)
+    monkeypatch.setattr(plugin.metadata, "version", lambda name: "9.8.7")
+
+    assert plugin._resolve_version() == "9.8.7"
+
+
+def test_manifest_version_matches_the_pinned_header_value() -> None:
+    manifest = Path(plugin.__file__).resolve().parents[1] / "plugin.yaml"
+    assert plugin._version_from_plugin_manifest(manifest) == "0.1.1"

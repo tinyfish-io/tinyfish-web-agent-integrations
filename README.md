@@ -27,17 +27,17 @@ TinyFish Web Agent provides AI-powered web automation using natural language ins
 
 Want to contribute to these integrations? We love adding TinyFish Web Agent to new ecosystems! Check out individual integration directories for setup and development instructions.
 
-## License
-
-These integrations are licensed under the MIT License.
-
 ## Identifying your integration to TinyFish
 
-Every integration that calls the REST API directly sends two headers on every request:
+Every integration that calls the REST API directly must send two headers on every request. Today `hermes` and `n8n` do; `dify` does not yet.
 
 | header | value |
 |---|---|
-| `X-TF-Client-Name` | the bare integration token — the same value used for `api_integration` where one exists: `hermes`, `dify`, `n8n` |
+| `X-TF-Client-Name` | the bare integration token — the same value used for `api_integration` where one exists: `hermes`, `n8n` |
 | `X-TF-Client-Version` | the integration's own published version |
 
-Do not send `X-TF-Request-Origin`; `api` is the transport and the server derives it. Integrations that wrap the `tinyfish` SDK set `TF_CLIENT_NAME` / `TF_CLIENT_VERSION` alongside `TF_API_INTEGRATION` instead. Without these, telemetry cannot tell the integration from a hand-written curl.
+Do not send `X-TF-Request-Origin`; `api` is the transport and the server derives it. Integrations that wrap the `tinyfish` SDK must set `TF_CLIENT_NAME` / `TF_CLIENT_VERSION` alongside `TF_API_INTEGRATION` instead — `langchain` and `google-adk` set only `TF_API_INTEGRATION` today. Without these, telemetry cannot tell the integration from a hand-written curl.
+
+## License
+
+These integrations are licensed under the MIT License.

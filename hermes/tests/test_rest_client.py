@@ -6,13 +6,13 @@ from typing import Any
 import httpx
 import pytest
 
-from tinyfish_hermes import __version__, rest_client
+from tinyfish_hermes import rest_client
 
 _AUTH_HEADERS = {
     "X-API-Key": "tf_test",
     "Accept": "application/json",
     "X-TF-Client-Name": "hermes",
-    "X-TF-Client-Version": __version__,
+    "X-TF-Client-Version": "0.1.1",
 }
 
 
