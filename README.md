@@ -36,7 +36,7 @@ Every integration that calls the REST API directly must send two headers on ever
 | `X-TF-Client-Name` | the bare integration token — the same value used for `api_integration` where one exists: `hermes`, `n8n` |
 | `X-TF-Client-Version` | the integration's own published version |
 
-Do not send `X-TF-Request-Origin`; `api` is the transport and the server derives it. Integrations that wrap the `tinyfish` SDK must set `TF_CLIENT_NAME` / `TF_CLIENT_VERSION` alongside `TF_API_INTEGRATION` instead — `langchain` and `google-adk` set only `TF_API_INTEGRATION` today. Without these, telemetry cannot tell the integration from a hand-written curl.
+Do not send `X-TF-Request-Origin` yourself; `api` is the transport and the server derives it, and the `tinyfish` SDK already sets its own value. Integrations that wrap the SDK cannot send the two headers today — `tinyfish==0.2.5` builds a fixed header set with no passthrough and ignores `TF_CLIENT_NAME` / `TF_CLIENT_VERSION` — so `langchain` and `google-adk` identify with `TF_API_INTEGRATION` alone until the SDK exposes them. Without any of this, telemetry cannot tell the integration from a hand-written curl.
 
 ## License
 

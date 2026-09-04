@@ -40,6 +40,12 @@ jobs:
           manifest=$(sed -n 's/^version:[[:space:]]*//p' plugin.yaml | head -1 | tr -d "\"' ")
           project=$(sed -n 's/^version[[:space:]]*=[[:space:]]*"\(.*\)"/\1/p' pyproject.toml | head -1)
           echo "plugin.yaml=$manifest pyproject.toml=$project"
+          # Both parsers are regex-based: an unparsed file yields "" on both sides
+          # and would compare equal, passing the check it is meant to fail.
+          if [ -z "$manifest" ] || [ -z "$project" ]; then
+            echo "::error file=hermes/plugin.yaml::could not parse a version from plugin.yaml or pyproject.toml"
+            exit 1
+          fi
           if [ "$manifest" != "$project" ]; then
             echo "::error file=hermes/plugin.yaml::plugin.yaml is $manifest but pyproject.toml is $project"
             exit 1
