@@ -27,6 +27,17 @@ TinyFish Web Agent provides AI-powered web automation using natural language ins
 
 Want to contribute to these integrations? We love adding TinyFish Web Agent to new ecosystems! Check out individual integration directories for setup and development instructions.
 
+## Identifying your integration to TinyFish
+
+Every integration that calls the REST API directly must send two headers on every request. Today `hermes` and `n8n` do; `dify` does not yet.
+
+| header | value |
+|---|---|
+| `X-TF-Client-Name` | the bare integration token — the same value used for `api_integration` where one exists: `hermes`, `n8n` |
+| `X-TF-Client-Version` | the integration's own published version |
+
+Do not send `X-TF-Request-Origin` yourself; `api` is the transport and the server derives it, and the `tinyfish` SDK already sets its own value. Integrations that wrap the SDK cannot send the two headers today — `tinyfish==0.2.5` builds a fixed header set with no passthrough and ignores `TF_CLIENT_NAME` / `TF_CLIENT_VERSION` — so `langchain` and `google-adk` identify with `TF_API_INTEGRATION` alone until the SDK exposes them. Without any of this, telemetry cannot tell the integration from a hand-written curl.
+
 ## License
 
 These integrations are licensed under the MIT License.

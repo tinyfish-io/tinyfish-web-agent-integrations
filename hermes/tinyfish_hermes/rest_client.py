@@ -8,6 +8,8 @@ from typing import Any, NoReturn, cast
 
 import httpx
 
+from . import __version__
+
 SEARCH_URL = "https://api.search.tinyfish.ai"
 FETCH_URL = "https://api.fetch.tinyfish.ai"
 FETCH_MAX_URLS = 10
@@ -31,7 +33,13 @@ class TinyFishWalletNotFound(TinyFishRestError):
 
 
 def _headers(api_key: str) -> dict[str, str]:
-    return {"X-API-Key": api_key, "Accept": "application/json"}
+    # Without these, telemetry cannot tell the plugin from raw curl.
+    return {
+        "X-API-Key": api_key,
+        "Accept": "application/json",
+        "X-TF-Client-Name": "hermes",
+        "X-TF-Client-Version": __version__,
+    }
 
 
 def _json_headers(api_key: str) -> dict[str, str]:
