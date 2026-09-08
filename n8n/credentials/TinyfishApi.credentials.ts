@@ -5,6 +5,8 @@ import type {
 	INodeProperties,
 } from 'n8n-workflow';
 
+import { CLIENT_HEADERS } from '../nodes/Tinyfish/clientHeaders';
+
 export class TinyfishApi implements ICredentialType {
 	name = 'tinyfishApi';
 
@@ -32,6 +34,7 @@ export class TinyfishApi implements ICredentialType {
 		properties: {
 			headers: {
 				'X-API-Key': '={{$credentials.apiKey}}',
+				...CLIENT_HEADERS,
 			},
 		},
 	};
