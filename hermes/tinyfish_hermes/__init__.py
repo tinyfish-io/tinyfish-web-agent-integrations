@@ -32,9 +32,7 @@ def _version_from_metadata() -> str | None:
 
 
 def _resolve_version() -> str:
-    # Wheels omit plugin.yaml: an adjacent manifest beats stale dist metadata.
-    # httpx sends headers as ASCII, so one stray byte fails every request; a
-    # garbled source degrades to the next candidate, not straight to the fallback.
+    # httpx headers must be ASCII; wheels omit plugin.yaml.
     for candidate in (_version_from_plugin_manifest(), _version_from_metadata()):
         if candidate and candidate.isascii():
             return candidate
