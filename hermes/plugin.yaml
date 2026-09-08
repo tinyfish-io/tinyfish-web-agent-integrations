@@ -1,5 +1,5 @@
 name: tinyfish
-version: 0.1.0
+version: 0.1.1
 description: "First-party TinyFish provider plugin for Hermes Agent: Search and Fetch over the TinyFish REST APIs with API-key auth, plus credit-gated Browser sessions."
 author: TinyFish
 kind: backend

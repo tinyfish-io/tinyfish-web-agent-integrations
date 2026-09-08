@@ -8,6 +8,13 @@ import pytest
 
 from tinyfish_hermes import rest_client
 
+_AUTH_HEADERS = {
+    "X-API-Key": "tf_test",
+    "Accept": "application/json",
+    "X-TF-Client-Name": "hermes",
+    "X-TF-Client-Version": "0.1.1",
+}
+
 
 def _response(
     method: str,
@@ -61,7 +68,7 @@ def test_search_sends_supported_query_options(monkeypatch: pytest.MonkeyPatch) -
             "page": 2,
             "purpose": "research",
         },
-        "headers": {"X-API-Key": "tf_test", "Accept": "application/json"},
+        "headers": _AUTH_HEADERS,
         "timeout": 12.5,
     }
 
@@ -115,11 +122,7 @@ def test_fetch_sends_supported_body_options(monkeypatch: pytest.MonkeyPatch) -> 
             "ttl": 300,
             "per_url_timeout_ms": 2500,
         },
-        "headers": {
-            "X-API-Key": "tf_test",
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-        },
+        "headers": {**_AUTH_HEADERS, "Content-Type": "application/json"},
         "timeout": 22.0,
     }
 
@@ -283,7 +286,7 @@ def test_close_browser_session_accepts_any_success_status(
         is True
     )
     assert captured["url"] == f"{rest_client.BROWSER_URL}/sess_123"
-    assert captured["headers"] == {"X-API-Key": "tf_test", "Accept": "application/json"}
+    assert captured["headers"] == _AUTH_HEADERS
     assert captured["timeout"] == 9.0
 
 
@@ -424,7 +427,7 @@ def test_wallet_and_usage_use_documented_endpoints(
     assert call() == {"items": []}
     assert captured == {
         "url": expected_url,
-        "headers": {"X-API-Key": "tf_test", "Accept": "application/json"},
+        "headers": _AUTH_HEADERS,
         "timeout": 11.0,
     }
 

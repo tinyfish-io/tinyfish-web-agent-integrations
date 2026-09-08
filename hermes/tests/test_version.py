@@ -8,12 +8,21 @@ import pytest
 import tinyfish_hermes as plugin
 
 
-def test_version_prefers_installed_distribution_metadata(
+def test_version_prefers_adjacent_manifest_over_stale_metadata(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     manifest = tmp_path / "plugin.yaml"
     manifest.write_text("version: 1.2.3\n", encoding="utf-8")
     monkeypatch.setattr(plugin, "_PLUGIN_MANIFEST", manifest)
+    monkeypatch.setattr(plugin.metadata, "version", lambda name: "9.8.7")
+
+    assert plugin._resolve_version() == "1.2.3"
+
+
+def test_version_uses_installed_metadata_when_no_manifest(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(plugin, "_PLUGIN_MANIFEST", tmp_path / "missing.yaml")
     monkeypatch.setattr(plugin.metadata, "version", lambda name: "9.8.7")
 
     assert plugin._resolve_version() == "9.8.7"
@@ -53,3 +62,34 @@ def test_public_version_is_exported() -> None:
     assert isinstance(plugin.__version__, str)
     assert plugin.__version__
     assert "__version__" in plugin.__all__
+
+
+def test_version_rejects_non_ascii_manifest_value(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    manifest = tmp_path / "plugin.yaml"
+    manifest.write_text("version: 0.1.1é\n", encoding="utf-8")
+    monkeypatch.setattr(plugin, "_PLUGIN_MANIFEST", manifest)
+
+    def missing_distribution(name: str) -> str:
+        raise metadata.PackageNotFoundError(name)
+
+    monkeypatch.setattr(plugin.metadata, "version", missing_distribution)
+
+    assert plugin._resolve_version() == "0+unknown"
+
+
+def test_version_degrades_to_metadata_when_manifest_is_non_ascii(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    manifest = tmp_path / "plugin.yaml"
+    manifest.write_text("version: 0.1.1é\n", encoding="utf-8")
+    monkeypatch.setattr(plugin, "_PLUGIN_MANIFEST", manifest)
+    monkeypatch.setattr(plugin.metadata, "version", lambda name: "9.8.7")
+
+    assert plugin._resolve_version() == "9.8.7"
+
+
+def test_manifest_version_matches_the_pinned_header_value() -> None:
+    manifest = Path(plugin.__file__).resolve().parents[1] / "plugin.yaml"
+    assert plugin._version_from_plugin_manifest(manifest) == "0.1.1"

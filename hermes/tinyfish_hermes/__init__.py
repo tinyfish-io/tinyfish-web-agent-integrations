@@ -24,12 +24,19 @@ def _version_from_plugin_manifest(path: Path | None = None) -> str | None:
     return None
 
 
-def _resolve_version() -> str:
+def _version_from_metadata() -> str | None:
     try:
-        installed_version = metadata.version(_DISTRIBUTION_NAME)
+        return metadata.version(_DISTRIBUTION_NAME)
     except Exception:  # directory installs must not depend on package metadata
-        installed_version = ""
-    return installed_version or _version_from_plugin_manifest() or "0+unknown"
+        return None
+
+
+def _resolve_version() -> str:
+    # httpx headers must be ASCII; wheels omit plugin.yaml.
+    for candidate in (_version_from_plugin_manifest(), _version_from_metadata()):
+        if candidate and candidate.isascii():
+            return candidate
+    return "0+unknown"
 
 
 __version__ = _resolve_version()
