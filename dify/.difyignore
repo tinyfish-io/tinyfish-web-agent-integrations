@@ -182,3 +182,4 @@ Thumbs.db
 #  To prevent packaging repetitively
 *.difypkg
 
+tests/
