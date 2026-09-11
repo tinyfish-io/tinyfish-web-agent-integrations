@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "tinyfish": {
+      "url": "https://agent.tinyfish.ai/mcp",
+      "headers": {
+        "X-API-Key": "${TINYFISH_API_KEY}",
+        "X-TF-Client-Name": "pi",
+        "X-TF-Client-Version": "0.1.0"
+      },
+      "directTools": [
+        "search",
+        "fetch_content",
+        "run_web_automation",
+        "run_web_automation_async",
+        "get_run",
+        "cancel_run",
+        "batch_status",
+        "batch_cancel",
+        "create_browser_session",
+        "close_browser_session"
+      ]
+    }
+  }
+}
