@@ -14,9 +14,11 @@
         "run_web_automation_async",
         "get_run",
         "cancel_run",
+        "list_runs",
         "batch_status",
         "batch_cancel",
         "create_browser_session",
+        "list_browser_sessions",
         "close_browser_session"
       ]
     }
