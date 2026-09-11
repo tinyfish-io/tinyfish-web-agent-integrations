@@ -1,0 +1,168 @@
+name: Hermes CD - Publish to npm
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/hermes-npm-publish.yml"
+      - "hermes/**"
+  workflow_dispatch:
+
+# Publishing behaviour (diverges from pi-publish.yml on purpose):
+#   push to main  →  publish when hermes/package.json names a version npm does not
+#                    have yet. If the version is already published, the run goes RED
+#                    when the push changed a shipped file, and no-ops otherwise.
+#                    `tinyfish connect hermes` installs @latest on user machines, so a
+#                    shipped change under an already-published version is a silent
+#                    freeze: users keep installing a payload that no longer matches
+#                    main. pi no-ops green here because its payload is docs; do not
+#                    "fix" this back to that shape.
+#   workflow_dispatch  →  same check with the red path disabled, as a re-run escape hatch
+#
+# Auth: npm Trusted Publisher (OIDC) — no NODE_AUTH_TOKEN secret. Same model as
+# pi-publish.yml. Requires npmjs.com package settings to name
+# tinyfish-io/tinyfish-web-agent-integrations + hermes-npm-publish.yml as the
+# trusted publisher.
+#
+# BOOTSTRAP — a trusted publisher cannot be configured on a package that does not
+# exist, so the first release is manual and one-time:
+#   1. cd hermes && npm publish --access public
+#   2. npmjs.com → @tiny-fish/hermes → Settings → Trusted Publisher →
+#      GitHub Actions, repo tinyfish-io/tinyfish-web-agent-integrations,
+#      workflow hermes-npm-publish.yml
+#   3. every release after that is this workflow, on a version bump
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify-package:
+    name: Verify package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+      should-publish: ${{ steps.check.outputs.should-publish }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # The freeze check diffs against the pre-push tip.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Manifest is valid JSON
+        working-directory: hermes
+        run: jq -e . package.json > /dev/null
+
+      # A dropped `files` entry still publishes and installs, just with the plugin
+      # silently hollow. Pin the payload here.
+      - name: Tarball carries every shipped component
+        working-directory: hermes
+        run: |
+          npm pack --dry-run --json > /tmp/pack.json
+          node -e "
+            const [pack] = require('/tmp/pack.json');
+            const paths = pack.files.map((f) => f.path);
+            const set = new Set(paths);
+            const required = [
+              'package.json',
+              'README.md',
+              'plugin.yaml',
+              'pyproject.toml',
+              '__init__.py',
+              'tinyfish_hermes/__init__.py',
+              'tinyfish_hermes/provider.py',
+              'tinyfish_hermes/setup_cli.py',
+            ];
+            const missing = required.filter((p) => !set.has(p));
+            if (missing.length) {
+              console.error('Missing from tarball:\n  ' + missing.join('\n  '));
+              process.exit(1);
+            }
+            const modules = paths.filter((p) => /^tinyfish_hermes\/[^/]+\.py$/.test(p)).length;
+            if (modules < 8) {
+              console.error('Only ' + modules + ' plugin modules in tarball; expected the full package');
+              process.exit(1);
+            }
+            const junk = paths.filter((p) => p.includes('__pycache__') || p.endsWith('.pyc'));
+            if (junk.length) {
+              console.error('Build junk in tarball:\n  ' + junk.join('\n  '));
+              process.exit(1);
+            }
+            console.log('Tarball OK: ' + paths.length + ' files, ' + modules + ' plugin modules');
+          "
+
+      - name: Check npm version availability
+        id: check
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          PACKAGE=$(jq -re '.name' hermes/package.json)
+          VERSION=$(jq -re '.version' hermes/package.json)
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          ENC=$(printf '%s' "$PACKAGE" | jq -sRr @uri)
+          STATUS=$(curl -sS -o /dev/null -w '%{http_code}' \
+            "https://registry.npmjs.org/${ENC}/${VERSION}")
+          case "$STATUS" in
+            404)
+              echo "should-publish=true" >> "$GITHUB_OUTPUT"
+              echo "${PACKAGE} ${VERSION} is available; will publish."
+              ;;
+            200)
+              echo "should-publish=false" >> "$GITHUB_OUTPUT"
+              # Tests and Makefile changes never demand a bump; the shipped payload does.
+              shipped="hermes/tinyfish_hermes hermes/plugin.yaml hermes/pyproject.toml hermes/__init__.py hermes/README.md hermes/package.json"
+              if [ -z "$BEFORE" ]; then
+                echo "dispatch re-run; ${PACKAGE} ${VERSION} already published, nothing to do."
+              elif [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || \
+                   ! git diff --quiet "$BEFORE" HEAD -- $shipped; then
+                # Unknowable base fails closed rather than freezing silently.
+                echo "::error file=hermes/package.json::shipped files changed but ${VERSION} is already on npm; bump the version in package.json, pyproject.toml and plugin.yaml"
+                exit 1
+              else
+                echo "${PACKAGE} ${VERSION} already published and no shipped file changed; nothing to do."
+              fi
+              ;;
+            *)
+              # Unknown is not "already published" — never silently skip a release on it.
+              echo "::error::npm returned HTTP ${STATUS} while checking ${PACKAGE} ${VERSION}"
+              exit 1
+              ;;
+          esac
+
+  publish:
+    name: Publish to npm (@latest)
+    needs: verify-package
+    if: needs.verify-package.outputs.should-publish == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: hermes
+
+    permissions:
+      id-token: write # npm Trusted Publisher (OIDC)
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      # npm >= 11.5.1 is required for trusted publishing; Node 24 ships it.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Publish
+        run: |
+          echo "Publishing @tiny-fish/hermes@${{ needs.verify-package.outputs.version }} as @latest (public)..."
+          npm publish --access public --tag latest
+          echo "Published @tiny-fish/hermes@${{ needs.verify-package.outputs.version }}"
