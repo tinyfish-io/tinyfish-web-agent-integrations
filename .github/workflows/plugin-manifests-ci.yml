@@ -7,12 +7,14 @@ on:
       - ".github/workflows/plugin-manifests-ci.yml"
       - ".claude-plugin/**"
       - "claude/**"
+      - "pi/**"
   push:
     branches: [main]
     paths:
       - ".github/workflows/plugin-manifests-ci.yml"
       - ".claude-plugin/**"
       - "claude/**"
+      - "pi/**"
 
 permissions:
   contents: read
@@ -34,5 +36,24 @@ jobs:
           echo "plugin.json=$plugin marketplace.json=$entry"
           if [ "$plugin" != "$entry" ]; then
             echo "::error file=.claude-plugin/marketplace.json::plugin entry is $entry but claude/.claude-plugin/plugin.json is $plugin"
+            exit 1
+          fi
+
+  pi-versions-match:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # mcp.json hardcodes the version it reports as X-TF-Client-Version; nothing else keeps
+      # it in step with package.json, so a release would silently report the previous version.
+      - name: MCP client version matches the package version
+        run: |
+          set -euo pipefail
+          pkg=$(jq -re '.version' pi/package.json)
+          hdr=$(jq -re '.mcpServers.tinyfish.headers["X-TF-Client-Version"]' pi/mcp.json)
+          echo "package.json=$pkg mcp.json=$hdr"
+          if [ "$pkg" != "$hdr" ]; then
+            echo "::error file=pi/mcp.json::X-TF-Client-Version is $hdr but pi/package.json is $pkg"
             exit 1
           fi
