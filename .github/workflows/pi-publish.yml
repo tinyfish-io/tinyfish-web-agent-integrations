@@ -1,0 +1,139 @@
+name: Pi CD - Publish to npm
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/pi-publish.yml"
+      - "pi/**"
+  workflow_dispatch:
+
+# Publishing behaviour:
+#   push to main  →  publish when pi/package.json names a version npm does not have yet;
+#                    no-op otherwise, so content-only edits do not need a version bump
+#   workflow_dispatch  →  same check, as an escape hatch for a re-run
+#
+# Auth: npm Trusted Publisher (OIDC) — no NODE_AUTH_TOKEN secret. Same model as ux-labs
+# CD_cli.yml. Requires npmjs.com package settings to name tinyfish-io/tinyfish-web-agent-
+# integrations + pi-publish.yml as the trusted publisher.
+#
+# BOOTSTRAP — a trusted publisher cannot be configured on a package that does not exist,
+# so the first release is manual and one-time:
+#   1. cd pi && npm publish --access public
+#   2. npmjs.com → @tiny-fish/pi → Settings → Trusted Publisher → GitHub Actions,
+#      repo tinyfish-io/tinyfish-web-agent-integrations, workflow pi-publish.yml
+#   3. every release after that is this workflow, on a version bump
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify-package:
+    name: Verify package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+      should-publish: ${{ steps.check.outputs.should-publish }}
+    defaults:
+      run:
+        working-directory: pi
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Manifests are valid JSON
+        run: |
+          set -euo pipefail
+          jq -e . package.json > /dev/null
+          jq -e . mcp.json > /dev/null
+
+      # The package ships no code, so a dropped `files` entry is the whole failure mode:
+      # the tarball still publishes and installs, just with skills silently missing.
+      - name: Tarball carries every shipped component
+        run: |
+          npm pack --dry-run --json > /tmp/pack.json
+          node -e "
+            const [pack] = require('/tmp/pack.json');
+            const paths = new Set(pack.files.map((f) => f.path));
+            const required = [
+              'mcp.json',
+              'README.md',
+              'rules/security.md',
+              'skills/tinyfish-web/SKILL.md',
+              'skills/tinyfish-research/SKILL.md',
+              'skills/tinyfish-automation/SKILL.md',
+              'skills/tinyfish-authenticated/SKILL.md',
+              'skills/tinyfish-browser/SKILL.md',
+            ];
+            const missing = required.filter((p) => !paths.has(p));
+            if (missing.length) {
+              console.error('Missing from tarball:\n  ' + missing.join('\n  '));
+              process.exit(1);
+            }
+            // Skills reference these; a skill that points at a missing file is worse than no pointer.
+            const refs = pack.files.filter((f) => f.path.includes('/references/')).length;
+            if (refs === 0) {
+              console.error('No skill references/ files in tarball');
+              process.exit(1);
+            }
+            console.log('Tarball OK: ' + pack.files.length + ' files, ' + refs + ' reference docs');
+          "
+
+      - name: Check npm version availability
+        id: check
+        run: |
+          set -euo pipefail
+          PACKAGE=$(jq -re '.name' package.json)
+          VERSION=$(jq -re '.version' package.json)
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          STATUS=$(curl -sS -o /dev/null -w '%{http_code}' \
+            "https://registry.npmjs.org/${PACKAGE}/${VERSION}")
+          case "$STATUS" in
+            404)
+              echo "should-publish=true" >> "$GITHUB_OUTPUT"
+              echo "${PACKAGE} ${VERSION} is available; will publish."
+              ;;
+            200)
+              echo "should-publish=false" >> "$GITHUB_OUTPUT"
+              echo "${PACKAGE} ${VERSION} already published; nothing to do."
+              ;;
+            *)
+              # Unknown is not "already published" — never silently skip a release on it.
+              echo "::error::npm returned HTTP ${STATUS} while checking ${PACKAGE} ${VERSION}"
+              exit 1
+              ;;
+          esac
+
+  publish:
+    name: Publish to npm (@latest)
+    needs: verify-package
+    if: needs.verify-package.outputs.should-publish == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pi
+
+    permissions:
+      id-token: write # npm Trusted Publisher (OIDC)
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # npm >= 11.5.1 is required for trusted publishing; Node 24 ships it.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Publish
+        run: |
+          echo "Publishing @tiny-fish/pi@${{ needs.verify-package.outputs.version }} as @latest (public)..."
+          npm publish --access public --tag latest
+          echo "✓ Published @tiny-fish/pi@${{ needs.verify-package.outputs.version }}"
