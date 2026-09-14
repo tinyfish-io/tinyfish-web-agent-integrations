@@ -1,0 +1,125 @@
+name: Pi CI
+
+# No `branches:` filter on pull_request, unlike the other CI here: that filter matches the
+# *base*, so a stacked PR gets no validation until it retargets main — including the PR that
+# adds these jobs. Validation should run wherever pi/ changes.
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/pi-ci.yml"
+      - "pi/**"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/pi-ci.yml"
+      - "pi/**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: pi
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      # Static integrity: manifest, skill frontmatter, skill-relative references, and
+      # that every tool the skills teach is actually registered in directTools.
+      - name: Validate package
+        run: node test/validate.mjs
+
+      # The package ships no code, so a dropped `files` entry is the whole failure mode:
+      # the tarball still publishes and installs, just with skills silently missing.
+      # pi-publish.yml repeats this at publish time; here it runs on the PR that breaks it.
+      - name: Tarball carries every shipped component
+        run: |
+          npm pack --dry-run --json > /tmp/pack.json
+          node -e "
+            const [pack] = require('/tmp/pack.json');
+            const paths = new Set(pack.files.map((f) => f.path));
+            const required = [
+              'mcp.json',
+              'README.md',
+              'rules/security.md',
+              'skills/tinyfish-web/SKILL.md',
+              'skills/tinyfish-research/SKILL.md',
+              'skills/tinyfish-automation/SKILL.md',
+              'skills/tinyfish-authenticated/SKILL.md',
+              'skills/tinyfish-browser/SKILL.md',
+            ];
+            const missing = required.filter((p) => !paths.has(p));
+            if (missing.length) {
+              console.error('Missing from tarball:\n  ' + missing.join('\n  '));
+              process.exit(1);
+            }
+            const leaked = [...paths].filter((p) => p === 'test' || p.startsWith('test/'));
+            if (leaked.length) {
+              console.error('test/ must not ship in the tarball: ' + leaked.join(', '));
+              process.exit(1);
+            }
+            console.log('Tarball OK: ' + pack.files.length + ' files');
+          "
+
+  install:
+    name: Pi loads the package
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install pi
+        run: npm i -g @earendil-works/pi-coding-agent
+
+      # Proves the real thing: pi accepts the package, and the adapter derives the
+      # server name and directTools the skills are written against. Both are installed
+      # the way a user installs them. No model, no network calls to us, no credentials.
+      - name: Register the package and assert what the adapter resolves
+        run: |
+          set -euo pipefail
+          export PI_CODING_AGENT_DIR="$(mktemp -d)"
+          pi install ./pi
+          pi install npm:pi-mcp-adapter
+          pi list
+          node -e "
+            const path = require('node:path');
+            const loader = path.join(
+              process.env.PI_CODING_AGENT_DIR,
+              'npm/node_modules/pi-mcp-adapter/dist/package-mcp-loader.js',
+            );
+            const { loadPackageMcpConfigs } = require(loader);
+            const cfg = loadPackageMcpConfigs(process.cwd());
+            const names = Object.keys(cfg.mcpServers);
+            if (!names.includes('tiny-fish_pi__tinyfish')) {
+              console.error('Expected server tiny-fish_pi__tinyfish, adapter resolved: ' + JSON.stringify(names));
+              process.exit(1);
+            }
+            // Compare the exact set: a truncated list would still be 'non-empty'.
+            const expected = require(path.join(process.cwd(), 'pi/mcp.json'))
+              .mcpServers.tinyfish.directTools;
+            const direct = cfg.mcpServers['tiny-fish_pi__tinyfish'].directTools;
+            const norm = (a) => JSON.stringify([...(a ?? [])].sort());
+            if (norm(direct) !== norm(expected)) {
+              console.error('directTools changed in transit through the adapter');
+              console.error('  mcp.json: ' + norm(expected));
+              console.error('  resolved: ' + norm(direct));
+              process.exit(1);
+            }
+            console.log('Adapter resolved ' + names[0] + ' with all ' + expected.length + ' direct tools intact');
+          "
