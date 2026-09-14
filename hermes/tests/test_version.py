@@ -93,7 +93,7 @@ def test_version_degrades_to_metadata_when_manifest_is_non_ascii(
 
 def test_manifest_version_matches_the_pinned_header_value() -> None:
     manifest = Path(plugin.__file__).resolve().parents[1] / "plugin.yaml"
-    assert plugin._version_from_plugin_manifest(manifest) == "0.1.1"
+    assert plugin._version_from_plugin_manifest(manifest) == "0.1.2"
 
 
 def _pyproject_version(hermes_root: Path) -> str:

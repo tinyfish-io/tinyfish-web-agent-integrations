@@ -93,10 +93,6 @@ make lint
 make test
 ```
 
-## Credits
-
-The provider architecture is ported from [gabeosx/hermes-plugin-tinyfish](https://github.com/gabeosx/hermes-plugin-tinyfish) (MIT), an independent community plugin. Both plugins register a web provider named `tinyfish`, so install only one of them.
-
 ## License
 
 MIT
