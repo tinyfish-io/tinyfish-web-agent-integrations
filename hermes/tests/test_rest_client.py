@@ -12,7 +12,7 @@ _AUTH_HEADERS = {
     "X-API-Key": "tf_test",
     "Accept": "application/json",
     "X-TF-Client-Name": "hermes",
-    "X-TF-Client-Version": "0.1.1",
+    "X-TF-Client-Version": "0.1.2",
 }
 
 
