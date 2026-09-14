@@ -46,6 +46,14 @@ jobs:
       version: ${{ steps.check.outputs.version }}
       should-publish: ${{ steps.check.outputs.should-publish }}
     steps:
+      # npm trusts repo + workflow filename, not a branch, so dispatch off main
+      # could otherwise publish unmerged code.
+      - name: Refuse to run off main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::this workflow publishes only from refs/heads/main; got ${GITHUB_REF}"
+          exit 1
+
       - uses: actions/checkout@v6
         with:
           # The freeze check diffs against the pre-push tip.
@@ -73,6 +81,7 @@ jobs:
             const required = [
               'package.json',
               'README.md',
+              'LICENSE',
               'plugin.yaml',
               'pyproject.toml',
               '__init__.py',
@@ -140,7 +149,8 @@ jobs:
   publish:
     name: Publish to npm (@latest)
     needs: verify-package
-    if: needs.verify-package.outputs.should-publish == 'true'
+    # The ref guard belt from verify-package, suspenders here.
+    if: needs.verify-package.outputs.should-publish == 'true' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     defaults:
       run:
