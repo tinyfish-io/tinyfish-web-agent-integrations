@@ -1,0 +1,41 @@
+name: CrewAI CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/crew-ai-ci.yml"
+      - "crew-ai/**"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/crew-ai-ci.yml"
+      - "crew-ai/**"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: crew-ai
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - run: python -m pip install --upgrade pip
+
+      - run: python -m pip install -e . -r requirements-dev.txt
+
+      - run: make lint
+
+      - run: make test
+
+      - run: python -m build
