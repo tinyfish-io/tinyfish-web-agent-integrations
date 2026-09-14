@@ -1,7 +1,7 @@
 {
   "name": "@tiny-fish/pi",
   "version": "0.1.0",
-  "description": "TinyFish for the Pi coding agent — free web search and page reading, plus goal-driven browser automation on live and logged-in sites. Skills work standalone; the bundled MCP server activates if you also install pi-mcp-adapter.",
+  "description": "TinyFish for the Pi coding agent \u2014 free web search and page reading, plus goal-driven browser automation on live and logged-in sites. Skills work standalone; the bundled MCP server activates if you also install pi-mcp-adapter.",
   "license": "MIT",
   "homepage": "https://docs.tinyfish.ai",
   "repository": {
