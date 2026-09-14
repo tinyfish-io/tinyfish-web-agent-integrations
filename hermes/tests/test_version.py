@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 from importlib import metadata
 from pathlib import Path
 
 import pytest
+import tomllib
 
 import tinyfish_hermes as plugin
 
@@ -93,3 +95,24 @@ def test_version_degrades_to_metadata_when_manifest_is_non_ascii(
 def test_manifest_version_matches_the_pinned_header_value() -> None:
     manifest = Path(plugin.__file__).resolve().parents[1] / "plugin.yaml"
     assert plugin._version_from_plugin_manifest(manifest) == "0.1.1"
+
+
+def test_plugin_manifest_version_matches_the_distribution_version() -> None:
+    """Both feed `plugin_version`; drift makes one install report two versions."""
+    hermes_root = Path(plugin.__file__).resolve().parents[1]
+    pyproject = tomllib.loads(
+        (hermes_root / "pyproject.toml").read_text(encoding="utf-8")
+    )
+
+    assert plugin._version_from_plugin_manifest() == pyproject["project"]["version"]
+
+
+def test_npm_package_version_matches_the_distribution_version() -> None:
+    """The CLI installs the npm version; drift ships a mislabeled plugin."""
+    hermes_root = Path(plugin.__file__).resolve().parents[1]
+    package = json.loads((hermes_root / "package.json").read_text(encoding="utf-8"))
+    pyproject = tomllib.loads(
+        (hermes_root / "pyproject.toml").read_text(encoding="utf-8")
+    )
+
+    assert package["version"] == pyproject["project"]["version"]

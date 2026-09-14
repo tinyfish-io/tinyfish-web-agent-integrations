@@ -1,0 +1,33 @@
+{
+  "name": "@tiny-fish/hermes",
+  "version": "0.1.1",
+  "description": "TinyFish web provider plugin for Hermes Agent, delivered via npm for the TinyFish CLI. Installed by `tinyfish connect hermes`; not a JavaScript library.",
+  "license": "MIT",
+  "homepage": "https://docs.tinyfish.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tinyfish-io/tinyfish-web-agent-integrations.git",
+    "directory": "hermes"
+  },
+  "author": {
+    "name": "TinyFish",
+    "email": "support@tinyfish.io",
+    "url": "https://tinyfish.ai"
+  },
+  "keywords": [
+    "hermes",
+    "tinyfish",
+    "web-search",
+    "web-fetch",
+    "ai-agent"
+  ],
+  "files": [
+    "tinyfish_hermes/*.py",
+    "plugin.yaml",
+    "pyproject.toml",
+    "__init__.py"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
