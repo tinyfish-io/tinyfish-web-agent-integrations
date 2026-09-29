@@ -1,14 +1,15 @@
 # TinyFish
 
-The complete web toolkit for your agent — search, fetch, browser automation, and headless browser control.
+The complete web toolkit for your agent — search, fetch, browser automation, headless browser control, and website monitoring.
 
 ## Skills
 
-`search`, `fetch`, and `agent` are built on TinyFish's hosted MCP server (bundled via `.mcp.json`). No install, no CLI needed — first use triggers an OAuth sign-in to your TinyFish account, or set an API key (see Authentication). Either way you need an account with available credits. They work in any environment, including sandboxed surfaces without terminal access.
+`search`, `fetch`, `agent`, and `monitor` are built on TinyFish's hosted MCP server (bundled via `.mcp.json`). No install, no CLI needed — first use triggers an OAuth sign-in to your TinyFish account, or set an API key (see Authentication). Search and fetch are free; automation and monitor checks are billed to your TinyFish wallet, and new users get $8 in sign-up credits. They work in any environment, including sandboxed surfaces without terminal access.
 
 - **`/tinyfish:search`** — free, token-efficient web search with flexible recency/date filtering and news/research-paper scoping
 - **`/tinyfish:fetch`** — free, clean content extraction from up to 10 URLs in parallel, including JS-heavy pages
-- **`/tinyfish:agent`** — browser automation (600 free automation credits for new users, then your plan's credits): natural-language goals, batch runs across multiple sites, and raw CDP browser sessions
+- **`/tinyfish:agent`** — browser automation billed to your wallet: natural-language goals, saved logged-in browser profiles, and raw CDP browser sessions
+- **`/tinyfish:monitor`** — recurring checks on a page or a search topic, with results sent to a webhook: $0.005 per completed check, failed checks are free
 
 The remaining two are setup tools rather than web tools, and both use your terminal:
 
@@ -32,7 +33,7 @@ TinyFish's privacy policy: https://www.tinyfish.ai/privacy-policy
 
 ## Local file access
 
-`search`, `fetch`, and `agent` read no local files — every operation goes through the TinyFish MCP server.
+`search`, `fetch`, `agent`, and `monitor` read no local files — every operation goes through the TinyFish MCP server.
 
 The two setup skills do touch your machine:
 
