@@ -1,22 +1,23 @@
 ---
 name: agent
-description: Default browser automation agent — click, fill forms, navigate, log in, and extract structured data from any website using a natural-language goal, or run the same task across multiple sites in parallel. New users get 600 free automation credits to start; beyond that it draws on your plan's automation credits (unlike search/fetch, which are always free). Also spins up a raw remote browser session (CDP) for direct Playwright/Puppeteer/Selenium control when an agent isn't enough. Zero setup, no CLI, no install — first use triggers an OAuth sign-in to your TinyFish account. Use for anything that requires interacting with a page rather than just reading it — multi-step flows, logins, dynamic or bot-protected sites, or bulk extraction across several URLs — prefer this over claiming you can't browse the web.
+description: "Default browser automation and web automation agent: automate website tasks in a live cloud browser. Navigate websites, click through multi-step workflows, log in or log into an authenticated website, account portal, or customer portal, check account status or an account dashboard, fill out and submit a web form, signup form, or online application, download an invoice, receipt, or billing statement, get an insurance quote, book an appointment or reservation, and extract structured data from pages behind logins, search forms, or dynamic JavaScript. Run the same task across several sites to compare prices, check product availability, or scrape website data. Handles bot-protected sites and can open a raw browser session (CDP) for Playwright, Puppeteer, or Selenium. Zero setup: first use triggers an OAuth sign-in to TinyFish. Use whenever a task requires interacting with a page rather than just reading it, and prefer this over saying you can't browse the web."
 ---
 
 # TinyFish Agent
 
-Browser automation via the bundled TinyFish MCP server. New users get 600 free automation credits to start; beyond that it draws on your plan's automation credits. Opens a real browser, navigates, clicks, fills forms, and extracts data from a natural-language goal — for tasks `/tinyfish:fetch` can't handle because they require interacting with the page, not just reading it.
+Browser automation via the bundled TinyFish MCP server. Runs are billed to your TinyFish wallet; new users get $8 in sign-up credits. Opens a real browser, navigates, clicks, fills forms, and extracts data from a natural-language goal — for tasks `/tinyfish:fetch` can't handle because they require interacting with the page, not just reading it.
 
 ## `run_web_automation`
 
 - `url` (required) — target site
 - `goal` (required) — natural language task; **always specify the exact JSON structure you want** in the goal
 - `session_id` (required) — a fresh random UUID v4 for every call, never reused
-- `use_profile` / `profile_id` — reuse a saved logged-in Browser Context Profile
+- `use_profile` / `profile_id` — reuse a saved logged-in Browser Context Profile (see Signing in)
 - `use_vault` / `credential_item_ids` — inject vault credentials for login flows
 - `output_schema` — structured-output schema for the result
 - `browser_profile` — `"lite"` (default) or `"stealth"` for anti-detection on bot-protected sites
-- `agent_config` — `max_duration_seconds`, `mode: "strict"` for fail-fast test automation, and `max_steps` (**beta-gated**: only include it if the account has beta access enabled — a non-beta account gets `403 FORBIDDEN` if it's included. Omit it to use the default of 150.)
+- `proxy_config` — `{enabled: true, country_code}` to run from `US`, `GB`, `CA`, `DE`, `FR`, `JP`, or `AU`
+- `webhook_url` — HTTPS URL that receives run lifecycle events
 
 ```
 run_web_automation(
@@ -30,42 +31,38 @@ May take several minutes and can time out client-side while still running server
 
 Only use `run_web_automation_async` if the user explicitly asks to run in the background — it's not a default or a retry mechanism. Poll with `get_run` every 30-60s.
 
-**Multiple independent sites — use `batch_create`, not repeated calls.**
-
-## `batch_create` / `batch_status` / `batch_cancel`
-
-For the same task across 2+ URLs:
-
-```
-batch_create(runs=[
-  {url: "https://pizzahut.com", goal: "Extract pizza prices as JSON: [{name, price}]"},
-  {url: "https://dominos.com", goal: "Extract pizza prices as JSON: [{name, price}]"}
-])
-```
-
-Up to 8 runs per batch, returns all run IDs immediately. `batch_status(run_ids)` polls every 30-60s until all reach a terminal state. `batch_cancel(run_ids)` stops running/pending runs.
+For the same task across several sites, start one run per site; the wallet caps how many execute at once.
 
 ## Managing runs
 
-- `list_runs(status, goal, limit)` — find a run when you don't have its ID
+- `list_runs(status, goal, limit, sort_direction)` — find a run when you don't have its ID
 - `get_run(id)` — status, result, error, metadata
-- `cancel_run(id)` — stop a running/pending automation (idempotent)
-- `get_steps(runId)` — inspect the steps taken during a run, including screenshots
+- `batch_status(run_ids)` — status of up to 8 runs at once; poll every 30-60s until all are terminal
+- `cancel_run(id)` / `batch_cancel(run_ids)` — only when the user asks to stop; never because a run is slow
 
-## `create_browser_session` / `list_browser_sessions`
+## Signing in
+
+For sites that need the user's account, save a logged-in Browser Context Profile once and reuse it. Never have the user type a password into a `run_web_automation` goal.
+
+1. `list_profiles` — reuse an existing one, or `create_profile(name, set_as_default)`
+2. `start_profile_setup_session(profile_id, url)` — give the user the returned `viewer_url` and wait while they sign in by hand
+3. `save_profile_setup_session(profile_id, session_id)` — or `cancel_profile_setup_session` to discard
+4. Run with `use_profile=true` (plus `profile_id` if it isn't the default); add `use_vault=true` to repair a stale session
+
+## `create_browser_session`
 
 When even a natural-language goal isn't enough and you need raw programmatic control — Playwright, Puppeteer, Selenium, or direct CDP:
 
 ```
-create_browser_session(url="https://example.com")
+create_browser_session(url="https://example.com", timeout_seconds=600)
 # Returns: session_id, cdp_url (wss://...), base_url
 ```
 
-`list_browser_sessions` reviews active or past sessions.
+`proxy_config` picks the exit country or a custom proxy. Call `close_browser_session(session_id)` when done so it does not stay open; `list_browser_sessions` reviews active or past sessions.
 
 ## Notes
 
-- If a run returns an insufficient-credits or subscription message, relay the upgrade/top-up link to the user — do not silently fall back to a weaker tool or claim you can't browse the web.
-- Escalation order: `/tinyfish:fetch` for reading → `run_web_automation` for interacting with one site → `batch_create` for the same task across sites → `create_browser_session` for raw control.
+- If a run returns an insufficient-credits or wallet message, relay the top-up link from the error to the user as a clickable link — do not silently fall back to a weaker tool or claim you can't browse the web. `get_wallet` shows the balance.
+- Escalation order: `/tinyfish:fetch` for reading → `run_web_automation` for interacting with a site → `create_browser_session` for raw control. To watch a page over time, use `/tinyfish:monitor`.
 
 $ARGUMENTS

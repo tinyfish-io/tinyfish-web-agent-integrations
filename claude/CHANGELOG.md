@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.4.0 (2026-09-29)
+
+### Added
+- Skill: `/tinyfish:monitor` — create, run, pause, resume, and cancel recurring monitors on a URL or a search topic.
+- Skill: `/tinyfish:agent` documents the Browser Context Profile sign-in flow, `proxy_config`, `webhook_url`, and `close_browser_session`.
+- Skill: `/tinyfish:search` documents `include_domains`, `exclude_domains`, `pub_year_min`, and `pub_year_max`; `/tinyfish:fetch` documents `page_metadata` and `ttl`.
+
+### Changed
+- Skill descriptions for `agent`, `fetch`, and `search`, and the plugin description, now use the phrasing people search with.
+- Billing copy: automation and monitor checks draw on the TinyFish wallet, and new users get $8 in sign-up credits; the 600-credit allowance is gone.
+
+### Removed
+- Skill: `/tinyfish:agent` no longer mentions `batch_create`, `get_steps`, or `agent_config`, none of which the MCP server exposes; passing `agent_config` was rejected.
+- Skill: `/tinyfish:fetch` examples now pass `links`, `image_links`, and `page_metadata`, which the server's schema requires.
+
 ## 1.3.1 (2026-08-26)
 
 ### Fixed
