@@ -1,6 +1,6 @@
 # TinyFish Web Agent Integrations
 
-TinyFish Web Agent provides AI-powered web automation using natural language instructions and can interact with any website including bot-protected pages. TinyFish Web Agent works across multiple sites and adapts to page changes without breaking, making it the perfect tool for automations and AI agents. Check out all our integrations or get started with our [API](https://docs.mino.ai).
+TinyFish Web Agent provides AI-powered web automation using natural language instructions and can interact with any website including bot-protected pages. TinyFish Web Agent works across multiple sites and adapts to page changes without breaking, making it the perfect tool for automations and AI agents. Check out all our integrations or get started with our [API](https://docs.tinyfish.ai).
 
 ## What is TinyFish Web Agent useful for?
 

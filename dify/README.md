@@ -2,7 +2,7 @@
 
 ## Overview
 
-[TinyFish Web Agent](https://docs.mino.ai/) enables enterprises, builders, and developers to deploy AI agents that navigate real sites, complete real workflows across authenticated systems and dynamic interfaces, and return structured operational intelligence - through our visual platform or API. At scale. Reliably.
+[TinyFish Web Agent](https://docs.tinyfish.ai/) enables enterprises, builders, and developers to deploy AI agents that navigate real sites, complete real workflows across authenticated systems and dynamic interfaces, and return structured operational intelligence - through our visual platform or API. At scale. Reliably.
 
 ## Configuration
 

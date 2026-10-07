@@ -6,12 +6,12 @@
 	"resources": {
 		"primaryDocumentation": [
 			{
-				"url": "https://docs.mino.ai"
+				"url": "https://docs.tinyfish.ai"
 			}
 		],
 		"credentialDocumentation": [
 			{
-				"url": "https://docs.mino.ai/authentication"
+				"url": "https://docs.tinyfish.ai/authentication"
 			}
 		]
 	},
