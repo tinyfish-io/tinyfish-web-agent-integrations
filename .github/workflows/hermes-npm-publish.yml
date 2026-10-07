@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 # Publishing behaviour (diverges from pi-publish.yml on purpose):
-#   push to main  →  publish when hermes/package.json names a version npm does not
+#   push to main  →  publish when hermes/npm/package.json names a version npm does not
 #                    have yet. If the version is already published, the run goes RED
 #                    when the push changed a shipped file, and no-ops otherwise.
 #                    `tinyfish connect hermes` installs @latest on user machines, so a
@@ -24,9 +24,11 @@ on:
 # tinyfish-io/tinyfish-web-agent-integrations + hermes-npm-publish.yml as the
 # trusted publisher.
 #
+# package.json lives in hermes/npm/ because Hermes prompts to npm-install any package.json in a plugin dir.
+#
 # BOOTSTRAP — a trusted publisher cannot be configured on a package that does not
 # exist, so the first release is manual and one-time:
-#   1. cd hermes && npm publish --access public
+#   1. cd hermes && cp npm/package.json . && npm publish --access public
 #   2. npmjs.com → @tiny-fish/hermes → Settings → Trusted Publisher →
 #      GitHub Actions, repo tinyfish-io/tinyfish-web-agent-integrations,
 #      workflow hermes-npm-publish.yml
@@ -66,7 +68,11 @@ jobs:
 
       - name: Manifest is valid JSON
         working-directory: hermes
-        run: jq -e . package.json > /dev/null
+        run: jq -e . npm/package.json > /dev/null
+
+      - name: Stage package.json for npm
+        working-directory: hermes
+        run: cp npm/package.json package.json
 
       # A dropped `files` entry still publishes and installs, just with the plugin
       # silently hollow. Pin the payload here.
@@ -83,6 +89,7 @@ jobs:
               'README.md',
               'LICENSE',
               'plugin.yaml',
+              'after-install.md',
               'pyproject.toml',
               '__init__.py',
               'tinyfish_hermes/__init__.py',
@@ -113,8 +120,8 @@ jobs:
           BEFORE: ${{ github.event.before }}
         run: |
           set -euo pipefail
-          PACKAGE=$(jq -re '.name' hermes/package.json)
-          VERSION=$(jq -re '.version' hermes/package.json)
+          PACKAGE=$(jq -re '.name' hermes/npm/package.json)
+          VERSION=$(jq -re '.version' hermes/npm/package.json)
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           ENC=$(printf '%s' "$PACKAGE" | jq -sRr @uri)
           STATUS=$(curl -sS -o /dev/null -w '%{http_code}' \
@@ -127,13 +134,13 @@ jobs:
             200)
               echo "should-publish=false" >> "$GITHUB_OUTPUT"
               # Tests and Makefile changes never demand a bump; the shipped payload does.
-              shipped="hermes/tinyfish_hermes hermes/plugin.yaml hermes/pyproject.toml hermes/__init__.py hermes/README.md hermes/package.json"
+              shipped="hermes/tinyfish_hermes hermes/plugin.yaml hermes/pyproject.toml hermes/__init__.py hermes/README.md hermes/after-install.md hermes/npm/package.json"
               if [ -z "$BEFORE" ]; then
                 echo "dispatch re-run; ${PACKAGE} ${VERSION} already published, nothing to do."
               elif [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || \
                    ! git diff --quiet "$BEFORE" HEAD -- $shipped; then
                 # Unknowable base fails closed rather than freezing silently.
-                echo "::error file=hermes/package.json::shipped files changed but ${VERSION} is already on npm; bump the version in package.json, pyproject.toml and plugin.yaml"
+                echo "::error file=hermes/npm/package.json::shipped files changed but ${VERSION} is already on npm; bump the version in package.json, pyproject.toml and plugin.yaml"
                 exit 1
               else
                 echo "${PACKAGE} ${VERSION} already published and no shipped file changed; nothing to do."
@@ -170,6 +177,9 @@ jobs:
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
+
+      - name: Stage package.json for npm
+        run: cp npm/package.json package.json
 
       - name: Publish
         run: |

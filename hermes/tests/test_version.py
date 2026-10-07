@@ -116,6 +116,14 @@ def test_plugin_manifest_version_matches_the_distribution_version() -> None:
 def test_npm_package_version_matches_the_distribution_version() -> None:
     """The CLI installs the npm version; drift ships a mislabeled plugin."""
     hermes_root = Path(plugin.__file__).resolve().parents[1]
-    package = json.loads((hermes_root / "package.json").read_text(encoding="utf-8"))
+    manifest = hermes_root / "npm" / "package.json"
+    package = json.loads(manifest.read_text(encoding="utf-8"))
 
     assert package["version"] == _pyproject_version(hermes_root)
+
+
+def test_plugin_root_has_no_package_json() -> None:
+    """Hermes prompts to npm-install any package.json in a plugin dir."""
+    hermes_root = Path(plugin.__file__).resolve().parents[1]
+
+    assert not (hermes_root / "package.json").exists()
