@@ -14,7 +14,7 @@ export class TinyfishApi implements ICredentialType {
 
 	icon = 'file:tinyfish.svg' as const;
 
-	documentationUrl = 'https://docs.mino.ai';
+	documentationUrl = 'https://docs.tinyfish.ai';
 
 	properties: INodeProperties[] = [
 		{
