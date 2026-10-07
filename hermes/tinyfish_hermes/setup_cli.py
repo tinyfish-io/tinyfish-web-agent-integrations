@@ -265,6 +265,7 @@ def cmd_setup(
         _apply_web_backend_config(config)
         _save_config(config)
         print("Configured Hermes web backends to use TinyFish")
+        _enable_toolset("web")
 
     api_key = (getattr(args, "api_key", None) or "").strip()
     existing = _api_key_env_var()
@@ -562,6 +563,23 @@ def _agent_browser_installed() -> bool:
     return shutil.which("agent-browser") is not None
 
 
+def _enable_toolset(name: str) -> None:
+    # Run after our own config save: the public CLI rewrites config.yaml itself.
+    result = subprocess.run(
+        ["hermes", "tools", "enable", name],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode == 0:
+        print(f"Enabled Hermes' {name} toolset (CLI); start a new session to use it.")
+    else:
+        print(
+            f"Could not enable the {name} toolset; run `hermes tools enable {name}`.",
+            file=sys.stderr,
+        )
+
+
 def _ensure_agent_browser() -> None:
     if _agent_browser_installed():
         return
@@ -592,6 +610,7 @@ def cmd_browser(args: argparse.Namespace) -> int:
             _save_config(config)
             print("Set browser.cloud_provider to tinyfish.")
         print(_policy_effect_line(policy))
+        _enable_toolset("browser")
         _ensure_agent_browser()
         return 0
     if subcommand == "disable":

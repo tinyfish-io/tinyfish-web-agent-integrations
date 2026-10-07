@@ -86,6 +86,10 @@ def env(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     monkeypatch.setattr(cli, "TinyFishWebSearchProvider", lambda: state["provider"])
     monkeypatch.setattr(cli, "_validate_key", lambda api_key: None)
     monkeypatch.setattr(cli, "_agent_browser_installed", lambda: True)
+    state["enabled_toolsets"] = []
+    monkeypatch.setattr(
+        cli, "_enable_toolset", lambda name: state["enabled_toolsets"].append(name)
+    )
     monkeypatch.delenv("TINYFISH_API_KEY", raising=False)
     return state
 
@@ -757,3 +761,53 @@ def test_browser_enable_runs_agent_browser_setup_when_confirmed(
     cli.dispatch_tinyfish_cli(_parser().parse_args(["browser", "enable"]))
 
     assert ran == [cli.AGENT_BROWSER_SETUP]
+
+
+def test_setup_enables_web_toolset(env: dict[str, Any]) -> None:
+    cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes"]))
+
+    assert env["enabled_toolsets"] == ["web"]
+
+
+def test_setup_without_web_backend_leaves_toolsets_alone(env: dict[str, Any]) -> None:
+    cli.dispatch_tinyfish_cli(
+        _parser().parse_args(["setup", "--yes", "--no-web-backend"])
+    )
+
+    assert env["enabled_toolsets"] == []
+
+
+def test_browser_enable_enables_browser_toolset(env: dict[str, Any]) -> None:
+    env["config"] = {}
+
+    cli.dispatch_tinyfish_cli(_parser().parse_args(["browser", "enable"]))
+
+    assert env["enabled_toolsets"] == ["browser"]
+
+
+@pytest.mark.parametrize(
+    ("returncode", "stream", "message"),
+    [
+        (0, "out", "Enabled Hermes' web toolset"),
+        (1, "err", "run `hermes tools enable web`"),
+    ],
+)
+def test_enable_toolset_runs_public_hermes_cli(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    returncode: int,
+    stream: str,
+    message: str,
+) -> None:
+    ran: list[list[str]] = []
+
+    def fake_run(argv: list[str], **kwargs: Any) -> Any:
+        ran.append(argv)
+        return cli.subprocess.CompletedProcess(argv, returncode)
+
+    monkeypatch.setattr(cli.subprocess, "run", fake_run)
+
+    cli._enable_toolset("web")
+
+    assert ran == [["hermes", "tools", "enable", "web"]]
+    assert message in getattr(capsys.readouterr(), stream)
