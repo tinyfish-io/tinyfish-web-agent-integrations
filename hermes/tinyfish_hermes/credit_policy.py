@@ -16,7 +16,13 @@ from .config import (
 
 FEATURE_LABELS: dict[CreditFeature, str] = {
     "browser": "TinyFish Browser",
+    "agent": "TinyFish Agent",
 }
+
+
+def rule_key(feature: CreditFeature) -> str:
+    # Domain-free so one [s]ession answer covers every step of the session.
+    return f"tinyfish:{feature}"
 
 
 def target_domain(target: str | None) -> str:
@@ -75,11 +81,8 @@ def request_credit_approval(
     try:
         from tools.approval import request_tool_approval
 
-        # Domain-grained key: one [a]lways covers the browse; new domains still prompt.
         result = request_tool_approval(
-            f"tinyfish_{normalized}",
-            reason,
-            rule_key=f"tinyfish:{normalized}:{target_domain(target)}",
+            f"tinyfish_{normalized}", reason, rule_key=rule_key(normalized)
         )
     except Exception as exc:
         return False, (
@@ -107,7 +110,7 @@ def _directive_for_feature(
         return {
             "action": "approve",
             "message": approval_reason(feature, operation, target),
-            "rule_key": f"tinyfish:{feature}:{target_domain(target)}",
+            "rule_key": rule_key(feature),
         }
     return None
 
@@ -118,11 +121,14 @@ def pre_tool_call_policy(
     """Hermes plugin hook for policy-gating TinyFish credit-consuming tools."""
 
     params = args or {}
+    target = str(params.get("url") or params.get("target") or "")
 
+    if tool_name == "tinyfish_agent":
+        return _directive_for_feature("agent", tool_name, target)
     if not tool_name.startswith("browser_"):
         return None
     config = load_config()
     if browser_cloud_provider(config) != "tinyfish":
         return None
-    target = str(params.get("url") or params.get("target") or "")
+    # Any browser_* call can open a billed session (first call, or after inactivity).
     return _directive_for_feature("browser", tool_name, target, config)

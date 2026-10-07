@@ -84,6 +84,14 @@ def env(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
         cli, "_api_key", lambda: state["env"].get("TINYFISH_API_KEY", "")
     )
     monkeypatch.setattr(cli, "TinyFishWebSearchProvider", lambda: state["provider"])
+    monkeypatch.setattr(cli, "_validate_key", lambda api_key: None)
+    monkeypatch.setattr(cli, "_agent_browser_installed", lambda: True)
+    state["enabled_toolsets"] = []
+    monkeypatch.setattr(
+        cli,
+        "_enable_toolset",
+        lambda name: state["enabled_toolsets"].append(name) or True,
+    )
     monkeypatch.delenv("TINYFISH_API_KEY", raising=False)
     return state
 
@@ -208,7 +216,7 @@ def test_status_reports_non_secret_fields(
     assert payload["api_key_env_var"] == "TINYFISH_API_KEY"
     assert payload["api_key_configured"] is True
     assert payload["web_backend_configured"] is True
-    assert payload["credit_policy"] == {"browser": "request"}
+    assert payload["credit_policy"] == {"browser": "request", "agent": "request"}
     assert payload["routing_context_enabled"] is True
     assert payload["mcp_configured"] is False
     assert payload["plugin_version"]
@@ -436,7 +444,7 @@ def test_credits_status_json(
 
     assert cli.dispatch_tinyfish_cli(args) == 0
     assert json.loads(capsys.readouterr().out) == {
-        "credit_policy": {"browser": "request"}
+        "credit_policy": {"browser": "request", "agent": "request"}
     }
 
 
@@ -461,7 +469,10 @@ def test_credits_reset_restores_request_default(
     assert cli.dispatch_tinyfish_cli(args) == 0
 
     saved = env["saved_configs"][-1]
-    assert saved["tinyfish"]["credit_policy"] == {"browser": "request"}
+    assert saved["tinyfish"]["credit_policy"] == {
+        "browser": "request",
+        "agent": "request",
+    }
     out = capsys.readouterr().out
     assert "request" in out
     assert "deny" not in out
@@ -676,3 +687,180 @@ def test_plugin_manifest_name_is_what_uninstall_keys_on() -> None:
     ]
 
     assert names == ["tinyfish"]
+
+
+def test_setup_rejects_key_tinyfish_refuses(
+    env: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(cli, "_validate_key", lambda api_key: "TinyFish rejected")
+    args = _parser().parse_args(["setup", "--yes", "--api-key", "tf_bad"])
+
+    assert cli.dispatch_tinyfish_cli(args) == 1
+
+    assert env["saved_env"] == []
+    assert "TinyFish rejected" in capsys.readouterr().err
+
+
+def test_setup_without_key_points_at_key_page(
+    env: dict[str, Any], capsys: pytest.CaptureFixture[str]
+) -> None:
+    env["env"] = {}
+    env["config"] = {}
+    args = _parser().parse_args(["setup", "--yes"])
+
+    assert cli.dispatch_tinyfish_cli(args) == 1
+
+    assert "agent.tinyfish.ai/api-keys?source=hermes" in capsys.readouterr().err
+    assert env["saved_configs"] == []
+
+
+def test_validate_key_flags_unauthorized(monkeypatch: pytest.MonkeyPatch) -> None:
+    def unauthorized(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        raise rest_client.TinyFishRestError("TinyFish Search returned HTTP 401", 401)
+
+    monkeypatch.setattr(rest_client, "search", unauthorized)
+
+    assert "rejected" in str(cli._validate_key("tf_bad"))
+
+
+def test_validate_key_tolerates_network_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+    def offline(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        raise rest_client.TinyFishRestError("Could not reach TinyFish Search")
+
+    monkeypatch.setattr(rest_client, "search", offline)
+
+    assert cli._validate_key("tf_maybe") is None
+
+
+def test_browser_enable_points_at_agent_browser_setup_when_missing(
+    env: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(cli, "_agent_browser_installed", lambda: False)
+    env["config"] = {}
+
+    assert cli.dispatch_tinyfish_cli(_parser().parse_args(["browser", "enable"])) == 0
+
+    assert "hermes tools post-setup agent_browser" in capsys.readouterr().out
+
+
+def test_browser_enable_runs_agent_browser_setup_when_confirmed(
+    env: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ran: list[list[str]] = []
+    monkeypatch.setattr(cli, "_agent_browser_installed", lambda: False)
+    monkeypatch.setattr(cli, "_confirm", lambda *args, **kwargs: True)
+
+    def fake_run(argv: list[str], **kwargs: Any) -> Any:
+        ran.append(argv)
+        return cli.subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.setattr(cli.subprocess, "run", fake_run)
+    env["config"] = {}
+
+    cli.dispatch_tinyfish_cli(_parser().parse_args(["browser", "enable"]))
+
+    assert ran == [
+        [cli.sys.executable, "-m", "hermes_cli.main", *cli.AGENT_BROWSER_SETUP]
+    ]
+
+
+def test_setup_enables_web_toolset(env: dict[str, Any]) -> None:
+    cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes"]))
+
+    assert env["enabled_toolsets"] == ["web"]
+
+
+def test_setup_without_web_backend_leaves_toolsets_alone(env: dict[str, Any]) -> None:
+    cli.dispatch_tinyfish_cli(
+        _parser().parse_args(["setup", "--yes", "--no-web-backend"])
+    )
+
+    assert env["enabled_toolsets"] == []
+
+
+def test_browser_enable_enables_browser_toolset(env: dict[str, Any]) -> None:
+    env["config"] = {}
+
+    cli.dispatch_tinyfish_cli(_parser().parse_args(["browser", "enable"]))
+
+    assert env["enabled_toolsets"] == ["browser"]
+
+
+@pytest.mark.parametrize(
+    ("listed", "enable_rc", "calls", "stream", "message"),
+    [
+        ("  ✗ disabled  web  🔍 Web", 0, 2, "out", "Enabled Hermes' web toolset"),
+        ("  ✗ disabled  web  🔍 Web", 1, 2, "err", "run `hermes tools enable web`"),
+        ("  ✓ enabled  web  🔍 Web", 0, 1, "out", ""),
+    ],
+)
+def test_enable_toolset_only_touches_disabled_toolsets(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    listed: str,
+    enable_rc: int,
+    calls: int,
+    stream: str,
+    message: str,
+) -> None:
+    ran: list[list[str]] = []
+
+    def fake_run(argv: list[str], **kwargs: Any) -> Any:
+        ran.append(argv)
+        if argv[-2:] == ["tools", "list"]:
+            return cli.subprocess.CompletedProcess(argv, 0, stdout=listed + "\n")
+        return cli.subprocess.CompletedProcess(argv, enable_rc, stdout="")
+
+    monkeypatch.setattr(cli.subprocess, "run", fake_run)
+
+    cli._enable_toolset("web")
+
+    assert len(ran) == calls
+    assert all(
+        argv[:3] == [cli.sys.executable, "-m", "hermes_cli.main"] for argv in ran
+    )
+    out = capsys.readouterr()
+    assert message in getattr(out, stream)
+    if calls == 1:
+        assert out.out == "" and out.err == ""
+
+
+def test_setup_rejected_key_leaves_web_routing_untouched(
+    env: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(cli, "_validate_key", lambda api_key: "rejected")
+    env["config"] = {}
+
+    args = _parser().parse_args(["setup", "--yes", "--api-key", "tf_bad"])
+
+    assert cli.dispatch_tinyfish_cli(args) == 1
+    assert env["saved_configs"] == []
+    assert env["enabled_toolsets"] == []
+
+
+def test_setup_fails_when_web_toolset_cannot_be_enabled(
+    env: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(cli, "_enable_toolset", lambda name: False)
+
+    assert cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes"])) == 1
+
+
+def test_browser_enable_fails_when_agent_browser_install_fails(
+    env: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Hermes' post-setup exits 0 even when the install failed.
+    monkeypatch.setattr(cli, "_agent_browser_installed", lambda: False)
+    monkeypatch.setattr(cli, "_confirm", lambda *args, **kwargs: True)
+    monkeypatch.setattr(
+        cli.subprocess,
+        "run",
+        lambda argv, **kwargs: cli.subprocess.CompletedProcess(argv, 0),
+    )
+    env["config"] = {}
+
+    assert cli.dispatch_tinyfish_cli(_parser().parse_args(["browser", "enable"])) == 1

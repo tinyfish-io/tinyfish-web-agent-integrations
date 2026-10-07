@@ -17,15 +17,15 @@ from tinyfish_hermes.config import (
 from tinyfish_hermes.credit_policy import pre_tool_call_policy, request_credit_approval
 
 
-def test_browser_is_the_only_credit_feature_and_defaults_to_request() -> None:
-    assert CREDIT_FEATURES == ("browser",)
+def test_credit_features_default_to_request() -> None:
+    assert CREDIT_FEATURES == ("browser", "agent")
     assert credit_policy("browser", {}) == "request"
-    assert credit_policy_summary({}) == {"browser": "request"}
+    assert credit_policy_summary({}) == {"browser": "request", "agent": "request"}
 
 
 def test_unknown_credit_feature_is_rejected() -> None:
     with pytest.raises(ValueError, match="Unknown TinyFish credit feature"):
-        normalize_feature("agent")
+        normalize_feature("fetch")
 
 
 def test_unknown_credit_policy_is_rejected() -> None:
@@ -66,24 +66,46 @@ def test_pre_tool_policy_requests_browser_by_default(
     assert directive is not None
     assert directive["action"] == "approve"
     assert "example.com" in directive["message"]
-    assert directive["rule_key"] == "tinyfish:browser:example.com"
+    assert directive["rule_key"] == "tinyfish:browser"
 
 
-def test_pre_tool_policy_rule_key_is_domain_grained(
+def test_pre_tool_policy_gates_every_browser_step_under_one_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # One [a]lways answer must cover every browser_* step on the same domain.
+    # Any browser_* call can open a billed session; one [s]ession answer covers all.
     monkeypatch.setattr(policy_mod, "load_config", _gated_config)
 
-    navigate = pre_tool_call_policy(
-        "browser_navigate", {"url": "https://example.com/a"}
-    )
-    click = pre_tool_call_policy("browser_click", {"url": "https://example.com/b"})
-    other = pre_tool_call_policy("browser_navigate", {"url": "https://other.example"})
+    calls = [
+        pre_tool_call_policy("browser_navigate", {"url": "https://a.example"}),
+        pre_tool_call_policy("browser_navigate", {"url": "https://b.example"}),
+        pre_tool_call_policy("browser_exec", {"code": "print(1)"}),
+        pre_tool_call_policy("browser_click", {"ref": "e1"}),
+    ]
 
-    assert navigate is not None and click is not None and other is not None
-    assert navigate["rule_key"] == click["rule_key"] == "tinyfish:browser:example.com"
-    assert other["rule_key"] == "tinyfish:browser:other.example"
+    assert all(d is not None and d["action"] == "approve" for d in calls)
+    assert {d["rule_key"] for d in calls if d} == {"tinyfish:browser"}
+
+
+def test_pre_tool_policy_deny_blocks_every_browser_step(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(policy_mod, "load_config", lambda: _gated_config("deny"))
+
+    directive = pre_tool_call_policy("browser_click", {"ref": "e1"})
+
+    assert directive is not None and directive["action"] == "block"
+
+
+def test_pre_tool_policy_gates_agent_without_browser_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(policy_mod, "load_config", lambda: {})
+
+    directive = pre_tool_call_policy("tinyfish_agent", {"url": "https://example.com"})
+
+    assert directive is not None
+    assert directive["action"] == "approve"
+    assert directive["rule_key"] == "tinyfish:agent"
 
 
 def test_pre_tool_policy_reads_config_once(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -161,7 +183,7 @@ def test_request_credit_approval_honors_deny(monkeypatch: pytest.MonkeyPatch) ->
     assert message.startswith("BLOCKED:")
 
 
-def test_request_credit_approval_uses_hermes_gate_with_domain_rule_key(
+def test_request_credit_approval_uses_hermes_gate_with_shared_rule_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(policy_mod, "credit_policy", lambda feature: "request")
@@ -179,7 +201,7 @@ def test_request_credit_approval_uses_hermes_gate_with_domain_rule_key(
         True,
         "",
     )
-    assert seen["rule_key"] == "tinyfish:browser:example.com"
+    assert seen["rule_key"] == "tinyfish:browser"
 
 
 def test_request_credit_approval_reports_gate_denial(

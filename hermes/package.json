@@ -1,6 +1,6 @@
 {
   "name": "@tiny-fish/hermes",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "TinyFish web provider plugin for Hermes Agent, delivered via npm for the TinyFish CLI. Installed by `tinyfish connect hermes`; not a JavaScript library.",
   "license": "MIT",
   "homepage": "https://docs.tinyfish.ai",
@@ -24,6 +24,7 @@
   "files": [
     "tinyfish_hermes/*.py",
     "plugin.yaml",
+    "after-install.md",
     "pyproject.toml",
     "__init__.py"
   ],

@@ -1,6 +1,12 @@
 # TinyFish for Hermes Agent
 
-`tinyfish-hermes` is the first-party TinyFish plugin for [Hermes Agent](https://github.com/NousResearch/Hermes-Agent). It registers a `tinyfish` web provider that serves Hermes' web search and extract tools through the TinyFish Search and Fetch REST APIs, plus a `tinyfish` cloud browser provider for credit-gated remote browser sessions.
+`tinyfish-hermes` is the first-party TinyFish plugin for [Hermes Agent](https://github.com/NousResearch/Hermes-Agent). It gives Hermes:
+
+| Capability | How |
+| ---------- | --- |
+| Search, Fetch (free) | `tinyfish` web provider behind Hermes' `web_search` / `web_extract` |
+| Browser (credits) | `tinyfish` cloud browser provider behind Hermes' browser tools |
+| Agent (credits) | `tinyfish_agent` tool: goal-based automation on a real site |
 
 ## Install
 
@@ -19,7 +25,7 @@ hermes plugins install tinyfish-io/tinyfish-web-agent-integrations/hermes --enab
 
 ## Authentication
 
-The plugin authenticates with a TinyFish API key — create one at [agent.tinyfish.ai/api-keys](https://agent.tinyfish.ai/api-keys). Keys are resolved in order:
+The plugin authenticates with a TinyFish API key — create one at [agent.tinyfish.ai/api-keys](https://agent.tinyfish.ai/api-keys?source=hermes). `hermes plugins install` and `hermes tinyfish setup` both prompt for it (hidden input); `setup` also verifies it with one free search. Keys are resolved in order:
 
 | Env var | Source |
 | ------- | ------ |
@@ -35,7 +41,7 @@ The plugin registers a `hermes tinyfish` command and an in-session `/tinyfish-st
 | `setup [--yes] [--api-key KEY] [--no-web-backend] [--live]` | Route web tools to TinyFish and save the API key |
 | `status [--json]` | Non-secret configuration status |
 | `doctor [--json] [--live] [--live-paid]` | Diagnostics; `--live` runs one real search+fetch, `--live-paid` a browser session per credit policy |
-| `credits {status,set,reset}` | Inspect or change `tinyfish.credit_policy.browser` |
+| `credits {status,set,reset}` | Inspect or change `tinyfish.credit_policy.{browser,agent}` |
 | `browser {enable,disable,status}` | Toggle `browser.cloud_provider: tinyfish` |
 | `usage [--json]` | Wallet balance, auto-reload, and billing rates |
 
@@ -57,19 +63,20 @@ tinyfish:
     location: US          # also: language, recency_minutes, after_date,
     domain_type: news     # before_date, page, purpose
   fetch:
-    format: markdown      # default output format for extract
-    ttl: 300              # also: per_url_timeout_ms, links, image_links
+    ttl: 300              # also: per_url_timeout_ms (default 90000), links, image_links
 ```
 
 ## Browser sessions
 
-Setting `browser.cloud_provider: tinyfish` routes Hermes' browser tools through TinyFish remote browser sessions. Each session consumes TinyFish credits, so sessions are policy-gated via `tinyfish.credit_policy.browser`:
+Setting `browser.cloud_provider: tinyfish` routes Hermes' browser tools — the default Browser Use `browser_exec`, or the built-in `browser_*` tools with `browser.backend: off` — through TinyFish remote browser sessions. Sessions consume TinyFish credits, so they are policy-gated via `tinyfish.credit_policy.browser`; `tinyfish_agent` runs use `tinyfish.credit_policy.agent`:
 
 | Policy | Behavior |
 | ------ | -------- |
-| `request` (default) | Every session goes through Hermes' approval gate |
-| `allow` | Sessions start without per-session approval |
-| `deny` | Browser tools are blocked while routed to TinyFish |
+| `request` (default) | Opening a session (or starting an agent run) goes through Hermes' approval gate; answer `[s]ession` to approve the rest of the session |
+| `allow` | No approval prompt |
+| `deny` | Blocked |
+
+One-shot `hermes chat -q` runs skip Hermes' own browser cleanup at exit, so the plugin closes any TinyFish sessions still open when they finish.
 
 ```yaml
 browser:
@@ -91,6 +98,7 @@ When the `tinyfish` MCP server is also configured in Hermes (`mcp_servers.tinyfi
 python -m pip install -e . -r requirements-dev.txt  # dev deps are version-bounded in requirements-dev.txt
 make lint
 make test
+scripts/e2e.sh  # real Hermes: validate, doctor, git install; live Search/Fetch with TINYFISH_API_KEY
 ```
 
 ## License

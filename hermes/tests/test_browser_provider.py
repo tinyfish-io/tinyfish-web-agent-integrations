@@ -64,14 +64,18 @@ def test_browser_provider_create_session_shape(monkeypatch: pytest.MonkeyPatch) 
         },
     )
 
-    result = TinyFishBrowserProvider().create_session("task")
+    # Hermes CLI task ids are 22 chars, e.g. 20261007_095153_aefb0c.
+    result = TinyFishBrowserProvider().create_session("20261007_095153_aefb0c")
 
     assert result["bb_session_id"] == "sess_123"
     assert result["cdp_url"] == "wss://example.com/devtools"
     features: Any = result["features"]
     assert features["tinyfish"] is True
     assert features["credit_policy"] == "allow"
-    assert str(result["session_name"]).startswith("tinyfish_task_")
+    name = str(result["session_name"])
+    assert name.startswith("hermes_tf_")
+    # agent-browser caps the darwin socket path at 103 bytes.
+    assert len(f"/tmp/agent-browser-{name}/{name}.sock") <= 103
 
 
 def test_browser_provider_create_session_requires_key() -> None:

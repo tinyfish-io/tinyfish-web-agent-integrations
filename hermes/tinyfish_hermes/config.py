@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-CreditFeature = Literal["browser"]
+CreditFeature = Literal["browser", "agent"]
 CreditPolicy = Literal["deny", "request", "allow"]
 
-CREDIT_FEATURES: tuple[CreditFeature, ...] = ("browser",)
+CREDIT_FEATURES: tuple[CreditFeature, ...] = ("browser", "agent")
 CREDIT_POLICIES: tuple[CreditPolicy, ...] = ("deny", "request", "allow")
 # 'request' is inert until browser.cloud_provider is tinyfish, and still
 # routes each session through Hermes approval once it is.
@@ -39,10 +39,13 @@ def tinyfish_config(config: dict[str, Any] | None = None) -> dict[str, Any]:
 
 
 def normalize_feature(value: str) -> CreditFeature:
-    if value.strip().lower().replace("_", "-") == "browser":
+    feature = value.strip().lower().replace("_", "-")
+    if feature == "browser":
         return "browser"
+    if feature == "agent":
+        return "agent"
     raise ValueError(
-        f"Unknown TinyFish credit feature '{value}'. Valid features: browser"
+        f"Unknown TinyFish credit feature '{value}'. Valid features: browser, agent"
     )
 
 
@@ -155,10 +158,3 @@ def fetch_options(config: dict[str, Any] | None = None) -> FetchOptions:
         if value is not None:
             options[key] = value
     return options
-
-
-def default_fetch_format(config: dict[str, Any] | None = None) -> str:
-    section = tinyfish_config(config).get("fetch") or {}
-    if isinstance(section, dict) and section.get("format"):
-        return str(section["format"])
-    return "markdown"

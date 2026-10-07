@@ -15,16 +15,16 @@ except Exception:  # pragma: no cover - lets the package import outside Hermes
 
 
 from . import rest_client
-from .config import default_fetch_format, fetch_options, search_options
+from .config import fetch_options, search_options
 from .normalize import normalize_fetch_documents, normalize_search_response
 
 logger = logging.getLogger(__name__)
 
 API_KEY_ENV_VARS = ("TINYFISH_API_KEY", "MCP_TINYFISH_API_KEY")
-API_KEY_URL = "https://agent.tinyfish.ai/api-keys"
+API_KEY_URL = "https://agent.tinyfish.ai/api-keys?source=hermes"
 MISSING_KEY_ERROR = (
-    "TinyFish API key not found. Set TINYFISH_API_KEY or MCP_TINYFISH_API_KEY; "
-    f"create a key at {API_KEY_URL}."
+    f"TinyFish API key not found. Create one at {API_KEY_URL}, then run "
+    "`hermes tinyfish setup` (or set TINYFISH_API_KEY)."
 )
 
 
@@ -131,33 +131,18 @@ class TinyFishWebSearchProvider(_HermesWebSearchProvider):  # type: ignore[misc]
         api_key = _api_key()
         if not api_key:
             return [_error_document(url, MISSING_KEY_ERROR) for url in urls]
-        output_format = str(
-            kwargs.get("format")
-            or kwargs.get("output_format")
-            or default_fetch_format()
-        )
+        # Hermes caches extract results per requested format, so honour it verbatim.
+        output_format = str(kwargs.get("format") or "markdown")
         options = fetch_options()
-        documents: list[dict[str, Any]] = []
-        # The Fetch API caps a request at 10 URLs; oversized batches 400.
-        for start in range(0, len(urls), rest_client.FETCH_MAX_URLS):
-            if start and _is_interrupted():
-                documents.extend(
-                    _error_document(url, "Interrupted") for url in urls[start:]
-                )
-                break
-            chunk = urls[start : start + rest_client.FETCH_MAX_URLS]
-            try:
-                raw = rest_client.fetch(
-                    chunk,
-                    api_key=api_key,
-                    output_format=output_format,
-                    **options,
-                )
-                documents.extend(normalize_fetch_documents(raw, fallback_urls=chunk))
-            except Exception as exc:  # noqa: BLE001 - controlled failure envelope
-                logger.warning("TinyFish REST fetch failed (%s)", type(exc).__name__)
-                documents.extend(
-                    _error_document(url, _safe_rest_failure("fetch", exc))
-                    for url in chunk
-                )
-        return documents
+        # Hermes abandons a whole extract at 120s; per-URL timeouts keep the fast pages.
+        options.setdefault("per_url_timeout_ms", 90_000)
+        try:
+            raw = rest_client.fetch(
+                urls, api_key=api_key, output_format=output_format, **options
+            )
+        except Exception as exc:  # noqa: BLE001 - controlled failure envelope
+            logger.warning("TinyFish REST fetch failed (%s)", type(exc).__name__)
+            return [
+                _error_document(url, _safe_rest_failure("fetch", exc)) for url in urls
+            ]
+        return normalize_fetch_documents(raw, fallback_urls=urls)

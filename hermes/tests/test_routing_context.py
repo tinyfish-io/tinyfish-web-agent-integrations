@@ -8,6 +8,11 @@ from tinyfish_hermes import routing_context as routing
 from tinyfish_hermes.config import routing_context_enabled
 
 
+@pytest.fixture(autouse=True)
+def _api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(routing, "_api_key", lambda: "tf_test")
+
+
 def _mcp_config(**tinyfish: Any) -> dict[str, Any]:
     section = {"url": "https://agent.tinyfish.ai/mcp", **tinyfish}
     return {"mcp_servers": {"tinyfish": section}}
@@ -152,3 +157,47 @@ def test_routing_context_config_switch_defaults_true() -> None:
     assert routing_context_enabled({}) is True
     assert routing_context_enabled({"tinyfish": {"routing_context": False}}) is False
     assert routing_context_enabled({"tinyfish": {"routing_context": "off"}}) is False
+
+
+def test_setup_note_injected_once_without_api_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(routing, "_api_key", lambda: "")
+    monkeypatch.setattr(
+        routing, "load_config", lambda: {"web": {"search_backend": "tinyfish"}}
+    )
+
+    first = routing.routing_context_hook(conversation_history=[])
+    assert first is not None
+    assert routing.SETUP_CONTEXT_MARKER in first["context"]
+    assert "hermes tinyfish setup" in first["context"]
+
+    history = [{"role": "user", "content": first["context"]}]
+    assert routing.routing_context_hook(conversation_history=history) is None
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        {"web": {"search_backend": "exa"}},
+        {"web": {"search_backend": "tinyfish"}, "tinyfish": {"routing_context": False}},
+    ],
+)
+def test_setup_note_skipped_when_tinyfish_not_routed_or_disabled(
+    monkeypatch: pytest.MonkeyPatch, config: dict[str, Any]
+) -> None:
+    monkeypatch.setattr(routing, "_api_key", lambda: "")
+    monkeypatch.setattr(routing, "load_config", lambda: config)
+
+    assert routing.routing_context_hook(conversation_history=[]) is None
+
+
+def test_setup_note_covers_browser_only_routing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(routing, "_api_key", lambda: "")
+    monkeypatch.setattr(
+        routing, "load_config", lambda: {"browser": {"cloud_provider": "tinyfish"}}
+    )
+
+    assert routing.routing_context_hook(conversation_history=[]) is not None

@@ -5,6 +5,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
+import shutil
+import subprocess
 import sys
 from typing import Any
 
@@ -195,6 +198,28 @@ def _prompt_secret(question: str) -> str:
         return ""
 
 
+def _prompt_for_key() -> str:
+    print(f"TinyFish needs an API key. Create one (free) at {API_KEY_URL}")
+    if _confirm("Open that page in your browser?", default=True):
+        import webbrowser
+
+        webbrowser.open(API_KEY_URL)
+    return _prompt_secret("Paste your TinyFish API key (Enter to skip): ")
+
+
+def _validate_key(api_key: str) -> str | None:
+    """Return an error message when TinyFish rejects the key; one free search."""
+
+    try:
+        rest_client.search("TinyFish", api_key=api_key, timeout=15.0)
+    except rest_client.TinyFishRestError as exc:
+        if exc.status in (401, 403):
+            return f"TinyFish rejected that API key ({exc}). Get one at {API_KEY_URL}"
+        # Network trouble shouldn't block saving a key that may be fine.
+        print(f"Warning: could not verify the key ({exc}); saving it anyway.")
+    return None
+
+
 def _apply_web_backend_config(config: dict[str, Any]) -> None:
     web = config.setdefault("web", {})
     web["search_backend"] = "tinyfish"
@@ -231,8 +256,25 @@ def cmd_setup(
     *,
     provider: TinyFishWebSearchProvider | None = None,
 ) -> int:
-    config = _load_config()
+    api_key = (getattr(args, "api_key", None) or "").strip()
+    existing = _api_key_env_var()
+    if not api_key and existing:
+        print(f"Using the TinyFish API key from {existing}")
+    elif not api_key and sys.stdin.isatty():
+        api_key = _prompt_for_key()
+    if api_key:
+        rejection = _validate_key(api_key)
+        if rejection:
+            print(rejection, file=sys.stderr)
+            return 1
+        if not _store_api_key(api_key):
+            return 1
+    elif not existing:
+        print(MISSING_KEY_ERROR, file=sys.stderr)
+        return 1
 
+    # Route web tools only once a usable key exists, so a failed setup changes nothing.
+    config = _load_config()
     if not getattr(args, "no_web_backend", False) and _confirm(
         "Set Hermes web.search_backend and web.extract_backend to tinyfish?",
         default=True,
@@ -241,17 +283,8 @@ def cmd_setup(
         _apply_web_backend_config(config)
         _save_config(config)
         print("Configured Hermes web backends to use TinyFish")
-
-    api_key = (getattr(args, "api_key", None) or "").strip()
-    if (
-        not api_key
-        and not _api_key_env_var()
-        and sys.stdin.isatty()
-        and _confirm("Add TINYFISH_API_KEY now?", default=True, assume_yes=False)
-    ):
-        api_key = _prompt_secret(f"TinyFish API key (create at {API_KEY_URL}): ")
-    if api_key and not _store_api_key(api_key):
-        return 1
+        if not _enable_toolset("web"):
+            return 1
 
     if getattr(args, "live", False):
         doctor_args = argparse.Namespace(json=False, live=True, live_paid=False)
@@ -518,6 +551,69 @@ def _policy_effect_line(policy: str) -> str:
     return "Policy 'request': each TinyFish browser session asks for approval."
 
 
+AGENT_BROWSER_SETUP = ("tools", "post-setup", "agent_browser")
+
+
+def _hermes(*args: str, capture: bool = True) -> subprocess.CompletedProcess[str]:
+    # The running interpreter is Hermes'; a `hermes` on PATH may be another install.
+    return subprocess.run(
+        [sys.executable, "-m", "hermes_cli.main", *args],
+        capture_output=capture,
+        text=True,
+        check=False,
+    )
+
+
+def _agent_browser_installed() -> bool:
+    try:
+        import pm
+
+        if pm.installed_package("agent-browser"):
+            return True
+    except Exception:  # pm is Hermes-internal; fall back to PATH
+        pass
+    return shutil.which("agent-browser") is not None
+
+
+def _toolset_disabled(name: str) -> bool | None:
+    result = _hermes("tools", "list")
+    if result.returncode != 0:
+        return None
+    return re.search(rf"\bdisabled\s+{re.escape(name)}\s", result.stdout) is not None
+
+
+def _enable_toolset(name: str) -> bool:
+    # `tools enable` pins an explicit toolset list, so only touch a disabled toolset.
+    disabled = _toolset_disabled(name)
+    if disabled is False:
+        return True
+    result = _hermes("tools", "enable", name) if disabled else None
+    if result is not None and result.returncode == 0:
+        print(f"Enabled Hermes' {name} toolset (CLI); start a new session to use it.")
+        return True
+    print(
+        f"Could not enable the {name} toolset; run `hermes tools enable {name}`.",
+        file=sys.stderr,
+    )
+    return False
+
+
+def _ensure_agent_browser() -> bool:
+    if _agent_browser_installed():
+        return True
+    command = " ".join(("hermes", *AGENT_BROWSER_SETUP))
+    print("Hermes' browser tools need the agent-browser CLI, which is not installed.")
+    if _confirm("Install it now?", default=True):
+        # post-setup exits 0 even when the install fails, so re-check instead.
+        _hermes(*AGENT_BROWSER_SETUP, capture=False)
+        if _agent_browser_installed():
+            return True
+        print(f"Install failed; retry with `{command}`.", file=sys.stderr)
+        return False
+    print(f"Install it with `{command}`.")
+    return True
+
+
 def cmd_browser(args: argparse.Namespace) -> int:
     subcommand = getattr(args, "browser_command", None) or "status"
     config = _load_config()
@@ -535,7 +631,8 @@ def cmd_browser(args: argparse.Namespace) -> int:
             _save_config(config)
             print("Set browser.cloud_provider to tinyfish.")
         print(_policy_effect_line(policy))
-        return 0
+        toolset_ok = _enable_toolset("browser")
+        return 0 if _ensure_agent_browser() and toolset_ok else 1
     if subcommand == "disable":
         if current != "tinyfish":
             print("TinyFish is not Hermes' browser cloud provider; nothing to change.")

@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tinyfish-hermes"
-version = "0.1.2"
-description = "TinyFish web provider plugin for Hermes Agent - Search and Fetch over the TinyFish REST APIs"
+version = "0.2.0"
+description = "TinyFish plugin for Hermes Agent - Search, Fetch, Browser, and the tinyfish_agent web agent"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
