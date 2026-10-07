@@ -16,7 +16,10 @@ from .config import (
 
 FEATURE_LABELS: dict[CreditFeature, str] = {
     "browser": "TinyFish Browser",
+    "agent": "TinyFish Agent",
 }
+# Only these open a billed browser session; later steps reuse the approved one.
+SESSION_OPENING_TOOLS = frozenset({"browser_navigate", "browser_exec"})
 
 
 def target_domain(target: str | None) -> str:
@@ -104,10 +107,11 @@ def _directive_for_feature(
     if policy == "deny":
         return {"action": "block", "message": block_message(feature)}
     if policy == "request":
+        # Domain-free key so one [s]ession answer covers the whole session.
         return {
             "action": "approve",
             "message": approval_reason(feature, operation, target),
-            "rule_key": f"tinyfish:{feature}:{target_domain(target)}",
+            "rule_key": f"tinyfish:{feature}",
         }
     return None
 
@@ -118,11 +122,16 @@ def pre_tool_call_policy(
     """Hermes plugin hook for policy-gating TinyFish credit-consuming tools."""
 
     params = args or {}
+    target = str(params.get("url") or params.get("target") or "")
 
+    if tool_name == "tf_agent":
+        return _directive_for_feature("agent", tool_name, target)
     if not tool_name.startswith("browser_"):
         return None
     config = load_config()
     if browser_cloud_provider(config) != "tinyfish":
         return None
-    target = str(params.get("url") or params.get("target") or "")
-    return _directive_for_feature("browser", tool_name, target, config)
+    directive = _directive_for_feature("browser", tool_name, target, config)
+    if directive and directive["action"] == "approve":
+        return directive if tool_name in SESSION_OPENING_TOOLS else None
+    return directive

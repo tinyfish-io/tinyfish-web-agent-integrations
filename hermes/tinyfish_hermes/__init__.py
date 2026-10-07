@@ -45,9 +45,10 @@ __version__ = _resolve_version()
 def register(ctx: Any) -> None:
     """Register TinyFish providers, lifecycle hooks, and CLI commands with Hermes."""
 
-    from .browser_provider import TinyFishBrowserProvider
+    from .agent_tool import TF_AGENT_SCHEMA, tf_agent
+    from .browser_provider import TinyFishBrowserProvider, shutdown_cleanup
     from .credit_policy import pre_tool_call_policy
-    from .provider import TinyFishWebSearchProvider
+    from .provider import TinyFishWebSearchProvider, _api_key
     from .routing_context import routing_context_hook
     from .setup_cli import (
         dispatch_tinyfish_cli,
@@ -63,6 +64,17 @@ def register(ctx: Any) -> None:
             ctx.register_browser_provider(TinyFishBrowserProvider())
         ctx.register_hook("pre_tool_call", pre_tool_call_policy)
         ctx.register_hook("pre_llm_call", routing_context_hook)
+        ctx.register_hook("on_session_finalize", shutdown_cleanup)
+    # tf_agent spends credits, so it also needs the pre_tool_call gate.
+    if hasattr(ctx, "register_hook") and hasattr(ctx, "register_tool"):
+        ctx.register_tool(
+            name="tf_agent",
+            toolset="tinyfish",
+            schema=TF_AGENT_SCHEMA,
+            handler=tf_agent,
+            check_fn=lambda: bool(_api_key()),
+            emoji="🐟",
+        )
 
     if hasattr(ctx, "register_cli_command"):
 

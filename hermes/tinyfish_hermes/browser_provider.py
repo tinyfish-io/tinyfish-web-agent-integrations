@@ -15,7 +15,7 @@ except Exception:  # pragma: no cover - lets the package import outside Hermes
 
 
 from . import rest_client
-from .config import credit_policy, tinyfish_config
+from .config import browser_cloud_provider, credit_policy, tinyfish_config
 from .credit_policy import block_message
 from .provider import API_KEY_URL, MISSING_KEY_ERROR, _api_key
 
@@ -81,7 +81,8 @@ class TinyFishBrowserProvider(_HermesBrowserProvider):  # type: ignore[misc]
             raise RuntimeError(
                 "TinyFish Browser did not return session_id and cdp_url."
             )
-        session_name = f"tinyfish_{task_id}_{uuid.uuid4().hex[:8]}"
+        # hermes_* lets Hermes' orphan reaper clean up after a crash.
+        session_name = f"hermes_tf_{uuid.uuid4().hex[:10]}"
         logger.info("Created TinyFish browser session")
         return {
             "session_name": session_name,
@@ -131,3 +132,17 @@ class TinyFishBrowserProvider(_HermesBrowserProvider):  # type: ignore[misc]
             ],
             "post_setup": "agent_browser",
         }
+
+
+def shutdown_cleanup(**kwargs: Any) -> None:
+    """``on_session_finalize`` hook: close sessions Hermes would otherwise leak."""
+
+    # Other reasons (/new, idle) finalize one session while the process keeps others.
+    if kwargs.get("reason") != "shutdown" or browser_cloud_provider() != "tinyfish":
+        return
+    try:
+        from tools.browser_tool_lifecycle import cleanup_all_browsers
+
+        cleanup_all_browsers()
+    except Exception as exc:
+        logger.debug("TinyFish shutdown cleanup failed (%s)", type(exc).__name__)

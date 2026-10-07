@@ -14,7 +14,8 @@ SEARCH_URL = "https://api.search.tinyfish.ai"
 FETCH_URL = "https://api.fetch.tinyfish.ai"
 FETCH_MAX_URLS = 10
 BROWSER_URL = "https://api.browser.tinyfish.ai"
-WALLET_URL = "https://agent.tinyfish.ai/v1/wallet"
+AGENT_URL = "https://agent.tinyfish.ai"
+WALLET_URL = f"{AGENT_URL}/v1/wallet"
 SEARCH_USAGE_URL = f"{SEARCH_URL}/usage"
 FETCH_USAGE_URL = f"{FETCH_URL}/usage"
 
@@ -113,8 +114,8 @@ def fetch(
     image_links: bool | None = None,
     ttl: int | None = None,
     per_url_timeout_ms: int | None = None,
-    # Batches can run ~120s server-side; docs recommend a client timeout >= 150s.
-    timeout: float = 150.0,
+    # Hermes abandons an extract at 120s, so return our own error before that.
+    timeout: float = 110.0,
 ) -> dict[str, Any]:
     """Run the TinyFish Fetch API for one or more URLs."""
 
@@ -274,3 +275,60 @@ def wallet(*, api_key: str, timeout: float = 30.0) -> dict[str, Any]:
         raise TinyFishRestError(f"Could not reach TinyFish Wallet: {exc}") from exc
     except ValueError as exc:
         raise TinyFishRestError("TinyFish Wallet returned invalid JSON") from exc
+
+
+def _agent_request(
+    method: str,
+    path: str,
+    *,
+    api_key: str,
+    json_body: dict[str, Any] | None = None,
+    timeout: float = 30.0,
+) -> dict[str, Any]:
+    try:
+        response = httpx.request(
+            method,
+            f"{AGENT_URL}{path}",
+            json=json_body,
+            headers=_json_headers(api_key),
+            timeout=timeout,
+        )
+        response.raise_for_status()
+        return cast(dict[str, Any], response.json())
+    except httpx.HTTPStatusError as exc:
+        _raise_http_error("TinyFish Agent", exc)
+    except httpx.RequestError as exc:
+        raise TinyFishRestError(f"Could not reach TinyFish Agent: {exc}") from exc
+    except ValueError as exc:
+        raise TinyFishRestError("TinyFish Agent returned invalid JSON") from exc
+
+
+def start_run(
+    url: str,
+    goal: str,
+    *,
+    api_key: str,
+    browser_profile: str = "lite",
+    proxy_country_code: str | None = None,
+) -> dict[str, Any]:
+    """Enqueue a TinyFish Agent run; returns immediately with ``run_id``."""
+
+    body: dict[str, Any] = {
+        "url": url,
+        "goal": goal,
+        "browser_profile": browser_profile,
+        "api_integration": "hermes",
+    }
+    if proxy_country_code:
+        body["proxy_config"] = {"enabled": True, "country_code": proxy_country_code}
+    return _agent_request(
+        "POST", "/v1/automation/run-async", api_key=api_key, json_body=body
+    )
+
+
+def get_run(run_id: str, *, api_key: str) -> dict[str, Any]:
+    return _agent_request("GET", f"/v1/runs/{run_id}", api_key=api_key)
+
+
+def cancel_run(run_id: str, *, api_key: str) -> dict[str, Any]:
+    return _agent_request("POST", f"/v1/runs/{run_id}/cancel", api_key=api_key)

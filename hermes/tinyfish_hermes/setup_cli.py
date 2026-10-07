@@ -195,6 +195,28 @@ def _prompt_secret(question: str) -> str:
         return ""
 
 
+def _prompt_for_key() -> str:
+    print(f"TinyFish needs an API key. Create one (free) at {API_KEY_URL}")
+    if _confirm("Open that page in your browser?", default=True):
+        import webbrowser
+
+        webbrowser.open(API_KEY_URL)
+    return _prompt_secret("Paste your TinyFish API key (Enter to skip): ")
+
+
+def _validate_key(api_key: str) -> str | None:
+    """Return an error message when TinyFish rejects the key; one free search."""
+
+    try:
+        rest_client.search("TinyFish", api_key=api_key, timeout=15.0)
+    except rest_client.TinyFishRestError as exc:
+        if "HTTP 401" in str(exc) or "HTTP 403" in str(exc):
+            return f"TinyFish rejected that API key ({exc}). Get one at {API_KEY_URL}"
+        # Network trouble shouldn't block saving a key that may be fine.
+        print(f"Warning: could not verify the key ({exc}); saving it anyway.")
+    return None
+
+
 def _apply_web_backend_config(config: dict[str, Any]) -> None:
     web = config.setdefault("web", {})
     web["search_backend"] = "tinyfish"
@@ -243,15 +265,21 @@ def cmd_setup(
         print("Configured Hermes web backends to use TinyFish")
 
     api_key = (getattr(args, "api_key", None) or "").strip()
-    if (
-        not api_key
-        and not _api_key_env_var()
-        and sys.stdin.isatty()
-        and _confirm("Add TINYFISH_API_KEY now?", default=True, assume_yes=False)
-    ):
-        api_key = _prompt_secret(f"TinyFish API key (create at {API_KEY_URL}): ")
-    if api_key and not _store_api_key(api_key):
-        return 1
+    existing = _api_key_env_var()
+    if not api_key and existing:
+        print(f"Using the TinyFish API key from {existing}")
+    elif not api_key and sys.stdin.isatty():
+        api_key = _prompt_for_key()
+    if api_key:
+        rejection = _validate_key(api_key)
+        if rejection:
+            print(rejection, file=sys.stderr)
+            return 1
+        if not _store_api_key(api_key):
+            return 1
+    elif not existing:
+        print(MISSING_KEY_ERROR)
+        return 0
 
     if getattr(args, "live", False):
         doctor_args = argparse.Namespace(json=False, live=True, live_paid=False)

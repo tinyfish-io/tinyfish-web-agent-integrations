@@ -84,6 +84,7 @@ def env(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
         cli, "_api_key", lambda: state["env"].get("TINYFISH_API_KEY", "")
     )
     monkeypatch.setattr(cli, "TinyFishWebSearchProvider", lambda: state["provider"])
+    monkeypatch.setattr(cli, "_validate_key", lambda api_key: None)
     monkeypatch.delenv("TINYFISH_API_KEY", raising=False)
     return state
 
@@ -208,7 +209,7 @@ def test_status_reports_non_secret_fields(
     assert payload["api_key_env_var"] == "TINYFISH_API_KEY"
     assert payload["api_key_configured"] is True
     assert payload["web_backend_configured"] is True
-    assert payload["credit_policy"] == {"browser": "request"}
+    assert payload["credit_policy"] == {"browser": "request", "agent": "request"}
     assert payload["routing_context_enabled"] is True
     assert payload["mcp_configured"] is False
     assert payload["plugin_version"]
@@ -436,7 +437,7 @@ def test_credits_status_json(
 
     assert cli.dispatch_tinyfish_cli(args) == 0
     assert json.loads(capsys.readouterr().out) == {
-        "credit_policy": {"browser": "request"}
+        "credit_policy": {"browser": "request", "agent": "request"}
     }
 
 
@@ -461,7 +462,10 @@ def test_credits_reset_restores_request_default(
     assert cli.dispatch_tinyfish_cli(args) == 0
 
     saved = env["saved_configs"][-1]
-    assert saved["tinyfish"]["credit_policy"] == {"browser": "request"}
+    assert saved["tinyfish"]["credit_policy"] == {
+        "browser": "request",
+        "agent": "request",
+    }
     out = capsys.readouterr().out
     assert "request" in out
     assert "deny" not in out
@@ -676,3 +680,46 @@ def test_plugin_manifest_name_is_what_uninstall_keys_on() -> None:
     ]
 
     assert names == ["tinyfish"]
+
+
+def test_setup_rejects_key_tinyfish_refuses(
+    env: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(cli, "_validate_key", lambda api_key: "TinyFish rejected")
+    args = _parser().parse_args(["setup", "--yes", "--api-key", "tf_bad"])
+
+    assert cli.dispatch_tinyfish_cli(args) == 1
+
+    assert env["saved_env"] == []
+    assert "TinyFish rejected" in capsys.readouterr().err
+
+
+def test_setup_without_key_points_at_key_page(
+    env: dict[str, Any], capsys: pytest.CaptureFixture[str]
+) -> None:
+    env["env"] = {}
+    args = _parser().parse_args(["setup", "--yes"])
+
+    assert cli.dispatch_tinyfish_cli(args) == 0
+
+    assert "agent.tinyfish.ai/api-keys?source=hermes" in capsys.readouterr().out
+
+
+def test_validate_key_flags_unauthorized(monkeypatch: pytest.MonkeyPatch) -> None:
+    def unauthorized(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        raise rest_client.TinyFishRestError("TinyFish Search returned HTTP 401")
+
+    monkeypatch.setattr(rest_client, "search", unauthorized)
+
+    assert "rejected" in str(cli._validate_key("tf_bad"))
+
+
+def test_validate_key_tolerates_network_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+    def offline(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        raise rest_client.TinyFishRestError("Could not reach TinyFish Search")
+
+    monkeypatch.setattr(rest_client, "search", offline)
+
+    assert cli._validate_key("tf_maybe") is None

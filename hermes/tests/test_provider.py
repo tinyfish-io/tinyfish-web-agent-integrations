@@ -55,7 +55,10 @@ def test_setup_schema_advertises_api_key() -> None:
     schema = TinyFishWebSearchProvider().get_setup_schema()
 
     assert schema["env_vars"][0]["key"] == "TINYFISH_API_KEY"
-    assert schema["env_vars"][0]["url"] == "https://agent.tinyfish.ai/api-keys"
+    assert (
+        schema["env_vars"][0]["url"]
+        == "https://agent.tinyfish.ai/api-keys?source=hermes"
+    )
 
 
 def test_search_success(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -119,7 +122,7 @@ def test_search_missing_key_names_both_env_vars_and_key_url() -> None:
 
     assert result["success"] is False
     assert "TINYFISH_API_KEY" in result["error"]
-    assert "MCP_TINYFISH_API_KEY" in result["error"]
+    assert "hermes tinyfish setup" in result["error"]
     assert "https://agent.tinyfish.ai/api-keys" in result["error"]
 
 
@@ -186,7 +189,11 @@ def test_extract_success_with_format_kwarg(monkeypatch: pytest.MonkeyPatch) -> N
 
     assert docs[0]["title"] == "Doc"
     assert docs[0]["content"] == "body"
-    assert seen == {"api_key": "tf_test", "output_format": "html"}
+    assert seen == {
+        "api_key": "tf_test",
+        "output_format": "html",
+        "per_url_timeout_ms": 90_000,
+    }
 
 
 def test_extract_chunks_batches_beyond_the_fetch_url_cap(
@@ -252,9 +259,8 @@ def test_extract_interruption_stops_remaining_chunks(
     assert docs[10]["error"] == "Interrupted"
 
 
-def test_extract_defaults_to_configured_format(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_extract_defaults_to_markdown(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TINYFISH_API_KEY", "tf_test")
-    monkeypatch.setattr(provider_mod, "default_fetch_format", lambda: "text")
     seen: dict[str, Any] = {}
 
     def fake_fetch(
@@ -267,7 +273,7 @@ def test_extract_defaults_to_configured_format(monkeypatch: pytest.MonkeyPatch) 
 
     TinyFishWebSearchProvider().extract(["https://example.com"])
 
-    assert seen == {"output_format": "text"}
+    assert seen == {"output_format": "markdown"}
 
 
 def test_extract_passes_config_options_to_rest(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -287,7 +293,27 @@ def test_extract_passes_config_options_to_rest(monkeypatch: pytest.MonkeyPatch) 
 
     TinyFishWebSearchProvider().extract(["https://example.com"])
 
-    assert seen == {"ttl": 300, "links": True}
+    assert seen == {"ttl": 300, "links": True, "per_url_timeout_ms": 90_000}
+
+
+def test_extract_configured_per_url_timeout_wins(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("TINYFISH_API_KEY", "tf_test")
+    monkeypatch.setattr(
+        provider_mod, "fetch_options", lambda: {"per_url_timeout_ms": 5_000}
+    )
+    seen: dict[str, Any] = {}
+
+    def fake_fetch(urls: list[str], **kwargs: Any) -> dict[str, Any]:
+        seen.update(kwargs)
+        return {"results": [{"url": urls[0], "text": "body"}]}
+
+    monkeypatch.setattr(rest_client, "fetch", fake_fetch)
+
+    TinyFishWebSearchProvider().extract(["https://example.com"])
+
+    assert seen["per_url_timeout_ms"] == 5_000
 
 
 def test_extract_missing_key_returns_error_document_per_url() -> None:
@@ -298,7 +324,7 @@ def test_extract_missing_key_returns_error_document_per_url() -> None:
     assert [doc["url"] for doc in docs] == urls
     for doc in docs:
         assert "TINYFISH_API_KEY" in doc["error"]
-        assert "MCP_TINYFISH_API_KEY" in doc["error"]
+        assert "hermes tinyfish setup" in doc["error"]
         assert doc["content"] == ""
 
 

@@ -22,6 +22,10 @@ class FullContext(MinimalContext):
         self.hooks: list[tuple[str, Any]] = []
         self.cli_commands: list[dict[str, Any]] = []
         self.commands: list[dict[str, Any]] = []
+        self.tools: list[dict[str, Any]] = []
+
+    def register_tool(self, **kwargs: Any) -> None:
+        self.tools.append(kwargs)
 
     def register_browser_provider(self, provider: Any) -> None:
         self.browser_providers.append(provider)
@@ -73,8 +77,14 @@ def test_register_with_full_context_adds_browser_provider_and_hooks() -> None:
     assert len(ctx.browser_providers) == 1
     assert ctx.browser_providers[0].name == "tinyfish"
     assert isinstance(ctx.browser_providers[0], tinyfish_hermes.TinyFishBrowserProvider)
-    assert [name for name, _ in ctx.hooks] == ["pre_tool_call", "pre_llm_call"]
+    assert [name for name, _ in ctx.hooks] == [
+        "pre_tool_call",
+        "pre_llm_call",
+        "on_session_finalize",
+    ]
     assert all(callable(handler) for _, handler in ctx.hooks)
+    assert [tool["name"] for tool in ctx.tools] == ["tf_agent"]
+    assert ctx.tools[0]["schema"]["name"] == "tf_agent"
 
 
 def test_register_wires_cli_and_in_session_commands() -> None:
