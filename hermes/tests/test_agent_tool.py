@@ -59,6 +59,23 @@ def test_tinyfish_agent_polls_until_completed(api: dict[str, Any]) -> None:
     assert api["started"]["proxy_country_code"] == "US"
 
 
+@pytest.mark.parametrize(("status", "polls"), [(404, 1), (429, 2), (None, 2)])
+def test_tinyfish_agent_stops_polling_only_on_permanent_errors(
+    api: dict[str, Any], status: int | None, polls: int
+) -> None:
+    api["runs"] = [
+        rest_client.TinyFishRestError("boom", status),
+        {"run_id": "run_1", "status": "COMPLETED", "result": "ok"},
+    ]
+
+    out = json.loads(
+        agent_tool.tinyfish_agent({"url": "https://example.com", "goal": "x"})
+    )
+
+    assert 2 - len(api["runs"]) == polls
+    assert ("error" in out) == (polls == 1)
+
+
 def test_tinyfish_agent_cancels_run_on_interrupt(
     api: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:

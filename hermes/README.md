@@ -76,7 +76,7 @@ Setting `browser.cloud_provider: tinyfish` routes Hermes' browser tools — the 
 | `allow` | No approval prompt |
 | `deny` | Blocked |
 
-On shutdown the plugin closes any TinyFish browser sessions Hermes still holds.
+One-shot `hermes chat -q` runs skip Hermes' own browser cleanup at exit, so the plugin closes any TinyFish sessions still open when they finish.
 
 ```yaml
 browser:

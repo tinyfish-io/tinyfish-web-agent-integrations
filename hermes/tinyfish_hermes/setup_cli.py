@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -212,7 +213,7 @@ def _validate_key(api_key: str) -> str | None:
     try:
         rest_client.search("TinyFish", api_key=api_key, timeout=15.0)
     except rest_client.TinyFishRestError as exc:
-        if "HTTP 401" in str(exc) or "HTTP 403" in str(exc):
+        if exc.status in (401, 403):
             return f"TinyFish rejected that API key ({exc}). Get one at {API_KEY_URL}"
         # Network trouble shouldn't block saving a key that may be fine.
         print(f"Warning: could not verify the key ({exc}); saving it anyway.")
@@ -549,7 +550,17 @@ def _policy_effect_line(policy: str) -> str:
     return "Policy 'request': each TinyFish browser session asks for approval."
 
 
-AGENT_BROWSER_SETUP = ["hermes", "tools", "post-setup", "agent_browser"]
+AGENT_BROWSER_SETUP = ("tools", "post-setup", "agent_browser")
+
+
+def _hermes(*args: str, capture: bool = True) -> subprocess.CompletedProcess[str]:
+    # The running interpreter is Hermes'; a `hermes` on PATH may be another install.
+    return subprocess.run(
+        [sys.executable, "-m", "hermes_cli.main", *args],
+        capture_output=capture,
+        text=True,
+        check=False,
+    )
 
 
 def _agent_browser_installed() -> bool:
@@ -563,15 +574,20 @@ def _agent_browser_installed() -> bool:
     return shutil.which("agent-browser") is not None
 
 
+def _toolset_disabled(name: str) -> bool | None:
+    result = _hermes("tools", "list")
+    if result.returncode != 0:
+        return None
+    return re.search(rf"\bdisabled\s+{re.escape(name)}\s", result.stdout) is not None
+
+
 def _enable_toolset(name: str) -> None:
-    # Run after our own config save: the public CLI rewrites config.yaml itself.
-    result = subprocess.run(
-        ["hermes", "tools", "enable", name],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode == 0:
+    # `tools enable` pins an explicit toolset list, so only touch a disabled toolset.
+    disabled = _toolset_disabled(name)
+    if disabled is False:
+        return
+    result = _hermes("tools", "enable", name) if disabled else None
+    if result is not None and result.returncode == 0:
         print(f"Enabled Hermes' {name} toolset (CLI); start a new session to use it.")
     else:
         print(
@@ -583,10 +599,10 @@ def _enable_toolset(name: str) -> None:
 def _ensure_agent_browser() -> None:
     if _agent_browser_installed():
         return
-    command = " ".join(AGENT_BROWSER_SETUP)
+    command = " ".join(("hermes", *AGENT_BROWSER_SETUP))
     print("Hermes' browser tools need the agent-browser CLI, which is not installed.")
     if _confirm("Install it now?", default=True):
-        if subprocess.run(AGENT_BROWSER_SETUP, check=False).returncode == 0:
+        if _hermes(*AGENT_BROWSER_SETUP, capture=False).returncode == 0:
             return
         print(f"Install failed; retry with `{command}`.", file=sys.stderr)
         return

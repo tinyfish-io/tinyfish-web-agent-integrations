@@ -69,19 +69,21 @@ def test_pre_tool_policy_requests_browser_by_default(
     assert directive["rule_key"] == "tinyfish:browser"
 
 
-def test_pre_tool_policy_asks_only_for_session_opening_tools(
+def test_pre_tool_policy_gates_every_browser_step_under_one_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # One [s]ession answer covers the session; in-session steps never re-prompt.
+    # Any browser_* call can open a billed session; one [s]ession answer covers all.
     monkeypatch.setattr(policy_mod, "load_config", _gated_config)
 
-    navigate = pre_tool_call_policy("browser_navigate", {"url": "https://a.example"})
-    other = pre_tool_call_policy("browser_navigate", {"url": "https://b.example"})
-    run = pre_tool_call_policy("browser_exec", {"code": "print(1)"})
+    calls = [
+        pre_tool_call_policy("browser_navigate", {"url": "https://a.example"}),
+        pre_tool_call_policy("browser_navigate", {"url": "https://b.example"}),
+        pre_tool_call_policy("browser_exec", {"code": "print(1)"}),
+        pre_tool_call_policy("browser_click", {"ref": "e1"}),
+    ]
 
-    assert navigate is not None and other is not None and run is not None
-    assert navigate["rule_key"] == other["rule_key"] == run["rule_key"]
-    assert pre_tool_call_policy("browser_click", {"ref": "e1"}) is None
+    assert all(d is not None and d["action"] == "approve" for d in calls)
+    assert {d["rule_key"] for d in calls if d} == {"tinyfish:browser"}
 
 
 def test_pre_tool_policy_deny_blocks_every_browser_step(
@@ -181,7 +183,7 @@ def test_request_credit_approval_honors_deny(monkeypatch: pytest.MonkeyPatch) ->
     assert message.startswith("BLOCKED:")
 
 
-def test_request_credit_approval_uses_hermes_gate_with_domain_rule_key(
+def test_request_credit_approval_uses_hermes_gate_with_shared_rule_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(policy_mod, "credit_policy", lambda feature: "request")
@@ -199,7 +201,7 @@ def test_request_credit_approval_uses_hermes_gate_with_domain_rule_key(
         True,
         "",
     )
-    assert seen["rule_key"] == "tinyfish:browser:example.com"
+    assert seen["rule_key"] == "tinyfish:browser"
 
 
 def test_request_credit_approval_reports_gate_denial(

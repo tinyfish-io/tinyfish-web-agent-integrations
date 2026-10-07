@@ -18,8 +18,11 @@ FEATURE_LABELS: dict[CreditFeature, str] = {
     "browser": "TinyFish Browser",
     "agent": "TinyFish Agent",
 }
-# Only these open a billed browser session; later steps reuse the approved one.
-SESSION_OPENING_TOOLS = frozenset({"browser_navigate", "browser_exec"})
+
+
+def rule_key(feature: CreditFeature) -> str:
+    # Domain-free so one [s]ession answer covers every step of the session.
+    return f"tinyfish:{feature}"
 
 
 def target_domain(target: str | None) -> str:
@@ -78,11 +81,8 @@ def request_credit_approval(
     try:
         from tools.approval import request_tool_approval
 
-        # Domain-grained key: one [a]lways covers the browse; new domains still prompt.
         result = request_tool_approval(
-            f"tinyfish_{normalized}",
-            reason,
-            rule_key=f"tinyfish:{normalized}:{target_domain(target)}",
+            f"tinyfish_{normalized}", reason, rule_key=rule_key(normalized)
         )
     except Exception as exc:
         return False, (
@@ -107,11 +107,10 @@ def _directive_for_feature(
     if policy == "deny":
         return {"action": "block", "message": block_message(feature)}
     if policy == "request":
-        # Domain-free key so one [s]ession answer covers the whole session.
         return {
             "action": "approve",
             "message": approval_reason(feature, operation, target),
-            "rule_key": f"tinyfish:{feature}",
+            "rule_key": rule_key(feature),
         }
     return None
 
@@ -131,7 +130,5 @@ def pre_tool_call_policy(
     config = load_config()
     if browser_cloud_provider(config) != "tinyfish":
         return None
-    directive = _directive_for_feature("browser", tool_name, target, config)
-    if directive and directive["action"] == "approve":
-        return directive if tool_name in SESSION_OPENING_TOOLS else None
-    return directive
+    # Any browser_* call can open a billed session (first call, or after inactivity).
+    return _directive_for_feature("browser", tool_name, target, config)

@@ -714,7 +714,7 @@ def test_setup_without_key_points_at_key_page(
 
 def test_validate_key_flags_unauthorized(monkeypatch: pytest.MonkeyPatch) -> None:
     def unauthorized(*args: Any, **kwargs: Any) -> dict[str, Any]:
-        raise rest_client.TinyFishRestError("TinyFish Search returned HTTP 401")
+        raise rest_client.TinyFishRestError("TinyFish Search returned HTTP 401", 401)
 
     monkeypatch.setattr(rest_client, "search", unauthorized)
 
@@ -749,18 +749,19 @@ def test_browser_enable_runs_agent_browser_setup_when_confirmed(
     ran: list[list[str]] = []
     monkeypatch.setattr(cli, "_agent_browser_installed", lambda: False)
     monkeypatch.setattr(cli, "_confirm", lambda *args, **kwargs: True)
-    monkeypatch.setattr(
-        cli.subprocess,
-        "run",
-        lambda argv, check: (
-            ran.append(argv) or cli.subprocess.CompletedProcess(argv, 0)
-        ),
-    )
+
+    def fake_run(argv: list[str], **kwargs: Any) -> Any:
+        ran.append(argv)
+        return cli.subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.setattr(cli.subprocess, "run", fake_run)
     env["config"] = {}
 
     cli.dispatch_tinyfish_cli(_parser().parse_args(["browser", "enable"]))
 
-    assert ran == [cli.AGENT_BROWSER_SETUP]
+    assert ran == [
+        [cli.sys.executable, "-m", "hermes_cli.main", *cli.AGENT_BROWSER_SETUP]
+    ]
 
 
 def test_setup_enables_web_toolset(env: dict[str, Any]) -> None:
@@ -786,16 +787,19 @@ def test_browser_enable_enables_browser_toolset(env: dict[str, Any]) -> None:
 
 
 @pytest.mark.parametrize(
-    ("returncode", "stream", "message"),
+    ("listed", "enable_rc", "calls", "stream", "message"),
     [
-        (0, "out", "Enabled Hermes' web toolset"),
-        (1, "err", "run `hermes tools enable web`"),
+        ("  ✗ disabled  web  🔍 Web", 0, 2, "out", "Enabled Hermes' web toolset"),
+        ("  ✗ disabled  web  🔍 Web", 1, 2, "err", "run `hermes tools enable web`"),
+        ("  ✓ enabled  web  🔍 Web", 0, 1, "out", ""),
     ],
 )
-def test_enable_toolset_runs_public_hermes_cli(
+def test_enable_toolset_only_touches_disabled_toolsets(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
-    returncode: int,
+    listed: str,
+    enable_rc: int,
+    calls: int,
     stream: str,
     message: str,
 ) -> None:
@@ -803,11 +807,19 @@ def test_enable_toolset_runs_public_hermes_cli(
 
     def fake_run(argv: list[str], **kwargs: Any) -> Any:
         ran.append(argv)
-        return cli.subprocess.CompletedProcess(argv, returncode)
+        if argv[-2:] == ["tools", "list"]:
+            return cli.subprocess.CompletedProcess(argv, 0, stdout=listed + "\n")
+        return cli.subprocess.CompletedProcess(argv, enable_rc, stdout="")
 
     monkeypatch.setattr(cli.subprocess, "run", fake_run)
 
     cli._enable_toolset("web")
 
-    assert ran == [["hermes", "tools", "enable", "web"]]
-    assert message in getattr(capsys.readouterr(), stream)
+    assert len(ran) == calls
+    assert all(
+        argv[:3] == [cli.sys.executable, "-m", "hermes_cli.main"] for argv in ran
+    )
+    out = capsys.readouterr()
+    assert message in getattr(out, stream)
+    if calls == 1:
+        assert out.out == "" and out.err == ""

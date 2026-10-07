@@ -27,6 +27,10 @@ _BROWSER_CLOSE_RETRY_BASE_SECONDS = 0.25
 class TinyFishRestError(RuntimeError):
     """Raised for TinyFish REST transport or HTTP failures."""
 
+    def __init__(self, message: str, status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status
+
 
 class TinyFishWalletNotFound(TinyFishRestError):
     """Raised when an account uses legacy billing or has no wallet yet."""
@@ -52,9 +56,11 @@ def _raise_http_error(service: str, exc: httpx.HTTPStatusError) -> NoReturn:
     status = exc.response.status_code
     if status == 402:
         raise TinyFishRestError(
-            f"{service} returned HTTP 402. TinyFish credits or billing may be required."
+            f"{service} returned HTTP 402. "
+            "TinyFish credits or billing may be required.",
+            status,
         ) from exc
-    raise TinyFishRestError(f"{service} returned HTTP {status}") from exc
+    raise TinyFishRestError(f"{service} returned HTTP {status}", status) from exc
 
 
 def search(

@@ -6,7 +6,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from urllib.parse import urlparse
 
-from .config import load_config, routing_context_enabled
+from .config import browser_cloud_provider, load_config, routing_context_enabled
 from .provider import API_KEY_URL, _api_key
 
 ROUTING_CONTEXT_MARKER = '<tinyfish-routing-context version="1">'
@@ -20,6 +20,13 @@ TinyFish tool-routing guidance:
 SETUP_CONTEXT_MARKER = '<tinyfish-setup-context version="1">'
 SETUP_GUIDANCE = f"""{SETUP_CONTEXT_MARKER}
 TinyFish is installed but has no API key, so its web search, fetch, and browser tools are unavailable. If the user needs web access, tell them to create a free key at {API_KEY_URL} and run `hermes tinyfish setup`."""
+
+
+def tinyfish_backend_configured(config: dict[str, Any]) -> bool:
+    web = config.get("web") or {}
+    web_keys = ("search_backend", "extract_backend", "backend")
+    routed = isinstance(web, dict) and "tinyfish" in {web.get(k) for k in web_keys}
+    return routed or browser_cloud_provider(config) == "tinyfish"
 
 
 def tinyfish_mcp_configured(config: dict[str, Any]) -> bool:
@@ -71,12 +78,16 @@ def routing_context_hook(**kwargs: Any) -> dict[str, str] | None:
     """Hermes ``pre_llm_call`` hook injecting versioned routing guidance once."""
 
     history = kwargs.get("conversation_history")
+    config = load_config()
+    if not routing_context_enabled(config):
+        return None
     if not _api_key():
+        if not tinyfish_backend_configured(config):
+            return None
         if routing_guidance_present(history, SETUP_CONTEXT_MARKER):
             return None
         return {"context": SETUP_GUIDANCE}
-    config = load_config()
-    if not routing_context_enabled(config) or not tinyfish_mcp_configured(config):
+    if not tinyfish_mcp_configured(config):
         return None
     if routing_guidance_present(history):
         return None

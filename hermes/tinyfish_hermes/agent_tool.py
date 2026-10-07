@@ -100,8 +100,11 @@ def tinyfish_agent(args: dict[str, Any], **_: Any) -> str:
         time.sleep(POLL_INTERVAL_SECONDS)
         try:
             run = rest_client.get_run(run_id, api_key=api_key)
-        except rest_client.TinyFishRestError:
-            continue  # a transient poll failure must not abandon a billed run
+        except rest_client.TinyFishRestError as exc:
+            # Retry transient failures; a 4xx (bar 429) will not fix itself.
+            if exc.status and 400 <= exc.status < 500 and exc.status != 429:
+                return json.dumps({"run_id": run_id, "error": str(exc)})
+            continue
         if str(run.get("status") or "").upper() in TERMINAL_STATUSES:
             return _result(_summary(run))
 

@@ -135,7 +135,7 @@ class TinyFishBrowserProvider(_HermesBrowserProvider):  # type: ignore[misc]
 
 
 def shutdown_cleanup(**kwargs: Any) -> None:
-    """``on_session_finalize`` hook: close sessions Hermes would otherwise leak."""
+    """``on_session_finalize`` hook: ``-q`` runs skip Hermes' atexit browser cleanup."""
 
     # Other reasons (/new, idle) finalize one session while the process keeps others.
     if kwargs.get("reason") != "shutdown" or browser_cloud_provider() != "tinyfish":
