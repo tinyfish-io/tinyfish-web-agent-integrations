@@ -1,5 +1,5 @@
 name: tinyfish
-version: 0.2.0
+version: 0.2.1
 description: "First-party TinyFish plugin for Hermes Agent: free Search and Fetch, plus credit-gated Browser sessions and the tinyfish_agent web agent."
 author: TinyFish
 kind: backend
