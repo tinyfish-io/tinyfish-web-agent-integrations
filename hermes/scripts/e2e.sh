@@ -19,8 +19,10 @@ step "validate + doctor"
 step "install from git (marketplace path)"
 # No --yes-deps: tinyfish connect installs non-interactively and must still end up enabled.
 "$HERMES" plugins install "file://$REPO_ROOT#hermes" --enable </dev/null
-if ! "$HERMES" plugins list | grep tinyfish | grep -v 'not enabled' >/dev/null; then
-  echo "FAIL: plugin installed but not enabled" >&2
+status=$("$HERMES" plugins list --json | "$HERMES_PYTHON" -c \
+  'import json, sys; print(next((p["status"] for p in json.load(sys.stdin) if p["name"] == "tinyfish"), "missing"))')
+if [ "$status" != "enabled" ]; then
+  echo "FAIL: tinyfish plugin is $status, expected enabled" >&2
   exit 1
 fi
 

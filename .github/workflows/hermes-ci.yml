@@ -68,11 +68,12 @@ jobs:
       HERMES_SHA: 7dab93b06e2bb3757dc18229169efcee1b5b47a3
 
     steps:
-      - uses: actions/checkout@v6
+      # Pinned by SHA: this job receives TINYFISH_API_KEY.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           persist-credentials: false
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
 
       - name: Install Hermes at pinned SHA
         run: |

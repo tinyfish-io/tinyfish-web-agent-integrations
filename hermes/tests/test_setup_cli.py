@@ -88,7 +88,9 @@ def env(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     monkeypatch.setattr(cli, "_agent_browser_installed", lambda: True)
     state["enabled_toolsets"] = []
     monkeypatch.setattr(
-        cli, "_enable_toolset", lambda name: state["enabled_toolsets"].append(name)
+        cli,
+        "_enable_toolset",
+        lambda name: state["enabled_toolsets"].append(name) or True,
     )
     monkeypatch.delenv("TINYFISH_API_KEY", raising=False)
     return state
@@ -705,11 +707,13 @@ def test_setup_without_key_points_at_key_page(
     env: dict[str, Any], capsys: pytest.CaptureFixture[str]
 ) -> None:
     env["env"] = {}
+    env["config"] = {}
     args = _parser().parse_args(["setup", "--yes"])
 
-    assert cli.dispatch_tinyfish_cli(args) == 0
+    assert cli.dispatch_tinyfish_cli(args) == 1
 
-    assert "agent.tinyfish.ai/api-keys?source=hermes" in capsys.readouterr().out
+    assert "agent.tinyfish.ai/api-keys?source=hermes" in capsys.readouterr().err
+    assert env["saved_configs"] == []
 
 
 def test_validate_key_flags_unauthorized(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -823,3 +827,40 @@ def test_enable_toolset_only_touches_disabled_toolsets(
     assert message in getattr(out, stream)
     if calls == 1:
         assert out.out == "" and out.err == ""
+
+
+def test_setup_rejected_key_leaves_web_routing_untouched(
+    env: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(cli, "_validate_key", lambda api_key: "rejected")
+    env["config"] = {}
+
+    args = _parser().parse_args(["setup", "--yes", "--api-key", "tf_bad"])
+
+    assert cli.dispatch_tinyfish_cli(args) == 1
+    assert env["saved_configs"] == []
+    assert env["enabled_toolsets"] == []
+
+
+def test_setup_fails_when_web_toolset_cannot_be_enabled(
+    env: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(cli, "_enable_toolset", lambda name: False)
+
+    assert cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes"])) == 1
+
+
+def test_browser_enable_fails_when_agent_browser_install_fails(
+    env: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Hermes' post-setup exits 0 even when the install failed.
+    monkeypatch.setattr(cli, "_agent_browser_installed", lambda: False)
+    monkeypatch.setattr(cli, "_confirm", lambda *args, **kwargs: True)
+    monkeypatch.setattr(
+        cli.subprocess,
+        "run",
+        lambda argv, **kwargs: cli.subprocess.CompletedProcess(argv, 0),
+    )
+    env["config"] = {}
+
+    assert cli.dispatch_tinyfish_cli(_parser().parse_args(["browser", "enable"])) == 1

@@ -256,18 +256,6 @@ def cmd_setup(
     *,
     provider: TinyFishWebSearchProvider | None = None,
 ) -> int:
-    config = _load_config()
-
-    if not getattr(args, "no_web_backend", False) and _confirm(
-        "Set Hermes web.search_backend and web.extract_backend to tinyfish?",
-        default=True,
-        assume_yes=bool(getattr(args, "yes", False)),
-    ):
-        _apply_web_backend_config(config)
-        _save_config(config)
-        print("Configured Hermes web backends to use TinyFish")
-        _enable_toolset("web")
-
     api_key = (getattr(args, "api_key", None) or "").strip()
     existing = _api_key_env_var()
     if not api_key and existing:
@@ -282,8 +270,21 @@ def cmd_setup(
         if not _store_api_key(api_key):
             return 1
     elif not existing:
-        print(MISSING_KEY_ERROR)
-        return 0
+        print(MISSING_KEY_ERROR, file=sys.stderr)
+        return 1
+
+    # Route web tools only once a usable key exists, so a failed setup changes nothing.
+    config = _load_config()
+    if not getattr(args, "no_web_backend", False) and _confirm(
+        "Set Hermes web.search_backend and web.extract_backend to tinyfish?",
+        default=True,
+        assume_yes=bool(getattr(args, "yes", False)),
+    ):
+        _apply_web_backend_config(config)
+        _save_config(config)
+        print("Configured Hermes web backends to use TinyFish")
+        if not _enable_toolset("web"):
+            return 1
 
     if getattr(args, "live", False):
         doctor_args = argparse.Namespace(json=False, live=True, live_paid=False)
@@ -581,32 +582,36 @@ def _toolset_disabled(name: str) -> bool | None:
     return re.search(rf"\bdisabled\s+{re.escape(name)}\s", result.stdout) is not None
 
 
-def _enable_toolset(name: str) -> None:
+def _enable_toolset(name: str) -> bool:
     # `tools enable` pins an explicit toolset list, so only touch a disabled toolset.
     disabled = _toolset_disabled(name)
     if disabled is False:
-        return
+        return True
     result = _hermes("tools", "enable", name) if disabled else None
     if result is not None and result.returncode == 0:
         print(f"Enabled Hermes' {name} toolset (CLI); start a new session to use it.")
-    else:
-        print(
-            f"Could not enable the {name} toolset; run `hermes tools enable {name}`.",
-            file=sys.stderr,
-        )
+        return True
+    print(
+        f"Could not enable the {name} toolset; run `hermes tools enable {name}`.",
+        file=sys.stderr,
+    )
+    return False
 
 
-def _ensure_agent_browser() -> None:
+def _ensure_agent_browser() -> bool:
     if _agent_browser_installed():
-        return
+        return True
     command = " ".join(("hermes", *AGENT_BROWSER_SETUP))
     print("Hermes' browser tools need the agent-browser CLI, which is not installed.")
     if _confirm("Install it now?", default=True):
-        if _hermes(*AGENT_BROWSER_SETUP, capture=False).returncode == 0:
-            return
+        # post-setup exits 0 even when the install fails, so re-check instead.
+        _hermes(*AGENT_BROWSER_SETUP, capture=False)
+        if _agent_browser_installed():
+            return True
         print(f"Install failed; retry with `{command}`.", file=sys.stderr)
-        return
+        return False
     print(f"Install it with `{command}`.")
+    return True
 
 
 def cmd_browser(args: argparse.Namespace) -> int:
@@ -626,9 +631,8 @@ def cmd_browser(args: argparse.Namespace) -> int:
             _save_config(config)
             print("Set browser.cloud_provider to tinyfish.")
         print(_policy_effect_line(policy))
-        _enable_toolset("browser")
-        _ensure_agent_browser()
-        return 0
+        toolset_ok = _enable_toolset("browser")
+        return 0 if _ensure_agent_browser() and toolset_ok else 1
     if subcommand == "disable":
         if current != "tinyfish":
             print("TinyFish is not Hermes' browser cloud provider; nothing to change.")

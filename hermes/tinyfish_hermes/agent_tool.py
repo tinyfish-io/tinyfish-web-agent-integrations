@@ -55,8 +55,15 @@ def _result(payload: dict[str, Any]) -> str:
     text = json.dumps(payload, ensure_ascii=False)
     if len(text) <= MAX_RESULT_CHARS:
         return text
-    result = json.dumps(payload.get("result"), ensure_ascii=False)
-    payload = {**payload, "result": result[:MAX_RESULT_CHARS], "truncated": True}
+    # Partial JSON text, not the original structure, under a key that says so.
+    full = json.dumps(payload.pop("result", None), ensure_ascii=False)
+    payload["truncated"] = True
+    cut = MAX_RESULT_CHARS - len(json.dumps({**payload, "result_preview": ""}))
+    while cut > 0:
+        text = json.dumps({**payload, "result_preview": full[:cut]}, ensure_ascii=False)
+        if len(text) <= MAX_RESULT_CHARS:
+            return text
+        cut -= len(text) - MAX_RESULT_CHARS
     return json.dumps(payload, ensure_ascii=False)
 
 
@@ -94,8 +101,12 @@ def tinyfish_agent(args: dict[str, Any], **_: Any) -> str:
         if _is_interrupted():
             try:
                 rest_client.cancel_run(run_id, api_key=api_key)
-            except rest_client.TinyFishRestError:
-                pass
+            except rest_client.TinyFishRestError as exc:
+                # The run may still be billing; never claim it stopped.
+                error = f"Cancel failed, run may still be active: {exc}"
+                return json.dumps(
+                    {"run_id": run_id, "status": "UNKNOWN", "error": error}
+                )
             return json.dumps({"run_id": run_id, "status": "CANCELLED"})
         time.sleep(POLL_INTERVAL_SECONDS)
         try:

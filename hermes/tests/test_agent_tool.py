@@ -102,13 +102,35 @@ def test_tinyfish_agent_returns_run_id_when_budget_runs_out(
     assert "run_id" in out["note"]
 
 
-def test_tinyfish_agent_truncates_large_results(api: dict[str, Any]) -> None:
-    api["runs"] = [{"run_id": "run_1", "status": "COMPLETED", "result": "x" * 50_000}]
+@pytest.mark.parametrize("result", ["x" * 50_000, [{"q": '"' * 9}] * 3_000])
+def test_tinyfish_agent_truncates_to_the_final_size(
+    api: dict[str, Any], result: Any
+) -> None:
+    api["runs"] = [{"run_id": "run_1", "status": "COMPLETED", "result": result}]
 
     text = agent_tool.tinyfish_agent({"url": "https://example.com", "goal": "x"})
 
-    assert len(text) < agent_tool.MAX_RESULT_CHARS + 200
-    assert json.loads(text)["truncated"] is True
+    out = json.loads(text)
+    assert len(text) <= agent_tool.MAX_RESULT_CHARS
+    assert out["truncated"] is True and "result" not in out
+    assert isinstance(out["result_preview"], str) and out["result_preview"]
+
+
+def test_tinyfish_agent_reports_unconfirmed_cancel(
+    api: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(agent_tool, "_is_interrupted", lambda: True)
+
+    def failing_cancel(run_id: str, **kwargs: Any) -> dict[str, Any]:
+        raise rest_client.TinyFishRestError("down", 503)
+
+    monkeypatch.setattr(rest_client, "cancel_run", failing_cancel)
+
+    out = json.loads(
+        agent_tool.tinyfish_agent({"url": "https://example.com", "goal": "x"})
+    )
+
+    assert out["status"] == "UNKNOWN" and "may still be active" in out["error"]
 
 
 def test_tinyfish_agent_requires_key_and_inputs(
@@ -176,3 +198,20 @@ def test_shutdown_cleanup_only_on_process_shutdown(
     browser_mod.shutdown_cleanup(session_id="s", reason=reason)
 
     assert len(calls) == expected
+
+
+@pytest.mark.parametrize("body", [None, [], "ok"])
+def test_agent_request_rejects_non_object_json(
+    monkeypatch: pytest.MonkeyPatch, body: Any
+) -> None:
+    class Response:
+        def raise_for_status(self) -> None:
+            pass
+
+        def json(self) -> Any:
+            return body
+
+    monkeypatch.setattr(rest_client.httpx, "request", lambda *a, **k: Response())
+
+    with pytest.raises(rest_client.TinyFishRestError, match="unexpected response"):
+        rest_client.get_run("run_1", api_key="tf_test")

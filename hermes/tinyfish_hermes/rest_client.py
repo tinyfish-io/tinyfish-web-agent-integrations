@@ -299,13 +299,16 @@ def _agent_request(
             timeout=timeout,
         )
         response.raise_for_status()
-        return cast(dict[str, Any], response.json())
+        data = response.json()
     except httpx.HTTPStatusError as exc:
         _raise_http_error("TinyFish Agent", exc)
     except httpx.RequestError as exc:
         raise TinyFishRestError(f"Could not reach TinyFish Agent: {exc}") from exc
     except ValueError as exc:
         raise TinyFishRestError("TinyFish Agent returned invalid JSON") from exc
+    if not isinstance(data, dict):
+        raise TinyFishRestError("TinyFish Agent returned an unexpected response")
+    return data
 
 
 def start_run(
