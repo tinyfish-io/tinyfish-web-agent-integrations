@@ -17,8 +17,12 @@ step "validate + doctor"
 "$HERMES" plugins doctor "$PLUGIN_DIR" --ci
 
 step "install from git (marketplace path)"
-"$HERMES" plugins install "file://$REPO_ROOT#hermes" --enable --yes-deps </dev/null
-"$HERMES" plugins list | grep tinyfish >/dev/null
+# No --yes-deps: tinyfish connect installs non-interactively and must still end up enabled.
+"$HERMES" plugins install "file://$REPO_ROOT#hermes" --enable </dev/null
+if ! "$HERMES" plugins list | grep tinyfish | grep -v 'not enabled' >/dev/null; then
+  echo "FAIL: plugin installed but not enabled" >&2
+  exit 1
+fi
 
 if [ -z "${TINYFISH_API_KEY:-}" ]; then
   step "TINYFISH_API_KEY unset; skipping live checks"
