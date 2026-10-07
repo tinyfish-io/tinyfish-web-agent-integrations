@@ -1,4 +1,4 @@
-"""``tf_agent``: goal-based TinyFish web automation as a Hermes tool."""
+"""``tinyfish_agent``: goal-based TinyFish web automation as a Hermes tool."""
 
 from __future__ import annotations
 
@@ -16,8 +16,8 @@ POLL_INTERVAL_SECONDS = 3.0
 # Hermes' context pruner targets results above ~8k chars.
 MAX_RESULT_CHARS = 12_000
 
-TF_AGENT_SCHEMA: dict[str, Any] = {
-    "name": "tf_agent",
+TINYFISH_AGENT_SCHEMA: dict[str, Any] = {
+    "name": "tinyfish_agent",
     "description": (
         "Run a TinyFish web agent on a real website to complete a goal: navigate, "
         "click, fill forms, and extract data across multiple pages. Use for "
@@ -65,14 +65,14 @@ def _summary(run: dict[str, Any]) -> dict[str, Any]:
     return {key: run[key] for key in keys if run.get(key) is not None}
 
 
-def tf_agent(args: dict[str, Any], **_: Any) -> str:
+def tinyfish_agent(args: dict[str, Any], **_: Any) -> str:
     api_key = _api_key()
     if not api_key:
         return json.dumps({"error": MISSING_KEY_ERROR})
     url = str(args.get("url") or "").strip()
     goal = str(args.get("goal") or "").strip()
     if not url or not goal:
-        return json.dumps({"error": "tf_agent needs both url and goal."})
+        return json.dumps({"error": "tinyfish_agent needs both url and goal."})
 
     try:
         started = rest_client.start_run(

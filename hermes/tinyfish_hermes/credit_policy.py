@@ -124,7 +124,7 @@ def pre_tool_call_policy(
     params = args or {}
     target = str(params.get("url") or params.get("target") or "")
 
-    if tool_name == "tf_agent":
+    if tool_name == "tinyfish_agent":
         return _directive_for_feature("agent", tool_name, target)
     if not tool_name.startswith("browser_"):
         return None

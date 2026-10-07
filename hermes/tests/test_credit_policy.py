@@ -99,7 +99,7 @@ def test_pre_tool_policy_gates_agent_without_browser_provider(
 ) -> None:
     monkeypatch.setattr(policy_mod, "load_config", lambda: {})
 
-    directive = pre_tool_call_policy("tf_agent", {"url": "https://example.com"})
+    directive = pre_tool_call_policy("tinyfish_agent", {"url": "https://example.com"})
 
     assert directive is not None
     assert directive["action"] == "approve"

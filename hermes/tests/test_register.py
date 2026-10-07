@@ -83,8 +83,8 @@ def test_register_with_full_context_adds_browser_provider_and_hooks() -> None:
         "on_session_finalize",
     ]
     assert all(callable(handler) for _, handler in ctx.hooks)
-    assert [tool["name"] for tool in ctx.tools] == ["tf_agent"]
-    assert ctx.tools[0]["schema"]["name"] == "tf_agent"
+    assert [tool["name"] for tool in ctx.tools] == ["tinyfish_agent"]
+    assert ctx.tools[0]["schema"]["name"] == "tinyfish_agent"
 
 
 def test_register_wires_cli_and_in_session_commands() -> None:

@@ -6,7 +6,7 @@
 | ---------- | --- |
 | Search, Fetch (free) | `tinyfish` web provider behind Hermes' `web_search` / `web_extract` |
 | Browser (credits) | `tinyfish` cloud browser provider behind Hermes' browser tools |
-| Agent (credits) | `tf_agent` tool: goal-based automation on a real site |
+| Agent (credits) | `tinyfish_agent` tool: goal-based automation on a real site |
 
 ## Install
 
@@ -68,7 +68,7 @@ tinyfish:
 
 ## Browser sessions
 
-Setting `browser.cloud_provider: tinyfish` routes Hermes' browser tools — the default Browser Use `browser_exec`, or the built-in `browser_*` tools with `browser.backend: off` — through TinyFish remote browser sessions. Sessions consume TinyFish credits, so they are policy-gated via `tinyfish.credit_policy.browser`; `tf_agent` runs use `tinyfish.credit_policy.agent`:
+Setting `browser.cloud_provider: tinyfish` routes Hermes' browser tools — the default Browser Use `browser_exec`, or the built-in `browser_*` tools with `browser.backend: off` — through TinyFish remote browser sessions. Sessions consume TinyFish credits, so they are policy-gated via `tinyfish.credit_policy.browser`; `tinyfish_agent` runs use `tinyfish.credit_policy.agent`:
 
 | Policy | Behavior |
 | ------ | -------- |

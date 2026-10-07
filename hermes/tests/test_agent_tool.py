@@ -37,7 +37,7 @@ def api(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     return state
 
 
-def test_tf_agent_polls_until_completed(api: dict[str, Any]) -> None:
+def test_tinyfish_agent_polls_until_completed(api: dict[str, Any]) -> None:
     api["runs"] = [
         {"run_id": "run_1", "status": "RUNNING"},
         rest_client.TinyFishRestError("blip"),
@@ -45,7 +45,7 @@ def test_tf_agent_polls_until_completed(api: dict[str, Any]) -> None:
     ]
 
     out = json.loads(
-        agent_tool.tf_agent(
+        agent_tool.tinyfish_agent(
             {"url": "https://example.com", "goal": "title", "proxy_country_code": "US"}
         )
     )
@@ -59,44 +59,52 @@ def test_tf_agent_polls_until_completed(api: dict[str, Any]) -> None:
     assert api["started"]["proxy_country_code"] == "US"
 
 
-def test_tf_agent_cancels_run_on_interrupt(
+def test_tinyfish_agent_cancels_run_on_interrupt(
     api: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(agent_tool, "_is_interrupted", lambda: True)
 
-    out = json.loads(agent_tool.tf_agent({"url": "https://example.com", "goal": "x"}))
+    out = json.loads(
+        agent_tool.tinyfish_agent({"url": "https://example.com", "goal": "x"})
+    )
 
     assert out["status"] == "CANCELLED"
     assert api["cancelled"] == ["run_1"]
 
 
-def test_tf_agent_returns_run_id_when_budget_runs_out(
+def test_tinyfish_agent_returns_run_id_when_budget_runs_out(
     api: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(agent_tool, "POLL_BUDGET_SECONDS", 0.0)
 
-    out = json.loads(agent_tool.tf_agent({"url": "https://example.com", "goal": "x"}))
+    out = json.loads(
+        agent_tool.tinyfish_agent({"url": "https://example.com", "goal": "x"})
+    )
 
     assert out["run_id"] == "run_1"
     assert "run_id" in out["note"]
 
 
-def test_tf_agent_truncates_large_results(api: dict[str, Any]) -> None:
+def test_tinyfish_agent_truncates_large_results(api: dict[str, Any]) -> None:
     api["runs"] = [{"run_id": "run_1", "status": "COMPLETED", "result": "x" * 50_000}]
 
-    text = agent_tool.tf_agent({"url": "https://example.com", "goal": "x"})
+    text = agent_tool.tinyfish_agent({"url": "https://example.com", "goal": "x"})
 
     assert len(text) < agent_tool.MAX_RESULT_CHARS + 200
     assert json.loads(text)["truncated"] is True
 
 
-def test_tf_agent_requires_key_and_inputs(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_tinyfish_agent_requires_key_and_inputs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("TINYFISH_API_KEY", raising=False)
     monkeypatch.delenv("MCP_TINYFISH_API_KEY", raising=False)
-    assert "hermes tinyfish setup" in agent_tool.tf_agent({"url": "u", "goal": "g"})
+    assert "hermes tinyfish setup" in agent_tool.tinyfish_agent(
+        {"url": "u", "goal": "g"}
+    )
 
     monkeypatch.setenv("TINYFISH_API_KEY", "tf_test")
-    assert "url and goal" in agent_tool.tf_agent({"url": "https://example.com"})
+    assert "url and goal" in agent_tool.tinyfish_agent({"url": "https://example.com"})
 
 
 def test_start_run_sends_dify_compatible_payload(
