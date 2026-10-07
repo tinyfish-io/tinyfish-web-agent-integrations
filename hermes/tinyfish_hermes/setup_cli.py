@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
+import subprocess
 import sys
 from typing import Any
 
@@ -546,6 +548,33 @@ def _policy_effect_line(policy: str) -> str:
     return "Policy 'request': each TinyFish browser session asks for approval."
 
 
+AGENT_BROWSER_SETUP = ["hermes", "tools", "post-setup", "agent_browser"]
+
+
+def _agent_browser_installed() -> bool:
+    try:
+        import pm
+
+        if pm.installed_package("agent-browser"):
+            return True
+    except Exception:  # pm is Hermes-internal; fall back to PATH
+        pass
+    return shutil.which("agent-browser") is not None
+
+
+def _ensure_agent_browser() -> None:
+    if _agent_browser_installed():
+        return
+    command = " ".join(AGENT_BROWSER_SETUP)
+    print("Hermes' browser tools need the agent-browser CLI, which is not installed.")
+    if _confirm("Install it now?", default=True):
+        if subprocess.run(AGENT_BROWSER_SETUP, check=False).returncode == 0:
+            return
+        print(f"Install failed; retry with `{command}`.", file=sys.stderr)
+        return
+    print(f"Install it with `{command}`.")
+
+
 def cmd_browser(args: argparse.Namespace) -> int:
     subcommand = getattr(args, "browser_command", None) or "status"
     config = _load_config()
@@ -563,6 +592,7 @@ def cmd_browser(args: argparse.Namespace) -> int:
             _save_config(config)
             print("Set browser.cloud_provider to tinyfish.")
         print(_policy_effect_line(policy))
+        _ensure_agent_browser()
         return 0
     if subcommand == "disable":
         if current != "tinyfish":

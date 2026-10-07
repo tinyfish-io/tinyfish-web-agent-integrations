@@ -60,3 +60,33 @@ jobs:
       - run: make test
 
       - run: python -m build
+
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      # Bump deliberately: upstream Hermes moves fast and breaks plugin internals.
+      HERMES_SHA: 7dab93b06e2bb3757dc18229169efcee1b5b47a3
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install Hermes at pinned SHA
+        run: |
+          set -euo pipefail
+          src="$RUNNER_TEMP/hermes-agent"
+          git init -q "$src"
+          git -C "$src" fetch -q --depth 1 https://github.com/NousResearch/hermes-agent.git "$HERMES_SHA"
+          git -C "$src" checkout -q FETCH_HEAD
+          uv venv -q -p 3.14 "$RUNNER_TEMP/hvenv"
+          VIRTUAL_ENV="$RUNNER_TEMP/hvenv" uv pip install -q -e "$src"
+          echo "$RUNNER_TEMP/hvenv/bin" >> "$GITHUB_PATH"
+
+      - name: Plugin e2e
+        env:
+          TINYFISH_API_KEY: ${{ secrets.TINYFISH_API_KEY }}
+          HERMES_PYTHON: ${{ runner.temp }}/hvenv/bin/python
+        run: hermes/scripts/e2e.sh

@@ -136,27 +136,13 @@ class TinyFishWebSearchProvider(_HermesWebSearchProvider):  # type: ignore[misc]
         options = fetch_options()
         # Hermes abandons a whole extract at 120s; per-URL timeouts keep the fast pages.
         options.setdefault("per_url_timeout_ms", 90_000)
-        documents: list[dict[str, Any]] = []
-        # The Fetch API caps a request at 10 URLs; oversized batches 400.
-        for start in range(0, len(urls), rest_client.FETCH_MAX_URLS):
-            if start and _is_interrupted():
-                documents.extend(
-                    _error_document(url, "Interrupted") for url in urls[start:]
-                )
-                break
-            chunk = urls[start : start + rest_client.FETCH_MAX_URLS]
-            try:
-                raw = rest_client.fetch(
-                    chunk,
-                    api_key=api_key,
-                    output_format=output_format,
-                    **options,
-                )
-                documents.extend(normalize_fetch_documents(raw, fallback_urls=chunk))
-            except Exception as exc:  # noqa: BLE001 - controlled failure envelope
-                logger.warning("TinyFish REST fetch failed (%s)", type(exc).__name__)
-                documents.extend(
-                    _error_document(url, _safe_rest_failure("fetch", exc))
-                    for url in chunk
-                )
-        return documents
+        try:
+            raw = rest_client.fetch(
+                urls, api_key=api_key, output_format=output_format, **options
+            )
+        except Exception as exc:  # noqa: BLE001 - controlled failure envelope
+            logger.warning("TinyFish REST fetch failed (%s)", type(exc).__name__)
+            return [
+                _error_document(url, _safe_rest_failure("fetch", exc)) for url in urls
+            ]
+        return normalize_fetch_documents(raw, fallback_urls=urls)

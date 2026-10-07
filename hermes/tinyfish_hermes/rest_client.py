@@ -12,7 +12,6 @@ from . import __version__
 
 SEARCH_URL = "https://api.search.tinyfish.ai"
 FETCH_URL = "https://api.fetch.tinyfish.ai"
-FETCH_MAX_URLS = 10
 BROWSER_URL = "https://api.browser.tinyfish.ai"
 AGENT_URL = "https://agent.tinyfish.ai"
 WALLET_URL = f"{AGENT_URL}/v1/wallet"

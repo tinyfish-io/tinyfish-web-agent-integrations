@@ -196,69 +196,6 @@ def test_extract_success_with_format_kwarg(monkeypatch: pytest.MonkeyPatch) -> N
     }
 
 
-def test_extract_chunks_batches_beyond_the_fetch_url_cap(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("TINYFISH_API_KEY", "tf_test")
-    batches: list[list[str]] = []
-
-    def fake_fetch(urls: list[str], **kwargs: Any) -> dict[str, Any]:
-        batches.append(list(urls))
-        return {"results": [{"url": u, "title": "t", "text": "x"} for u in urls]}
-
-    monkeypatch.setattr(rest_client, "fetch", fake_fetch)
-    urls = [f"https://example.com/{i}" for i in range(11)]
-
-    docs = TinyFishWebSearchProvider().extract(urls)
-
-    assert [len(b) for b in batches] == [10, 1]
-    assert [d["url"] for d in docs] == urls
-
-
-def test_extract_chunk_failure_only_errors_that_chunk(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("TINYFISH_API_KEY", "tf_test")
-    calls = iter([rest_client.TinyFishRestError("boom"), None])
-
-    def fake_fetch(urls: list[str], **kwargs: Any) -> dict[str, Any]:
-        exc = next(calls)
-        if exc is not None:
-            raise exc
-        return {"results": [{"url": u, "title": "t", "text": "x"} for u in urls]}
-
-    monkeypatch.setattr(rest_client, "fetch", fake_fetch)
-    urls = [f"https://example.com/{i}" for i in range(11)]
-
-    docs = TinyFishWebSearchProvider().extract(urls)
-
-    assert len(docs) == 11
-    assert all("boom" in d["error"] for d in docs[:10])
-    assert docs[10]["content"] == "x"
-
-
-def test_extract_interruption_stops_remaining_chunks(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("TINYFISH_API_KEY", "tf_test")
-    fetch_calls: list[int] = []
-
-    def fake_fetch(urls: list[str], **kwargs: Any) -> dict[str, Any]:
-        fetch_calls.append(len(urls))
-        return {"results": [{"url": u, "title": "t", "text": "x"} for u in urls]}
-
-    checks = iter([False, True])
-    monkeypatch.setattr(rest_client, "fetch", fake_fetch)
-    monkeypatch.setattr(provider_mod, "_is_interrupted", lambda: next(checks))
-    urls = [f"https://example.com/{i}" for i in range(11)]
-
-    docs = TinyFishWebSearchProvider().extract(urls)
-
-    assert fetch_calls == [10]
-    assert [d["content"] for d in docs[:10]] == ["x"] * 10
-    assert docs[10]["error"] == "Interrupted"
-
-
 def test_extract_defaults_to_markdown(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TINYFISH_API_KEY", "tf_test")
     seen: dict[str, Any] = {}

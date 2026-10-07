@@ -98,7 +98,7 @@ When the `tinyfish` MCP server is also configured in Hermes (`mcp_servers.tinyfi
 python -m pip install -e . -r requirements-dev.txt  # dev deps are version-bounded in requirements-dev.txt
 make lint
 make test
-hermes plugins validate . && hermes plugins doctor . --ci  # against a real Hermes
+scripts/e2e.sh  # real Hermes: validate, doctor, git install; live Search/Fetch with TINYFISH_API_KEY
 ```
 
 ## License

@@ -85,6 +85,7 @@ def env(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     )
     monkeypatch.setattr(cli, "TinyFishWebSearchProvider", lambda: state["provider"])
     monkeypatch.setattr(cli, "_validate_key", lambda api_key: None)
+    monkeypatch.setattr(cli, "_agent_browser_installed", lambda: True)
     monkeypatch.delenv("TINYFISH_API_KEY", raising=False)
     return state
 
@@ -723,3 +724,36 @@ def test_validate_key_tolerates_network_errors(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(rest_client, "search", offline)
 
     assert cli._validate_key("tf_maybe") is None
+
+
+def test_browser_enable_points_at_agent_browser_setup_when_missing(
+    env: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(cli, "_agent_browser_installed", lambda: False)
+    env["config"] = {}
+
+    assert cli.dispatch_tinyfish_cli(_parser().parse_args(["browser", "enable"])) == 0
+
+    assert "hermes tools post-setup agent_browser" in capsys.readouterr().out
+
+
+def test_browser_enable_runs_agent_browser_setup_when_confirmed(
+    env: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ran: list[list[str]] = []
+    monkeypatch.setattr(cli, "_agent_browser_installed", lambda: False)
+    monkeypatch.setattr(cli, "_confirm", lambda *args, **kwargs: True)
+    monkeypatch.setattr(
+        cli.subprocess,
+        "run",
+        lambda argv, check: (
+            ran.append(argv) or cli.subprocess.CompletedProcess(argv, 0)
+        ),
+    )
+    env["config"] = {}
+
+    cli.dispatch_tinyfish_cli(_parser().parse_args(["browser", "enable"]))
+
+    assert ran == [cli.AGENT_BROWSER_SETUP]
