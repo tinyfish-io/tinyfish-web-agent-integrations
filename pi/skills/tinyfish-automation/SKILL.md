@@ -87,9 +87,6 @@ available through MCP. `url` and `goal` always are. Never invent a parameter nam
 | `browser_profile` | `lite` (default) or `stealth`. See `references/anti-bot.md` |
 | `use_profile` / `profile_id` | Reuse a saved logged-in session. See `tinyfish-authenticated` |
 | `use_vault` / `credential_item_ids` | Log in with vault credentials. See `tinyfish-authenticated` |
-| `agent_config.max_steps` | Cap the run. Steps are the billing unit — use it on exploratory goals |
-| `agent_config.mode` | `default` or `strict` |
-| `capture_config` | `screenshots`, `snapshots`, `elements`, `recording` — for debugging a failing goal |
 | `proxy_config` | Geographic routing. `country_code` is one of `US`, `GB`, `CA`, `DE`, `FR`, `JP`, `AU` |
 
 Ask for `output_schema` whenever the result feeds anything other than a human reading it.

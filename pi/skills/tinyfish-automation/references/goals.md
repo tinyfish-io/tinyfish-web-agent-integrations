@@ -136,7 +136,6 @@ Steps are the billing unit: 1 credit per step. Goals that wander cost more than 
 
 - **Start the run on the right page.** Passing a homepage `url` and asking the agent to find the
   pricing page spends steps navigating. Pass the pricing URL — use `search` first if you don't know it.
-- **Set `agent_config.max_steps`** on exploratory goals so a confused run has a ceiling.
 - **Don't automate what you can fetch.** Reading is free.
 
 ## Checklist

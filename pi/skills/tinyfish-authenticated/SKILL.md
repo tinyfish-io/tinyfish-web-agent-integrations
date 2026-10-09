@@ -130,5 +130,5 @@ that moment can reach real account actions, not just the transcript.
 | Logged in but the goal stalled | Goal problem, not auth | See `../tinyfish-automation/references/goals.md` |
 | CAPTCHA on the login form | Can't be solved automatically | A saved profile past the gate is the only path |
 
-Check `final_url` and the result content, not just the run status — a run that lands on a login page
+Check the result content, not just the run status — a run that lands on a login page
 frequently reports `COMPLETED`.
