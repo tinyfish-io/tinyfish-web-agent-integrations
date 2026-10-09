@@ -42,31 +42,42 @@ substitute one for the other in a call.
 - To target a specific one, pass both: `use_profile: true` **and** `profile_id: "prof_..."`.
   `profile_id` requires `use_profile: true` — it does nothing on its own.
 
-## If no profile exists
+## Choosing a profile
 
-**Profiles must be created before a run can use one.** They're set up in the dashboard
-(<https://agent.tinyfish.ai>) or through the Browser Context Profiles API — not from MCP, and not by
-this package.
+Before an authenticated run, call `list_profiles`. Each profile lists `signed_in_sites`: sites where a
+sign-in was saved.
 
-So when a task needs a login and no profile exists, **do not try to log in from scratch by putting
-credentials in the goal.** Instead:
+- **Prefer a profile whose `signed_in_sites` includes the task's site**, and pass its exact
+  `profile_id`. An entry covers its subdomains (`google.com` covers `docs.google.com`).
+- An entry doesn't say which account or tenant, and a sign-in may have expired since its `claimed_at`.
+  If several profiles match, or the result lands in the wrong account, ask the user which one.
+- A profile that only matches **by name** is not confirmed signed in. Ask the user before running
+  on it.
 
-1. Say plainly that the site needs a signed-in session and no saved profile is available.
-2. Point the user at **Browser Context Profiles** in the TinyFish dashboard
-   (<https://agent.tinyfish.ai>): create a profile, name it (one per account or environment —
-   `Salesforce Production`, `Salesforce Sandbox`), sign in to the target site in the setup browser,
-   save the session. Full walkthrough:
-   <https://docs.tinyfish.ai/key-concepts/browser-context-profiles>
-3. Offer `use_vault: true` as the alternative if their password manager is connected — TinyFish fills
-   the credentials without the agent ever seeing them.
+## If no profile fits
+
+**Do not try to log in from scratch by putting credentials in the goal.** Set up a profile with the
+user instead. The user signs in by hand; the agent never types a password:
+
+1. `create_profile` with a name per account or environment (`Salesforce Production`,
+   `Salesforce Sandbox`). Skip this to add a site to an existing profile.
+2. `start_profile_setup_session` with that `profile_id` and the site's `url`. Give the user the
+   returned `viewer_url` and ask them to sign in there.
+3. **Wait until the user says they're done.** Then call `save_profile_setup_session` with the same
+   `profile_id` and `session_id`, and `signed_in_sites` set to only the sites the user says they
+   signed into. Never add a site they didn't name. Follow any `next_step` it returns.
+4. If the user gives up, call `cancel_profile_setup_session`; unsaved state is discarded.
+5. Run with `use_profile: true` and the new `profile_id`.
 
 Setup is a one-time cost that makes every later run cheaper. It's worth the interruption.
 
-For reference, API setup is: create the profile (`POST /v1/profiles`), start a setup session
-(`POST /v1/profiles/{id}/setup-session`), connect Playwright/Puppeteer/CDP to the returned `cdp_url`,
-sign in, then save with `POST /v1/profiles/{id}/save` and the `session_id`. Unsaved setup state is
-discarded on cancel or timeout. `base_url` in that response is for TinyFish HTTP session endpoints such
-as `/pages` — do not pass it to Playwright.
+Without the MCP tools, the CLI does the same: `tinyfish profile list`, `tinyfish profile create`
+(prints a link where the user signs in and saves), and `tinyfish profile sign-in <profile_id>` to add
+or refresh a site. The dashboard (<https://agent.tinyfish.ai>) also works. Full walkthrough:
+<https://docs.tinyfish.ai/key-concepts/browser-context-profiles>
+
+If the user's password manager is connected, `use_vault: true` is the alternative to a profile —
+see below.
 
 ## Vault
 
