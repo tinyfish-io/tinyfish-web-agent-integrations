@@ -169,6 +169,10 @@ if (dirs) {
     'guide_next_step', 'batch_status', 'batch_cancel',
     'create_browser_session', 'list_browser_sessions', 'close_browser_session',
     'get_wallet', 'get_search_usage', 'list_fetch_usage',
+    'create_monitor', 'list_monitors', 'get_monitor', 'pause_monitor', 'resume_monitor',
+    'run_monitor', 'cancel_monitor',
+    'list_profiles', 'create_profile', 'start_profile_setup_session',
+    'save_profile_setup_session', 'cancel_profile_setup_session',
   ];
   const unknownRegistered = [...registered].filter((t) => !KNOWN.includes(t));
   if (unknownRegistered.length) {
