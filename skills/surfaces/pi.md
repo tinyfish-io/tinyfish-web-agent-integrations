@@ -18,7 +18,7 @@ or refresh a site.
 The server is `https://agent.tinyfish.ai/mcp`, configured by this package, authenticated by the
 `TINYFISH_API_KEY` API key. On an auth error, tell the user to `export
 TINYFISH_API_KEY=sk-tinyfish-...` and restart pi, or to run `npx -y @tiny-fish/cli@latest connect pi
---api-key <key>`. On a credit or rate-limit error, say so plainly.
+--api-key <key>`. On a wallet-balance or rate-limit error, say so plainly.
 
 If no TinyFish tools are available at all, both tools below have CLI equivalents —
 `tinyfish search query "<q>"` and `tinyfish fetch content get <url>`. See `tinyfish-web` for the full mapping.
@@ -194,7 +194,7 @@ API key" regardless of its wording.
 
 Whenever auth is the problem, give the user both fixes: `export TINYFISH_API_KEY=sk-tinyfish-...`
 then restart pi, or run `npx -y @tiny-fish/cli@latest connect pi --api-key <key>`. Keys come from
-https://agent.tinyfish.ai/api-keys. On a credit or rate-limit error, say so plainly.
+https://agent.tinyfish.ai/api-keys. On a wallet-balance or rate-limit error, say so plainly.
 
 <!-- slot: this-install -->
 package

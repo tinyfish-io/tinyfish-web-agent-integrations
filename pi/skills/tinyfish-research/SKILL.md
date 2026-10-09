@@ -9,7 +9,7 @@ You are the orchestrator. Understand the question, decide how much work it deser
 passes, then compile and deliver. Pi runs this in your own context by default; if you have a
 subagent tool, see "Fanning out" for when to delegate instead.
 
-Two tools do all the work, and **both are free**, so depth costs latency and context — never credits:
+Two tools do all the work, and **both are free**, so depth costs latency and context — never money:
 
 - **`search`** — ranked web results with titles, snippets, URLs. Filters for recency, date range,
   domain include/exclude, news, and research papers.
@@ -24,7 +24,7 @@ sites, not reading them. The only exception is a page that requires a login to r
 The server is `https://agent.tinyfish.ai/mcp`, configured by this package, authenticated by the
 `TINYFISH_API_KEY` API key. On an auth error, tell the user to `export
 TINYFISH_API_KEY=sk-tinyfish-...` and restart pi, or to run `npx -y @tiny-fish/cli@latest connect pi
---api-key <key>`. On a credit or rate-limit error, say so plainly.
+--api-key <key>`. On a wallet-balance or rate-limit error, say so plainly.
 
 If no TinyFish tools are available at all, both tools below have CLI equivalents —
 `tinyfish search query "<q>"` and `tinyfish fetch content get <url>`. See `tinyfish-web` for the full mapping.

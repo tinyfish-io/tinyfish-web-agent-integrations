@@ -7,7 +7,7 @@ description: "Web research powered by TinyFish search and fetch. Use for any que
 
 {{research-intro}}
 
-Two tools do all the work, and **both are free**, so depth costs latency and context — never credits:
+Two tools do all the work, and **both are free**, so depth costs latency and context — never money:
 
 - **`search`** — ranked web results with titles, snippets, URLs. Filters for recency, date range,
   domain include/exclude, news, and research papers.

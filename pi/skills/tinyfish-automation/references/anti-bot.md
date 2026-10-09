@@ -73,7 +73,7 @@ Once you're past the fingerprint check, the run can still trip behavioral detect
 **CAPTCHAs cannot be solved automatically.** If the run hits reCAPTCHA or hCaptcha, stealth and proxies
 won't help. The options are a Browser Context Profile whose saved session is already past the gate (see
 the `tinyfish-authenticated` skill), or telling the user the site can't be automated. Say so plainly
-rather than burning credits on retries.
+rather than paying for retries.
 
 Also don't keep retrying:
 

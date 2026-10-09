@@ -56,7 +56,7 @@ only an explicit "run this in the background" from the user justifies the async 
 
 ### When a run errors or times out, do not retry
 
-Automation steps cost credits and can take real actions — submitting a form, sending a message,
+Automation steps cost money and can take real actions — submitting a form, sending a message,
 placing an order. **A `run_web_automation` call that errors or times out may still be executing on
 the server.** Calling it again, or calling `run_web_automation_async` "as a retry", starts a second
 run that can duplicate whatever the first one already did.
@@ -68,8 +68,8 @@ Recover by looking, not by re-running:
 3. Only once it is terminal (`COMPLETED`, `FAILED`, `CANCELLED`) and genuinely did not do the work
    is a fresh call correct. Say what you are doing and why before you make it.
 
-If a run reports insufficient credits or a subscription limit, that is expected and recoverable:
-relay the upgrade or top-up link and ask the user how to proceed. Never silently fall back to a
+If a run reports a low wallet balance or a plan limit, that is expected and recoverable:
+relay the add-money or upgrade link and ask the user how to proceed. Never silently fall back to a
 weaker tool or claim you cannot browse the web.
 
 ## Parameters

@@ -8,7 +8,7 @@ description: "Web research powered by TinyFish search and fetch. Use for any que
 You are the orchestrator. Understand the question, decide how much work it deserves, dispatch
 subagents when the volume warrants it, then compile and deliver.
 
-Two tools do all the work, and **both are free**, so depth costs latency and context — never credits:
+Two tools do all the work, and **both are free**, so depth costs latency and context — never money:
 
 - **`search`** — ranked web results with titles, snippets, URLs. Filters for recency, date range,
   domain include/exclude, news, and research papers.
@@ -22,7 +22,7 @@ sites, not reading them. The only exception is a page that requires a login to r
 
 The server is `https://agent.tinyfish.ai/mcp`, configured by this plugin, authenticated by OAuth on
 first connection. On an auth error, tell the user to re-authenticate the `tinyfish` MCP server (in
-Grok Build: `/mcps`, select `tinyfish`, press `i`). On a credit or rate-limit error, say so plainly.
+Grok Build: `/mcps`, select `tinyfish`, press `i`). On a wallet-balance or rate-limit error, say so plainly.
 
 **Never silently fall back to a generic web search tool.** A degraded answer that looks like a
 TinyFish answer is worse than a clear error.

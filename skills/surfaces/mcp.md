@@ -12,7 +12,7 @@ plugin
 <!-- slot: research-auth -->
 The server is `https://agent.tinyfish.ai/mcp`, configured by this plugin, authenticated by OAuth on
 first connection. On an auth error, tell the user to re-authenticate the `tinyfish` MCP server (in
-Grok Build: `/mcps`, select `tinyfish`, press `i`). On a credit or rate-limit error, say so plainly.
+Grok Build: `/mcps`, select `tinyfish`, press `i`). On a wallet-balance or rate-limit error, say so plainly.
 
 <!-- slot: research-broad-search -->
 Most of the subagent work.
@@ -93,7 +93,7 @@ connect grok --api-key`, it sends a `${TINYFISH_API_KEY}` Bearer header and has 
 On an auth error, check which setup this is. Plugin: tell the user to re-authenticate — in Grok Build,
 `/mcps`, select `tinyfish`, press `i`. Keyed: signing in there fixes nothing — the key is unset in the
 shell Grok was started from, or revoked; tell the user to re-run `npx -y @tiny-fish/cli@latest connect
-grok --api-key <key>` and start Grok from a new terminal. On a credit or rate-limit error, say so
+grok --api-key <key>` and start Grok from a new terminal. On a wallet-balance or rate-limit error, say so
 plainly.
 
 <!-- slot: this-install -->

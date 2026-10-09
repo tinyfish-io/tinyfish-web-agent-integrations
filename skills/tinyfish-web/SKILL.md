@@ -20,7 +20,7 @@ is mostly about not paying for the second when the first would do.
 | Drive a browser from Playwright, Puppeteer, or Selenium code | `create_browser_session` | $0.002/min | `tinyfish-browser` |
 | Watch a page or a topic over time and catch changes | `create_monitor` | $0.005/check | `tinyfish-monitor` |
 
-**Credit, balance, or usage questions** go to `get_wallet` (balance and rates), `get_search_usage`, or
+**Balance, pricing, or usage questions** go to `get_wallet` (balance and rates), `get_search_usage`, or
 `list_fetch_usage` (history). They're read-only, and not a way to check whether TinyFish is connected.
 
 ## The one rule that saves money
@@ -47,7 +47,7 @@ Using `run_web_automation` to read a page is the most common and most expensive 
 Real tasks chain these, and the order matters for cost:
 
 1. **`search`** to find the right URL — don't make an automation hunt for it. Starting a run on a
-   homepage and asking it to find the pricing page spends credits on navigation you could have skipped.
+   homepage and asking it to find the pricing page spends money on navigation you could have skipped.
 2. **`fetch_content`** to read what's readable.
 3. **`run_web_automation`** only for the part that genuinely needs interaction, starting at the closest
    URL you found.
