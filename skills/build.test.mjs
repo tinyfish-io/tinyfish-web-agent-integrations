@@ -7,13 +7,14 @@ import { build } from './build.mjs';
 
 const SKILL = '---\nname: tinyfish-x\ndescription: d\n---\n\nUse {{tool}}.\n\n{{extra}}\n\nEnd.\n';
 
-function fixture({ skill = SKILL, mcp = '<!-- slot: tool -->\nA\n<!-- slot: extra -->\n', pi = '<!-- slot: tool -->\nB\n<!-- slot: extra -->\nMore.\n' } = {}) {
+function fixture({ skill = SKILL, mcp = '<!-- slot: tool -->\nA\n<!-- slot: extra -->\n', pi = '<!-- slot: tool -->\nB\n<!-- slot: extra -->\nMore.\n', cli = '<!-- slot: tool -->\nC\n<!-- slot: extra -->\n' } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'skills-'));
   const files = {
     'skills/tinyfish-x/SKILL.md': skill,
     'skills/tinyfish-x/references/r.md': 'Ref {{tool}}.\n',
     'skills/surfaces/mcp.md': mcp,
     'skills/surfaces/pi.md': pi,
+    'skills/surfaces/cli.md': cli,
   };
   for (const [p, c] of Object.entries(files)) {
     mkdirSync(dirname(join(root, p)), { recursive: true });
@@ -29,6 +30,7 @@ test('renders slots and drops empty slot lines', () => {
   assert.match(grok, /Use A\.\n\nEnd\.\n$/);
   assert.match(out['pi/skills/tinyfish-x/SKILL.md'], /Use B\.\n\nMore\.\n\nEnd\.\n$/);
   assert.equal(out['pi/skills/tinyfish-x/references/r.md'], 'Ref B.\n');
+  assert.equal(out['cli/skills/tinyfish-x/references/r.md'], 'Ref C.\n');
 });
 
 test('fails on a slot missing from one surface', () => {

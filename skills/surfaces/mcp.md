@@ -1,5 +1,9 @@
 Slot values for the Grok plugin (grok/skills), which reaches TinyFish through the hosted MCP server.
 
+<!-- slot: automation-batch -->
+This plugin does not start
+batches itself; kick off runs with `run_web_automation_async` and collect their `run_id`s.
+
 <!-- slot: browser-caveat -->
 
 
@@ -95,7 +99,3 @@ On an auth error, check which setup this is. Plugin: tell the user to re-authent
 shell Grok was started from, or revoked; tell the user to re-run `npx -y @tiny-fish/cli@latest connect
 grok --api-key <key>` and start Grok from a new terminal. On a wallet-balance or rate-limit error, say so
 plainly.
-
-<!-- slot: this-install -->
-plugin
-

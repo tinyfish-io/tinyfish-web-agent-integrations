@@ -8,6 +8,7 @@ on:
       - "skills/**"
       - "grok/skills/**"
       - "pi/skills/**"
+      - "cli/skills/**"
   push:
     branches: [main]
     paths:
@@ -16,6 +17,7 @@ on:
       - "skills/**"
       - "grok/skills/**"
       - "pi/skills/**"
+      - "cli/skills/**"
 
 permissions:
   contents: read

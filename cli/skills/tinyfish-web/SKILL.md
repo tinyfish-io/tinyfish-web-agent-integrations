@@ -55,90 +55,54 @@ Real tasks chain these, and the order matters for cost:
 "Find our competitors' pricing, then pull our own numbers from the dashboard" is search → fetch →
 authenticated automation. Three tools, one task, and only the last one costs anything.
 
-## Finding the tools
+## Running these through the CLI
 
-Pi ships no MCP client of its own, so how these tools appear depends on how TinyFish was installed.
-**The suffix is the tool; the prefix only names the install.** Match on the suffix.
+These skills name TinyFish's MCP tools. Here you call each one as a `tinyfish` command over your
+shell. **The CLI grammar is two-level and does not match the tool names**, so run `tinyfish <group>
+--help` before your first use of a group and follow the syntax it prints. Where this table and the
+skill text disagree, the table is right for the CLI.
 
-| What you see | Call it as |
-|---|---|
-| `tiny-fish_pi__tinyfish_search` | this package, with `pi-mcp-adapter` installed |
-| `tinyfish_search` | registered by `tinyfish connect pi` |
-| no TinyFish tools at all | the `tinyfish` CLI over bash — see below |
-
-If a tool named `mcp` exists but no TinyFish tools do, they may be behind the adapter's proxy.
-`mcp({ search: "tinyfish" })` lists them. **Call each one by the exact name that search returned**
-— never a name from this document. The prefix differs per install, so a hardcoded
-`tiny-fish_pi__tinyfish_search` is wrong under CLI registration, where the same tool is
-`tinyfish_search`:
-
-```
-mcp({ search: "tinyfish" })                          → returns the names available here
-mcp({ tool: "<exact name from that result>", args: { ... } })
-```
-
-**If that search returns nothing, check for a connection error before concluding anything.** A
-TinyFish server that cannot authenticate never finishes connecting, so its tools are absent in the
-same way they are absent when no adapter is installed:
-
-| Symptom | Cause | Fix |
-|---|---|---|
-| No `mcp` tool at all | no MCP adapter installed | use the CLI below, or `pi install npm:pi-mcp-adapter` |
-| `MCP: Failed to connect to …Unauthorized` at startup or on `/mcp status` | `TINYFISH_API_KEY` unset or invalid | set the key (see Auth) and restart pi |
-| `mcp` exists, search finds nothing, no error shown | older adapters fail silently — still almost always the key | set the key and restart pi |
-
-Never report "TinyFish is not installed" on the strength of missing tools alone — check which of
-these it is first.
-
-### No MCP tools: use the CLI
-
-Most pi users have no MCP adapter, and that is fine — the same capabilities are a terminal command
-away. **The CLI grammar is two-level and does not match the tool names in these skills**, so run
-`tinyfish <group> --help` before your first use of a group and follow the syntax it prints.
-
-| These skills say | CLI equivalent (verified against CLI 0.49) |
+| These skills say | CLI command (CLI 0.49) |
 |---|---|
 | `search` | `tinyfish search query "<query>"` |
-| `fetch_content` | `tinyfish fetch content get <url>...` |
-| `run_web_automation` | `tinyfish agent run "<goal>" --url <url> --sync` (without `--sync` it streams every step) |
-| `run_web_automation_async`, `get_run`, `list_runs`, `cancel_run` | `tinyfish agent run ... --async`, then `tinyfish agent run list`, `get <run_id>`, `cancel <run_id>` |
-| `use_profile: true` | `tinyfish agent run ... --use-profile` |
-| `profile_id` | `tinyfish agent run ... --use-profile --profile-id <id>` |
-| `use_vault: true` | `tinyfish agent run ... --use-vault` |
-| `credential_item_ids` | `tinyfish agent run ... --use-vault --credential-item-id <id>` (repeat per item; IDs from `tinyfish vault item list`) |
+| `fetch_content` | `tinyfish fetch content get <url>...` (up to 10 URLs) |
+| `run_web_automation` | `tinyfish agent run "<goal>" --url <url> --sync` — `--url` is required. Without `--sync` it streams every step into your context |
+| `run_web_automation_async` | `tinyfish agent run "<goal>" --url <url> --async` — prints the `run_id` |
+| `get_run`, `list_runs`, `cancel_run` | `tinyfish agent run get <run_id>`, `agent run list`, `agent run cancel <run_id>` |
+| `batch_status`, `batch_cancel` | `tinyfish agent run get <run_id>` / `agent run cancel <run_id>`, once per run |
+| `output_schema` | `--output-schema '<json>'` or `--output-schema-file <path>` on `agent run` |
+| `browser_profile` | `--browser-profile lite\|stealth` on `agent run` |
+| `session_id` | `--session-id <uuid>` on `agent run`. **Optional on the CLI**; pass a fresh UUID when running several `--sync` runs in parallel |
+| `proxy_config` | not available on `agent run` |
+| `use_profile: true`, `profile_id` | `--use-profile`, `--use-profile --profile-id <id>` on `agent run` |
+| `use_vault: true`, `credential_item_ids` | `--use-vault`, `--use-vault --credential-item-id <id>` (repeat per item; IDs from `tinyfish vault item list`) |
 | `list_profiles`, `create_profile`, profile sign-in | `tinyfish profile list`, `profile create --name <name>`, `profile sign-in <profile_id>` |
 | `create_monitor` | `tinyfish monitor create --schedule "<cron>"` with `--url <url>` or `--query "<query>"` |
 | `list_monitors`, `get_monitor`, `run_monitor`, `pause_monitor`, `resume_monitor`, `cancel_monitor` | `tinyfish monitor list`, `monitor <get\|run\|pause\|resume\|cancel> <monitor_id>` |
 | `create_browser_session`, `list_browser_sessions`, `close_browser_session` | `tinyfish browser session create`, `list`, `close <session_id>` |
 | `get_wallet`, `get_search_usage`, `list_fetch_usage` | `tinyfish wallet status`, `search usage`, `fetch usage` |
 
-These are **flags on `agent run`**, not separate command groups. `tinyfish profile` and
-`tinyfish vault` manage profiles and credentials; they do not run automations.
+`search query` takes `--include-domains`, `--exclude-domains`, `--location`, `--language` and `--page`
+only. The recency, date-range and `domain_type` filters in `tinyfish-research` are MCP-only; put the
+time window in the query text instead.
 
-Monitors and browser sessions need CLI 0.49 or later. On an older CLI, tell the user to run
-`npm i -g @tiny-fish/cli@latest`; never open a browser session you cannot close.
+The CLI checks flags itself: where a skill says "the tool schema your client shows you is
+authoritative", read that as `tinyfish <group> --help`.
 
-If `tinyfish` is not installed, say so and give the user the fix rather than stopping:
-`npm i -g @tiny-fish/cli` (or prefix a single call with `npx -y @tiny-fish/cli@latest`), then
-`tinyfish auth login`.
+Output is JSON by default, which is what you want; `--pretty` is for humans. Monitors and browser
+sessions need CLI 0.49 or later — on an older CLI, tell the user to run `tinyfish upgrade`, and never
+open a browser session you cannot close.
+
+**Pick one route per task.** If your harness also has TinyFish MCP tools, you may use them instead,
+but CLI runs use your API key and MCP runs use the MCP token: `tinyfish agent run get` returns 404 for
+a run started through MCP, and the reverse.
 
 ## Auth
 
-**Both pi routes require an API key. Never tell the user to sign in** — nothing will prompt them.
-The two differ only in where the key lives:
-
-| Route | Key source |
-|---|---|
-| this package | `X-API-Key` interpolated from `TINYFISH_API_KEY` in pi's environment |
-| `tinyfish connect pi` | a literal key the CLI writes into pi's own `mcp.json` |
-
-A failure shows up on the connection, not on the tool call — the tool itself just never registers.
-Recent adapters print `Unauthorized: Valid OAuth Bearer token required`; read it as "bad or missing
-API key" regardless of its wording.
-
-Whenever auth is the problem, give the user both fixes: `export TINYFISH_API_KEY=sk-tinyfish-...`
-then restart pi, or run `npx -y @tiny-fish/cli@latest connect pi --api-key <key>`. Keys come from
-https://agent.tinyfish.ai/api-keys. On a wallet-balance or rate-limit error, say so plainly.
+The CLI authenticates with an API key. On an auth error, run `tinyfish auth status` to see which key
+is active and where it came from, then give the user the fix: `tinyfish auth login`, or `export
+TINYFISH_API_KEY=sk-tinyfish-...`. Keys come from https://agent.tinyfish.ai/api-keys. Never ask for
+the key in chat. On a wallet-balance or rate-limit error, say so plainly.
 
 **Never quietly fall back to a generic web search tool** — a degraded answer that looks like a
 TinyFish answer is worse than a clear error.
@@ -155,5 +119,5 @@ These four rules apply to every tool above, and each capability skill repeats th
 4. **Confirm before acting irreversibly.** Spending money, sending messages on the user's behalf,
    changing account settings, or deleting data needs the user's go-ahead first.
 
-Fuller discussion is in this package's `../../rules/security.md`. That file is documentation, not a loaded
+Fuller discussion is in <https://raw.githubusercontent.com/tinyfish-io/tinyfish-web-agent-integrations/main/pi/rules/security.md>. That file is documentation, not a loaded
 component — read it if you want the detail, but don't rely on having seen it.
