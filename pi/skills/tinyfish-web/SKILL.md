@@ -1,6 +1,6 @@
 ---
 name: tinyfish-web
-description: "Pick the right TinyFish tool for a web task. Use when a request involves the live web — searching, reading pages, extracting data, filling forms, automating a site, or working in a logged-in app — and it isn't already obvious which TinyFish tool fits."
+description: "Pick the right TinyFish tool for a web task. Use when a request involves the live web — searching, reading pages, extracting data, filling forms, automating a site, working in a logged-in app, or watching a page or topic for changes — and it isn't already obvious which TinyFish tool fits."
 ---
 
 # Choosing a TinyFish Tool
@@ -15,9 +15,13 @@ is mostly about not paying for the second when the first would do.
 | Find pages, or get current information | `search` | **free** | `tinyfish-research` |
 | Read pages you have URLs for (up to 10 per call) | `fetch_content` | **free** | `tinyfish-research` |
 | Research a topic across many sources | `search` + `fetch_content`, fanned out across subagents | **free** | `tinyfish-research` |
-| Click, type, submit, navigate a flow, or extract data that only appears after interaction | `run_web_automation` | 1 credit/step | `tinyfish-automation` |
-| Do the above on a site the user is logged into | `run_web_automation` + `use_profile` / `use_vault` | 1 credit/step | `tinyfish-authenticated` |
-| Drive a browser from Playwright, Puppeteer, or Selenium code | `create_browser_session` | 1 credit / 4 min | `tinyfish-browser` |
+| Click, type, submit, navigate a flow, or extract data that only appears after interaction | `run_web_automation` | $0.016/step | `tinyfish-automation` |
+| Do the above on a site the user is logged into | `run_web_automation` + `use_profile` / `use_vault` | $0.016/step | `tinyfish-authenticated` |
+| Drive a browser from Playwright, Puppeteer, or Selenium code | `create_browser_session` | $0.002/min | `tinyfish-browser` |
+| Watch a page or a topic over time and catch changes | `create_monitor` | $0.005/check | `tinyfish-monitor` |
+
+**Balance, pricing, or usage questions** go to `get_wallet` (balance and rates), `get_search_usage`, or
+`list_fetch_usage` (history). They're read-only, and not a way to check whether TinyFish is connected.
 
 ## The one rule that saves money
 
@@ -43,7 +47,7 @@ Using `run_web_automation` to read a page is the most common and most expensive 
 Real tasks chain these, and the order matters for cost:
 
 1. **`search`** to find the right URL — don't make an automation hunt for it. Starting a run on a
-   homepage and asking it to find the pricing page spends credits on navigation you could have skipped.
+   homepage and asking it to find the pricing page spends money on navigation you could have skipped.
 2. **`fetch_content`** to read what's readable.
 3. **`run_web_automation`** only for the part that genuinely needs interaction, starting at the closest
    URL you found.
@@ -92,24 +96,27 @@ Most pi users have no MCP adapter, and that is fine — the same capabilities ar
 away. **The CLI grammar is two-level and does not match the tool names in these skills**, so run
 `tinyfish <group> --help` before your first use of a group and follow the syntax it prints.
 
-| These skills say | CLI equivalent (verified against CLI 0.43) |
+| These skills say | CLI equivalent (verified against CLI 0.49) |
 |---|---|
 | `search` | `tinyfish search query "<query>"` |
-| `fetch_content` | `tinyfish fetch ...` |
+| `fetch_content` | `tinyfish fetch content get <url>...` |
 | `run_web_automation` | `tinyfish agent run "<goal>" --url <url>` |
-| `run_web_automation_async`, `get_run` | `tinyfish agent run ...`, then the run subcommands |
+| `run_web_automation_async`, `get_run`, `list_runs`, `cancel_run` | `tinyfish agent run ...`, then `tinyfish agent run list`, `get <run_id>`, `cancel <run_id>` |
 | `use_profile: true` | `tinyfish agent run ... --use-profile` |
 | `profile_id` | `tinyfish agent run ... --use-profile --profile-id <id>` |
 | `use_vault: true` | `tinyfish agent run ... --use-vault` |
 | `credential_item_ids` | `tinyfish agent run ... --use-vault --credential-item-id <id>` (repeat per item; IDs from `tinyfish vault item list`) |
+| `list_profiles`, `create_profile`, profile sign-in | `tinyfish profile list`, `profile create --name <name>`, `profile sign-in <profile_id>` |
+| `create_monitor` | `tinyfish monitor create --schedule "<cron>"` with `--url <url>` or `--query "<query>"` |
+| `list_monitors`, `get_monitor`, `run_monitor`, `pause_monitor`, `resume_monitor`, `cancel_monitor` | `tinyfish monitor list`, `monitor <get\|run\|pause\|resume\|cancel> <monitor_id>` |
+| `create_browser_session`, `list_browser_sessions`, `close_browser_session` | `tinyfish browser session create`, `list`, `close <session_id>` |
+| `get_wallet`, `get_search_usage`, `list_fetch_usage` | `tinyfish wallet status`, `search usage`, `fetch usage` |
 
 These are **flags on `agent run`**, not separate command groups. `tinyfish profile` and
 `tinyfish vault` manage profiles and credentials; they do not run automations.
 
-**Browser sessions have no CLI fallback.** `tinyfish browser session` exposes `create` only — no
-`list`, no `close` — so a session started that way cannot be closed and bills until its inactivity
-timeout expires. Do not open a browser session over the CLI. If the task needs one and no MCP tools
-are available, say so and point the user at `pi install npm:pi-mcp-adapter`.
+Monitors and browser sessions need CLI 0.49 or later. On an older CLI, tell the user to run
+`npm i -g @tiny-fish/cli@latest`; never open a browser session you cannot close.
 
 If `tinyfish` is not installed, say so and give the user the fix rather than stopping:
 `npm i -g @tiny-fish/cli` (or prefix a single call with `npx -y @tiny-fish/cli@latest`), then
@@ -131,7 +138,7 @@ API key" regardless of its wording.
 
 Whenever auth is the problem, give the user both fixes: `export TINYFISH_API_KEY=sk-tinyfish-...`
 then restart pi, or run `npx -y @tiny-fish/cli@latest connect pi --api-key <key>`. Keys come from
-https://agent.tinyfish.ai/api-keys. On a credit or rate-limit error, say so plainly.
+https://agent.tinyfish.ai/api-keys. On a wallet-balance or rate-limit error, say so plainly.
 
 **Never quietly fall back to a generic web search tool** — a degraded answer that looks like a
 TinyFish answer is worse than a clear error.
@@ -148,5 +155,5 @@ These four rules apply to every tool above, and each capability skill repeats th
 4. **Confirm before acting irreversibly.** Spending money, sending messages on the user's behalf,
    changing account settings, or deleting data needs the user's go-ahead first.
 
-Fuller discussion is in this package's `../../rules/security.md`. That file is documentation, not a
-loaded component — read it if you want the detail, but don't rely on having seen it.
+Fuller discussion is in this package's `../../rules/security.md`. That file is documentation, not a loaded
+component — read it if you want the detail, but don't rely on having seen it.

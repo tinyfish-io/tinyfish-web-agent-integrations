@@ -71,9 +71,7 @@ user instead. The user signs in by hand; the agent never types a password:
 
 Setup is a one-time cost that makes every later run cheaper. It's worth the interruption.
 
-Without the MCP tools, the CLI does the same: `tinyfish profile list`, `tinyfish profile create --name <name>`
-(prints a link where the user signs in and saves), and `tinyfish profile sign-in <profile_id>` to add
-or refresh a site.
+{{profiles-cli}}
 The dashboard (<https://agent.tinyfish.ai>) also works. Full walkthrough:
 <https://docs.tinyfish.ai/key-concepts/browser-context-profiles>
 

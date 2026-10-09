@@ -5,8 +5,7 @@ description: "Web research powered by TinyFish search and fetch. Use for any que
 
 # TinyFish Research
 
-You are the orchestrator. Understand the question, decide how much work it deserves, dispatch
-subagents when the volume warrants it, then compile and deliver.
+{{research-intro}}
 
 Two tools do all the work, and **both are free**, so depth costs latency and context — never money:
 
@@ -20,9 +19,7 @@ sites, not reading them. The only exception is a page that requires a login to r
 
 ## Auth
 
-The server is `https://agent.tinyfish.ai/mcp`, configured by this plugin, authenticated by OAuth on
-first connection. On an auth error, tell the user to re-authenticate the `tinyfish` MCP server (in
-Grok Build: `/mcps`, select `tinyfish`, press `i`). On a wallet-balance or rate-limit error, say so plainly.
+{{research-auth}}
 
 **Never silently fall back to a generic web search tool.** A degraded answer that looks like a
 TinyFish answer is worse than a clear error.
@@ -33,16 +30,15 @@ If the question involves time — "last week", "recent", "this quarter", "past 6
 exact dates from today's date in your environment context and write the calculation out before
 searching. Never eyeball a date, and never reuse a date from an example in these files.
 
+{{research-on-host}}
+
 ## Step 1: Size the work
 
 **How much does this deserve?**
 
 | Level | Looks like | What you do |
 |---|---|---|
-| Trivial | One fact, one entity, or "read this page for me" | Handle it yourself. One or two `search` calls, or a direct `fetch_content`. Answer. No subagents. |
-| Moderate | A focused question with one clear angle | One subagent, to keep raw results out of your context. |
-| Deep | A clear topic with a few independent angles | One round of 3–4 parallel subagents, then compile. |
-| Exhaustive | Cross-referencing entity types, multi-hop chains, "find everything", explicit counts | Multiple passes of parallel subagents, compiling between passes. |
+{{research-sizing}}
 
 **Ask before starting when the level is genuinely ambiguous** — when a question could reasonably be
 Moderate *or* Exhaustive. Present your reading of the question, the two plausible depths, what each
@@ -59,56 +55,14 @@ web doesn't contain it.
 2. **Qualification** — what makes a result a valid answer? Turn the user's criteria into concrete
    checks before searching.
 3. **Schema** — what fields does each result need? Define them before searching, not after.
-4. **Broad search** — diverse queries to surface candidates. Most of the subagent work.
+4. **Broad search** — diverse queries to surface candidates. {{research-broad-search}}
 5. **Extraction** — pull fields out of pages into the schema.
 6. **Filtering** — hard constraints (dates, geography, thresholds) and soft ones (quality, relevance).
 7. **Merge and dedupe** — same URL is a duplicate; same entity from two sources is a merge.
 8. **Ranking** — for "best" questions, state the scoring criteria before applying them.
 9. **Synthesis** — organize by theme and write prose with citations.
 
-## Step 2: Dispatch subagents
-
-Subagents exist to keep raw search and page content out of your context. Each one reads the reference
-files you point it at, runs its assigned work, and returns only distilled output.
-
-Reference paths below are relative to the directory this file was loaded from — always give
-subagents the **absolute** path.
-
-**Always point a subagent at `references/searching.md`.** Add others as they apply:
-
-| File | Point a subagent here when it needs to... |
-|---|---|
-| `references/searching.md` | Write good `search` calls — always |
-| `references/fetching.md` | Read pages: batching, formats, CSS scoping, failure handling |
-| `references/synthesis.md` | Produce prose rather than structured rows |
-
-You read `references/fan-out.md` yourself before splitting work — it covers how to decompose a
-question into angles that don't overlap.
-
-**Prompt template:**
-
-```
-Read the file at <absolute path>/references/searching.md for how to query TinyFish search.
-[Also read <absolute path>/references/fetching.md — you will be reading pages.]
-
-Your sub-question: [the specific angle, stated as a question]
-
-[specific queries to run, if you are prescribing them]
-[what qualifies as a valid result, so you filter before returning]
-
-Return: [exact output format — e.g. "compact JSON with name, url, one-line evidence, per result"]
-
-End with EXACTLY: `sources_reviewed: N` where N = the number of **unique** source URLs you reviewed —
-every distinct URL you saw in `search` results (across all calls and retries) or fetched. Count a URL
-once even if you both saw it in search and then fetched it.
-```
-
-Pass the `sources_reviewed` line to every subagent verbatim. Don't paraphrase it.
-
-**Sizing:** aim for 3–5 searches per subagent. Launch all subagents for a pass in a single message so
-they run concurrently. For per-seed enrichment, batch 3–5 seeds per subagent.
-
-**Never run bulk searching in your own context.** That defeats the purpose.
+{{research-dispatch}}
 
 ## Step 3: Compile
 
@@ -123,9 +77,7 @@ the topic; completely disjoint results usually mean an angle was missed.
 **Validate.** A result appearing in search output does not mean it meets the user's criteria. Check
 it against the qualification rules from Step 1.
 
-**Format.** If you used subagents, open with: "I used TinyFish to review {X} sources across {Y}
-subagents." X is the sum of `sources_reviewed` across every subagent and pass, plus anything you
-searched directly.
+{{research-report-open}}
 
 Then the answer, in no more than about one screen:
 

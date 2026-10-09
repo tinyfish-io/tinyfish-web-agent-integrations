@@ -61,15 +61,14 @@ with sync_playwright() as p:
         print(page.title())
 ```
 
-Pass `url` when you know where you're going; it saves a navigation and lets TinyFish pick the proxy
-for that domain. Omit it when the destination depends on logic in your script.
+Pass `url` when you know where you're going; it saves a navigation. Omit it when the destination depends on logic in your script.
 
 `connect_over_cdp` — not `launch`. The browser is already running remotely. When the work is done, call
 `close_browser_session` with the `session_id` from `create_browser_session` to stop the meter.
 
 ## Cost, and closing sessions
 
-**1 credit = 4 browser-minutes**, metered on wall-clock time the session is open — not on activity. An
+**$0.002 per browser-minute**, metered on wall-clock time the session is open — not on activity. An
 idle open session bills exactly like a busy one, so a leaked session quietly costs money. Close a
 session the moment you're done with it. Two paths, and they compose:
 

@@ -14,7 +14,7 @@ credentials. Search and page extraction are free.
 pi install npm:@tiny-fish/pi
 ```
 
-That installs the five TinyFish skills, which work immediately. They call TinyFish either through the
+That installs the six TinyFish skills, which work immediately. They call TinyFish either through the
 MCP server this package declares, or through the `tinyfish` CLI — whichever you have.
 
 **Pi ships no MCP client of its own.** To use the bundled MCP server, also install the community
@@ -41,6 +41,7 @@ Either path works. Pick one — you don't need both.
 | `tinyfish-automation` | Goal-driven automation: goal writing, structured output, and diagnosing bot detection |
 | `tinyfish-authenticated` | Automating logged-in sites with Browser Context Profiles and Vault credentials |
 | `tinyfish-browser` | Remote browser sessions driven over CDP from your own code |
+| `tinyfish-monitor` | Recurring monitors on a page or search topic — price drops, restocks, new listings, news |
 
 Each is also available on demand as `/skill:tinyfish-web`, and so on.
 

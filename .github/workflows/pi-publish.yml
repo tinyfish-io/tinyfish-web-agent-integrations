@@ -70,6 +70,7 @@ jobs:
               'skills/tinyfish-automation/SKILL.md',
               'skills/tinyfish-authenticated/SKILL.md',
               'skills/tinyfish-browser/SKILL.md',
+              'skills/tinyfish-monitor/SKILL.md',
             ];
             const missing = required.filter((p) => !paths.has(p));
             if (missing.length) {

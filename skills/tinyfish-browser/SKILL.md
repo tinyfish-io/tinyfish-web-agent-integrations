@@ -18,10 +18,7 @@ Three MCP tools make up this capability:
 | `list_browser_sessions` | List sessions, filterable by `session_id` or status (`running`/`ended`) — use it to find sessions still open |
 | `close_browser_session` | Close a session by `session_id`. Idempotent — an already-ended session still returns success |
 
-**Prefer the MCP tools.** Without them, `tinyfish` CLI 0.49 or later has all three:
-`tinyfish browser session create`, `tinyfish browser session list` and `tinyfish browser session close
-<session_id>`. Run `tinyfish browser session --help` before first use, and close every session you open
-— an open session bills until its inactivity timeout.
+{{browser-caveat}}
 
 ## When this, and not automation
 
@@ -79,7 +76,7 @@ session the moment you're done with it. Two paths, and they compose:
 
 - **`close_browser_session`** — the MCP tool. Pass the `session_id` returned by
   `create_browser_session`. It's idempotent: closing an already-ended session still returns success.
-  This is the cleanup path you can drive directly from a pi conversation, including sessions left
+  This is the cleanup path you can drive directly from a {{host-conversation}} conversation, including sessions left
   open by earlier work.
 - **Close the browser in the driving script too** — a `with` block or `finally`, so a script that
   throws still tears the session down. Belt-and-suspenders with the tool above; a client-side
