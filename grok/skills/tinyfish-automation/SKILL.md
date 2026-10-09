@@ -41,8 +41,8 @@ the page might surprise it.
 
 | Tool | When |
 |---|---|
-| `run_web_automation` | Default. Streams progress; you get the result in the same turn |
-| `run_web_automation_async` | Long tasks where you don't need to watch. Returns `run_id`; poll `get_run` |
+| `run_web_automation` | Default, for every task. Streams progress; you get the result in the same turn |
+| `run_web_automation_async` | **Only when the user explicitly asked to run in the background.** Returns `run_id`; poll `get_run` |
 | `get_run` / `cancel_run` | Check or stop a single run by `run_id`. `cancel_run` is idempotent |
 | `batch_status` | Poll **several** runs at once by ID — up to 8. Returns status, result, and error per run. Poll every 30–60s until every run is terminal (`COMPLETED`, `FAILED`, `CANCELLED`) |
 | `batch_cancel` | Cancel **several** runs at once by ID — up to 8. Idempotent; already-terminal runs return their current status |
@@ -50,6 +50,27 @@ the page might surprise it.
 `batch_status` and `batch_cancel` operate on run IDs you already hold — use them to manage a fleet of
 `run_web_automation_async` runs without polling each one individually. This plugin does not start
 batches itself; kick off runs with `run_web_automation_async` and collect their `run_id`s.
+
+**A long task is not a reason to go async.** `run_web_automation` is the default even for slow work;
+only an explicit "run this in the background" from the user justifies the async call.
+
+### When a run errors or times out, do not retry
+
+Automation steps cost credits and can take real actions — submitting a form, sending a message,
+placing an order. **A `run_web_automation` call that errors or times out may still be executing on
+the server.** Calling it again, or calling `run_web_automation_async` "as a retry", starts a second
+run that can duplicate whatever the first one already did.
+
+Recover by looking, not by re-running:
+
+1. `list_runs` to find the run — you will not have a `run_id` if the call never returned one.
+2. `get_run` on that ID for its status and result.
+3. Only once it is terminal (`COMPLETED`, `FAILED`, `CANCELLED`) and genuinely did not do the work
+   is a fresh call correct. Say what you are doing and why before you make it.
+
+If a run reports insufficient credits or a subscription limit, that is expected and recoverable:
+relay the upgrade or top-up link and ask the user how to proceed. Never silently fall back to a
+weaker tool or claim you cannot browse the web.
 
 ## Parameters
 
@@ -61,13 +82,11 @@ available through MCP. `url` and `goal` always are. Never invent a parameter nam
 |---|---|
 | `url` | Required. Where to start |
 | `goal` | Required. See `references/goals.md` |
+| `session_id` | **Required. A fresh UUID v4 that you generate for every single call.** Never reuse one, never copy the example out of a schema or a doc — reusing a value breaks concurrent sessions. Omitting it fails validation before the run starts |
 | `output_schema` | JSON Schema for the result shape. See `references/structured-output.md` |
 | `browser_profile` | `lite` (default) or `stealth`. See `references/anti-bot.md` |
 | `use_profile` / `profile_id` | Reuse a saved logged-in session. See `tinyfish-authenticated` |
 | `use_vault` / `credential_item_ids` | Log in with vault credentials. See `tinyfish-authenticated` |
-| `agent_config.max_steps` | Cap the run. Steps are the billing unit — use it on exploratory goals |
-| `agent_config.mode` | `default` or `strict` |
-| `capture_config` | `screenshots`, `snapshots`, `elements`, `recording` — for debugging a failing goal |
 | `proxy_config` | Geographic routing. `country_code` is one of `US`, `GB`, `CA`, `DE`, `FR`, `JP`, `AU` |
 
 Ask for `output_schema` whenever the result feeds anything other than a human reading it.

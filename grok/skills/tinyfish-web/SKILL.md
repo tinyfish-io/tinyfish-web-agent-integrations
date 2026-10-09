@@ -1,6 +1,6 @@
 ---
 name: tinyfish-web
-description: "Pick the right TinyFish tool for a web task. Use when a request involves the live web — searching, reading pages, extracting data, filling forms, automating a site, or working in a logged-in app — and it isn't already obvious which TinyFish tool fits."
+description: "Pick the right TinyFish tool for a web task. Use when a request involves the live web — searching, reading pages, extracting data, filling forms, automating a site, working in a logged-in app, or watching a page or topic for changes — and it isn't already obvious which TinyFish tool fits."
 ---
 
 # Choosing a TinyFish Tool
@@ -18,6 +18,10 @@ is mostly about not paying for the second when the first would do.
 | Click, type, submit, navigate a flow, or extract data that only appears after interaction | `run_web_automation` | 1 credit/step | `tinyfish-automation` |
 | Do the above on a site the user is logged into | `run_web_automation` + `use_profile` / `use_vault` | 1 credit/step | `tinyfish-authenticated` |
 | Drive a browser from Playwright, Puppeteer, or Selenium code | `create_browser_session` | 1 credit / 4 min | `tinyfish-browser` |
+| Watch a page or a topic over time and catch changes | `create_monitor` | $0.005/check | `tinyfish-monitor` |
+
+**Credit, balance, or usage questions** go to `get_wallet` (balance and rates), `get_search_usage`, or
+`list_fetch_usage` (history). They're read-only, and not a way to check whether TinyFish is connected.
 
 ## The one rule that saves money
 
