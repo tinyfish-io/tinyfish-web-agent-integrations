@@ -81,9 +81,9 @@ session the moment you're done with it. Two paths, and they compose:
   `create_browser_session`. It's idempotent: closing an already-ended session still returns success.
   This is the cleanup path you can drive directly from a pi conversation, including sessions left
   open by earlier work.
-- **Close the browser in the driving script too** — a `with` block or `finally`, so a script that
-  throws still tears the session down. Belt-and-suspenders with the tool above; a client-side
-  `browser.close()` and a server-side `close_browser_session` are not mutually exclusive.
+- **Close the browser in the driving script too** — a `with` block or `finally`. Over CDP,
+  `browser.close()` only disconnects your client; the session keeps running and billing until
+  `close_browser_session` ends it. Always do both.
 
 So:
 

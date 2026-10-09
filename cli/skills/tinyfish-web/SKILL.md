@@ -84,7 +84,8 @@ skill text disagree, the table is right for the CLI.
 
 `search query` takes `--include-domains`, `--exclude-domains`, `--location`, `--language` and `--page`
 only. The recency, date-range and `domain_type` filters in `tinyfish-research` are MCP-only; put the
-time window in the query text instead.
+time window in the query text instead. Likewise `fetch content get` has no `purpose`, `ttl` or
+selector flags; skip that advice in `references/fetching.md`.
 
 The CLI checks flags itself: where a skill says "the tool schema your client shows you is
 authoritative", read that as `tinyfish <group> --help`.

@@ -72,8 +72,9 @@ user instead. The user signs in by hand; the agent never types a password:
 Setup is a one-time cost that makes every later run cheaper. It's worth the interruption.
 
 From the CLI, `tinyfish profile create --name <name>` replaces steps 1–3: it prints a link where the
-user signs in and saves (`--site <site>` names the site; `--import-cookies` copies Chrome cookies
-instead). `tinyfish profile sign-in <profile_id>` adds or refreshes a site on an existing profile, and
+user signs in and saves (`--site <site>` names the site). `--import-cookies` instead uploads the
+user's local Chrome cookies, and needs exactly one of `--domain <domain>` or `--all-domains`: ask the
+user first, and prefer `--domain`. `tinyfish profile sign-in <profile_id>` adds or refreshes a site on an existing profile, and
 `tinyfish profile list` shows each profile's signed-in sites.
 The dashboard (<https://agent.tinyfish.ai>) also works. Full walkthrough:
 <https://docs.tinyfish.ai/key-concepts/browser-context-profiles>
