@@ -2,7 +2,6 @@
 name: tinyfish-web
 description: "Pick the right TinyFish tool for a web task. Use when a request involves the live web — searching, reading pages, extracting data, filling forms, automating a site, working in a logged-in app, or watching a page or topic for changes — and it isn't already obvious which TinyFish tool fits."
 ---
-<!-- GENERATED from skills/tinyfish-web/SKILL.md by skills/build.mjs. Edit the source, then run make skills. -->
 
 # Choosing a TinyFish Tool
 

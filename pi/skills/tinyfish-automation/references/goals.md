@@ -1,4 +1,3 @@
-<!-- GENERATED from skills/tinyfish-automation/references/goals.md by skills/build.mjs. Edit the source, then run make skills. -->
 # Writing goals that work
 
 ## The mental model

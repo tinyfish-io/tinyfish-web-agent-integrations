@@ -2,7 +2,6 @@
 name: tinyfish-authenticated
 description: "Automate websites the user is logged into, using TinyFish Browser Context Profiles and Vault credentials. Use when a task needs a signed-in session — internal dashboards, SaaS apps, admin panels, account pages — or when a run hits a login wall, or when the user mentions a saved profile."
 ---
-<!-- GENERATED from skills/tinyfish-authenticated/SKILL.md by skills/build.mjs. Edit the source, then run make skills. -->
 
 # Authenticated Automation
 

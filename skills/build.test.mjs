@@ -22,13 +22,13 @@ function fixture({ skill = SKILL, mcp = '<!-- slot: tool -->\nA\n<!-- slot: extr
   return root;
 }
 
-test('renders slots, drops empty slot lines, banners after frontmatter', () => {
+test('renders slots and drops empty slot lines', () => {
   const out = build(fixture());
   const grok = out['grok/skills/tinyfish-x/SKILL.md'];
-  assert.match(grok, /^---\nname: tinyfish-x\ndescription: d\n---\n<!-- GENERATED from skills\/tinyfish-x\/SKILL.md/);
+  assert.match(grok, /^---\nname: tinyfish-x\ndescription: d\n---\n\nUse A/);
   assert.match(grok, /Use A\.\n\nEnd\.\n$/);
   assert.match(out['pi/skills/tinyfish-x/SKILL.md'], /Use B\.\n\nMore\.\n\nEnd\.\n$/);
-  assert.match(out['pi/skills/tinyfish-x/references/r.md'], /^<!-- GENERATED[^\n]*\nRef B\.\n$/);
+  assert.equal(out['pi/skills/tinyfish-x/references/r.md'], 'Ref B.\n');
 });
 
 test('fails on a slot missing from one surface', () => {

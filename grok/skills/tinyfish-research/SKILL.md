@@ -2,7 +2,6 @@
 name: tinyfish-research
 description: "Web research powered by TinyFish search and fetch. Use for any question needing current web information, and for deep research — competitive analysis, literature reviews, lead generation, deep dives — including phrases like 'research this', 'find everything about', 'find me all', or 'deep dive on'."
 ---
-<!-- GENERATED from skills/tinyfish-research/SKILL.md by skills/build.mjs. Edit the source, then run make skills. -->
 
 # TinyFish Research
 

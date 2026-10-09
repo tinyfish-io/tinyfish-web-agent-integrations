@@ -49,12 +49,7 @@ export function build(root) {
     const used = new Set();
     for (const path of files) {
       const rel = relative(src, path);
-      let text = render(readFileSync(path, 'utf8'), slots, `skills/${rel}`, target, used);
-      // Never backticked: pi's validator resolves every backticked .md path.
-      const banner = `<!-- GENERATED from skills/${rel} by skills/build.mjs. Edit the source, then run make skills. -->\n`;
-      const fm = text.match(/^---\n[\s\S]*?\n---\n/);
-      text = fm ? fm[0] + banner + text.slice(fm[0].length) : banner + text;
-      outputs[join(outDir, rel)] = text;
+      outputs[join(outDir, rel)] = render(readFileSync(path, 'utf8'), slots, `skills/${rel}`, target, used);
     }
     const unused = Object.keys(slots).filter((k) => !used.has(k));
     if (unused.length) throw new Error(`${surface}: slots never used: ${unused.join(', ')}`);

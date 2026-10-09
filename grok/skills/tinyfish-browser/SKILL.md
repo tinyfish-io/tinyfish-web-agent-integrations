@@ -2,7 +2,6 @@
 name: tinyfish-browser
 description: "Create a remote stealth Chrome session with TinyFish and control it over CDP. Use when the task needs programmatic browser control from code — writing or running Playwright, Puppeteer, or Selenium scripts against a hosted browser — rather than a natural-language automation goal."
 ---
-<!-- GENERATED from skills/tinyfish-browser/SKILL.md by skills/build.mjs. Edit the source, then run make skills. -->
 
 # Remote Browser Sessions
 
