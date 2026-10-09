@@ -19,8 +19,8 @@ retrieve it from `get_run` afterwards. It's the fastest way to see what the brow
 | Login page when you expected content | Session-based detection, or the content genuinely needs auth |
 | The right page, but the agent stopped early or clicked the wrong thing | **Goal problem, not anti-bot** — see `goals.md` |
 
-If you can't watch the run, `get_run` on it — the steps it records tell you the same story after the
-fact.
+If you can't watch the run live, `get_run` on it: its `error`, `result` and `num_of_steps` narrow
+down which row above you're in.
 
 Do not re-run purely to see what happened. A run that errored or timed out may still be executing, and a
 second run can duplicate a submission, message, or purchase. Inspect the existing run first with
@@ -32,7 +32,7 @@ view shows the target content never loaded; or `result.reason` mentioning "acces
 "could not find".
 
 The distinction that matters: **a bot wall means the agent never saw the content. A bad goal means it
-saw the content and did the wrong thing with it.** The streaming view or the run's steps settle which.
+saw the content and did the wrong thing with it.** The `streaming_url` view settles which.
 
 ## Step 2: Stealth and proxy together
 
@@ -82,7 +82,7 @@ Also don't keep retrying:
 
 ## Escalation order
 
-1. Confirm via `streaming_url` or the run's steps that content never loaded.
+1. Confirm via `streaming_url` that content never loaded.
 2. `browser_profile: "stealth"` + `proxy_config`.
 3. Goal adjustments for banners and pacing.
 4. If a login gets past it: Browser Context Profile, per `tinyfish-authenticated`.
