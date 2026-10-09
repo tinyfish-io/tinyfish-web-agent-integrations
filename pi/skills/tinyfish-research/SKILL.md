@@ -2,6 +2,7 @@
 name: tinyfish-research
 description: "Web research powered by TinyFish search and fetch. Use for any question needing current web information, and for deep research — competitive analysis, literature reviews, lead generation, deep dives — including phrases like 'research this', 'find everything about', 'find me all', or 'deep dive on'."
 ---
+<!-- GENERATED from skills/tinyfish-research/SKILL.md by skills/build.mjs. Edit the source, then run make skills. -->
 
 # TinyFish Research
 
@@ -15,7 +16,7 @@ Two tools do all the work, and **both are free**, so depth costs latency and con
   domain include/exclude, news, and research papers.
 - **`fetch_content`** — up to **10 URLs per call**, rendered and returned as clean markdown.
 
-Do not use `run_web_automation` for research. It costs 1 credit per step and is for *acting* on
+Do not use `run_web_automation` for research. It costs $0.016 per step and is for *acting* on
 sites, not reading them. The only exception is a page that requires a login to read — that's
 `tinyfish-authenticated`.
 
@@ -27,7 +28,7 @@ TINYFISH_API_KEY=sk-tinyfish-...` and restart pi, or to run `npx -y @tiny-fish/c
 --api-key <key>`. On a credit or rate-limit error, say so plainly.
 
 If no TinyFish tools are available at all, both tools below have CLI equivalents —
-`tinyfish search query "<q>"` and `tinyfish fetch ...`. See `tinyfish-web` for the full mapping.
+`tinyfish search query "<q>"` and `tinyfish fetch content get <url>`. See `tinyfish-web` for the full mapping.
 
 **Never silently fall back to a generic web search tool.** A degraded answer that looks like a
 TinyFish answer is worse than a clear error.
@@ -130,8 +131,8 @@ and nothing else, so it would fail at the first search. The bundled `researcher`
 substitute either; it expects `pi-web-access`, a different provider.
 
 Unless all of that is already set up, **stay sequential.** It is the working path, not a degraded
-one. Do not have children shell out to the `tinyfish` CLI as a workaround: that is unauthenticated
-per child and wastes the context delegation exists to save.
+one. Do not have children shell out to the `tinyfish` CLI as a workaround: it spends the context
+delegation exists to save.
 
 ## Step 3: Compile
 

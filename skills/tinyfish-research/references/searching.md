@@ -1,4 +1,3 @@
-<!-- GENERATED from skills/tinyfish-research/references/searching.md by skills/build.mjs. Edit the source, then run make skills. -->
 # Querying TinyFish search
 
 `search` returns ranked web results — `position`, `site_name`, `title`, `snippet`, `url`, and `date`

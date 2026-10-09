@@ -1,3 +1,4 @@
+<!-- GENERATED from skills/tinyfish-research/references/synthesis.md by skills/build.mjs. Edit the source, then run make skills. -->
 # Writing the synthesis
 
 For prose answers rather than structured rows. Assumes searching and fetching are done and you're
@@ -46,8 +47,9 @@ The honest limits of the research are part of the answer:
 ## Length
 
 Fit the answer to the question, not to the volume of material gathered. Reviewing 200 sources does not
-license 2000 words. Target about one screen; if the material genuinely needs more, write the full
-version to `./tinyfish-results/<topic>-<YYYY-MM-DD>.md` and keep the one-screen version as the answer.
+license 2000 words. Target about one screen; if the material genuinely needs more, offer to write the
+full version to a file and wait for the user to say yes — see "Never write files unless the user asked
+for a file" in the research skill. Keep the one-screen version as the answer.
 
 ## Style
 

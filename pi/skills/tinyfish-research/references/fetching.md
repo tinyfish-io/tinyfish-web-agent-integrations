@@ -1,8 +1,9 @@
+<!-- GENERATED from skills/tinyfish-research/references/fetching.md by skills/build.mjs. Edit the source, then run make skills. -->
 # Reading pages with `fetch_content`
 
 `fetch_content` fetches URLs, renders JavaScript when the page needs it, and returns clean extracted
 content. It's free. Prefer it over `run_web_automation` for anything you only need to *read* —
-automation costs 1 credit per step and is for clicking, typing, and navigating.
+automation costs $0.016 per step and is for clicking, typing, and navigating.
 
 > **Full reference:** <https://docs.tinyfish.ai/api-reference/fetch-and-extract-content-from-urls>
 > documents every parameter and response field. **The tool schema is authoritative** for what's

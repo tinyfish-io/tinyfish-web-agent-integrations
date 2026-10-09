@@ -1,3 +1,4 @@
+<!-- GENERATED from skills/tinyfish-automation/references/anti-bot.md by skills/build.mjs. Edit the source, then run make skills. -->
 # Diagnosing failed runs and bot detection
 
 A run came back `COMPLETED` but the result is empty or wrong — or it outright `FAILED`. **Don't start

@@ -1,4 +1,3 @@
-<!-- GENERATED from skills/tinyfish-research/references/synthesis.md by skills/build.mjs. Edit the source, then run make skills. -->
 # Writing the synthesis
 
 For prose answers rather than structured rows. Assumes searching and fetching are done and you're

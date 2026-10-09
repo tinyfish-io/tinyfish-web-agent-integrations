@@ -1,3 +1,4 @@
+<!-- GENERATED from skills/tinyfish-research/references/fan-out.md by skills/build.mjs. Edit the source, then run make skills. -->
 # Decomposing a question into parallel work
 
 Read this before splitting a question into angles — whether you run them yourself in passes or

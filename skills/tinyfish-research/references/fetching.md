@@ -1,4 +1,3 @@
-<!-- GENERATED from skills/tinyfish-research/references/fetching.md by skills/build.mjs. Edit the source, then run make skills. -->
 # Reading pages with `fetch_content`
 
 `fetch_content` fetches URLs, renders JavaScript when the page needs it, and returns clean extracted

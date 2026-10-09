@@ -2,6 +2,7 @@
 name: tinyfish-automation
 description: "Goal-driven browser automation with TinyFish. Use when a task needs a real browser to act on a site — clicking, filling and submitting forms, navigating multi-step flows, working through pagination, or extracting data that only appears after interaction."
 ---
+<!-- GENERATED from skills/tinyfish-automation/SKILL.md by skills/build.mjs. Edit the source, then run make skills. -->
 
 # TinyFish Web Automation
 
@@ -10,7 +11,7 @@ the page, clicks, types, scrolls, waits for dynamic content, and returns a resul
 
 ## Before you start: is automation the right tool?
 
-Automation costs **1 credit per step**. Search and fetch are free.
+Automation costs **$0.016 per step**. Search and fetch are free.
 
 | If you need to... | Use |
 |---|---|

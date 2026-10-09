@@ -2,6 +2,7 @@
 name: tinyfish-authenticated
 description: "Automate websites the user is logged into, using TinyFish Browser Context Profiles and Vault credentials. Use when a task needs a signed-in session — internal dashboards, SaaS apps, admin panels, account pages — or when a run hits a login wall, or when the user mentions a saved profile."
 ---
+<!-- GENERATED from skills/tinyfish-authenticated/SKILL.md by skills/build.mjs. Edit the source, then run make skills. -->
 
 # Authenticated Automation
 
@@ -49,7 +50,7 @@ sign-in was saved.
 
 - **Prefer a profile whose `signed_in_sites` includes the task's site**, and pass its exact
   `profile_id`. An entry covers its subdomains (`google.com` covers `docs.google.com`).
-- An entry doesn't say which account or tenant, and a sign-in may have expired since its `claimed_at`.
+- An entry doesn't say which account or tenant, and a sign-in may have expired since it was recorded.
   If several profiles match, or the result lands in the wrong account, ask the user which one.
 - A profile that only matches **by name** is not confirmed signed in. Ask the user before running
   on it.
@@ -123,9 +124,9 @@ that moment can reach real account actions, not just the transcript.
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | Result is the login page | Session expired, or profile not applied | Add `use_vault: true` to repair; confirm `use_profile: true` was set |
-| `COMPLETED` with empty result | Session-based bot detection, or never got past the gate | Check `streaming_url`; see `tinyfish-automation` → `references/anti-bot.md` |
+| `COMPLETED` with empty result | Session-based bot detection, or never got past the gate | Check `streaming_url`; see `../tinyfish-automation/references/anti-bot.md` |
 | Landed in the wrong account or workspace | Wrong profile | Pass an explicit `profile_id` |
-| Logged in but the goal stalled | Goal problem, not auth | See `tinyfish-automation` → `references/goals.md` |
+| Logged in but the goal stalled | Goal problem, not auth | See `../tinyfish-automation/references/goals.md` |
 | CAPTCHA on the login form | Can't be solved automatically | A saved profile past the gate is the only path |
 
 Check the result content, not just the run status — a run that lands on a login page

@@ -2,7 +2,6 @@
 name: tinyfish-web
 description: "Pick the right TinyFish tool for a web task. Use when a request involves the live web — searching, reading pages, extracting data, filling forms, automating a site, working in a logged-in app, or watching a page or topic for changes — and it isn't already obvious which TinyFish tool fits."
 ---
-<!-- GENERATED from skills/tinyfish-web/SKILL.md by skills/build.mjs. Edit the source, then run make skills. -->
 
 # Choosing a TinyFish Tool
 
@@ -56,17 +55,7 @@ Real tasks chain these, and the order matters for cost:
 "Find our competitors' pricing, then pull our own numbers from the dashboard" is search → fetch →
 authenticated automation. Three tools, one task, and only the last one costs anything.
 
-## Setup and auth
-
-All of this runs through the `tinyfish` MCP server (`https://agent.tinyfish.ai/mcp`). Configured by this
-plugin, it authenticates by OAuth on first use and carries no API key. Registered instead by `tinyfish
-connect grok --api-key`, it sends a `${TINYFISH_API_KEY}` Bearer header and has no OAuth fallback.
-
-On an auth error, check which setup this is. Plugin: tell the user to re-authenticate — in Grok Build,
-`/mcps`, select `tinyfish`, press `i`. Keyed: signing in there fixes nothing — the key is unset in the
-shell Grok was started from, or revoked; tell the user to re-run `npx -y @tiny-fish/cli@latest connect
-grok --api-key <key>` and start Grok from a new terminal. On a credit or rate-limit error, say so
-plainly.
+{{setup}}
 
 **Never quietly fall back to a generic web search tool** — a degraded answer that looks like a
 TinyFish answer is worse than a clear error.
@@ -83,5 +72,5 @@ These four rules apply to every tool above, and each capability skill repeats th
 4. **Confirm before acting irreversibly.** Spending money, sending messages on the user's behalf,
    changing account settings, or deleting data needs the user's go-ahead first.
 
-Fuller discussion is in this plugin's `rules/security.md`. That file is documentation, not a loaded
+Fuller discussion is in {{security-doc}}. That file is documentation, not a loaded
 component — read it if you want the detail, but don't rely on having seen it.

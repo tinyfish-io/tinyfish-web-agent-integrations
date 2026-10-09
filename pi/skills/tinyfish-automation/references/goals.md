@@ -1,3 +1,4 @@
+<!-- GENERATED from skills/tinyfish-automation/references/goals.md by skills/build.mjs. Edit the source, then run make skills. -->
 # Writing goals that work
 
 ## The mental model
@@ -132,7 +133,7 @@ Return as JSON array.
 
 ## Costs
 
-Steps are the billing unit: 1 credit per step. Goals that wander cost more than goals that don't.
+Steps are the billing unit: $0.016 per step. Goals that wander cost more than goals that don't.
 
 - **Start the run on the right page.** Passing a homepage `url` and asking the agent to find the
   pricing page spends steps navigating. Pass the pricing URL — use `search` first if you don't know it.

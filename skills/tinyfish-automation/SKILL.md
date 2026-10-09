@@ -2,7 +2,6 @@
 name: tinyfish-automation
 description: "Goal-driven browser automation with TinyFish. Use when a task needs a real browser to act on a site — clicking, filling and submitting forms, navigating multi-step flows, working through pagination, or extracting data that only appears after interaction."
 ---
-<!-- GENERATED from skills/tinyfish-automation/SKILL.md by skills/build.mjs. Edit the source, then run make skills. -->
 
 # TinyFish Web Automation
 
@@ -49,7 +48,7 @@ the page might surprise it.
 | `batch_cancel` | Cancel **several** runs at once by ID — up to 8. Idempotent; already-terminal runs return their current status |
 
 `batch_status` and `batch_cancel` operate on run IDs you already hold — use them to manage a fleet of
-`run_web_automation_async` runs without polling each one individually. This plugin does not start
+`run_web_automation_async` runs without polling each one individually. This {{this-install}} does not start
 batches itself; kick off runs with `run_web_automation_async` and collect their `run_id`s.
 
 **A long task is not a reason to go async.** `run_web_automation` is the default even for slow work;

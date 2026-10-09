@@ -2,7 +2,6 @@
 name: tinyfish-browser
 description: "Create a remote stealth Chrome session with TinyFish and control it over CDP. Use when the task needs programmatic browser control from code — writing or running Playwright, Puppeteer, or Selenium scripts against a hosted browser — rather than a natural-language automation goal."
 ---
-<!-- GENERATED from skills/tinyfish-browser/SKILL.md by skills/build.mjs. Edit the source, then run make skills. -->
 
 # Remote Browser Sessions
 
@@ -18,6 +17,8 @@ Three MCP tools make up this capability:
 | `create_browser_session` | Start a remote stealth Chrome session; returns a `session_id` and `cdp_url`. Optionally takes a `url`, which it **navigates to** during creation |
 | `list_browser_sessions` | List sessions, filterable by `session_id` or status (`running`/`ended`) — use it to find sessions still open |
 | `close_browser_session` | Close a session by `session_id`. Idempotent — an already-ended session still returns success |
+
+{{browser-caveat}}
 
 ## When this, and not automation
 
@@ -75,7 +76,7 @@ session the moment you're done with it. Two paths, and they compose:
 
 - **`close_browser_session`** — the MCP tool. Pass the `session_id` returned by
   `create_browser_session`. It's idempotent: closing an already-ended session still returns success.
-  This is the cleanup path you can drive directly from a plugin conversation, including sessions left
+  This is the cleanup path you can drive directly from a {{host-conversation}} conversation, including sessions left
   open by earlier work.
 - **Close the browser in the driving script too** — a `with` block or `finally`, so a script that
   throws still tears the session down. Belt-and-suspenders with the tool above; a client-side

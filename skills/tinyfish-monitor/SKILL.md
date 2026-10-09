@@ -2,7 +2,6 @@
 name: tinyfish-monitor
 description: "Watch a web page or a web topic over time with TinyFish Monitors. Use when the user wants to track, watch, or be alerted about changes — a price drop, a restock, new listings, content updates on a URL, or new pages and news on a topic — rather than check it once. Also use to list, check, pause, resume, run now, or cancel existing monitors."
 ---
-<!-- GENERATED from skills/tinyfish-monitor/SKILL.md by skills/build.mjs. Edit the source, then run make skills. -->
 
 # TinyFish Monitors
 

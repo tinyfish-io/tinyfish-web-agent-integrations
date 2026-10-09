@@ -1,4 +1,3 @@
-<!-- GENERATED from skills/tinyfish-automation/references/structured-output.md by skills/build.mjs. Edit the source, then run make skills. -->
 # `output_schema`
 
 Pass `output_schema` when the result feeds anything other than a human reading prose. The same
