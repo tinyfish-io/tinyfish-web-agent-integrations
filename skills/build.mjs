@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync } from 'nod
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const TARGETS = { mcp: 'grok/skills', pi: 'pi/skills' };
+export const TARGETS = { mcp: 'grok/skills', pi: 'pi/skills', cli: 'cli/skills' };
 
 function walk(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
@@ -61,6 +61,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const root = join(dirname(fileURLToPath(import.meta.url)), '..');
   const outputs = build(root);
   for (const outDir of Object.values(TARGETS)) {
+    mkdirSync(join(root, outDir), { recursive: true });
     for (const d of readdirSync(join(root, outDir))) {
       if (d.startsWith('tinyfish-')) rmSync(join(root, outDir, d), { recursive: true });
     }

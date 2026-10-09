@@ -1,5 +1,9 @@
 Slot values for the pi package (pi/skills), which reaches TinyFish through pi-mcp-adapter or the tinyfish CLI.
 
+<!-- slot: automation-batch -->
+This package does not start
+batches itself; kick off runs with `run_web_automation_async` and collect their `run_id`s.
+
 <!-- slot: browser-caveat -->
 **Prefer the MCP tools.** Without them, `tinyfish` CLI 0.49 or later has all three:
 `tinyfish browser session create`, `tinyfish browser session list` and `tinyfish browser session close
@@ -156,8 +160,8 @@ away. **The CLI grammar is two-level and does not match the tool names in these 
 |---|---|
 | `search` | `tinyfish search query "<query>"` |
 | `fetch_content` | `tinyfish fetch content get <url>...` |
-| `run_web_automation` | `tinyfish agent run "<goal>" --url <url>` |
-| `run_web_automation_async`, `get_run`, `list_runs`, `cancel_run` | `tinyfish agent run ...`, then `tinyfish agent run list`, `get <run_id>`, `cancel <run_id>` |
+| `run_web_automation` | `tinyfish agent run "<goal>" --url <url> --sync` (without `--sync` it streams every step) |
+| `run_web_automation_async`, `get_run`, `list_runs`, `cancel_run` | `tinyfish agent run ... --async`, then `tinyfish agent run list`, `get <run_id>`, `cancel <run_id>` |
 | `use_profile: true` | `tinyfish agent run ... --use-profile` |
 | `profile_id` | `tinyfish agent run ... --use-profile --profile-id <id>` |
 | `use_vault: true` | `tinyfish agent run ... --use-vault` |
@@ -195,7 +199,3 @@ API key" regardless of its wording.
 Whenever auth is the problem, give the user both fixes: `export TINYFISH_API_KEY=sk-tinyfish-...`
 then restart pi, or run `npx -y @tiny-fish/cli@latest connect pi --api-key <key>`. Keys come from
 https://agent.tinyfish.ai/api-keys. On a wallet-balance or rate-limit error, say so plainly.
-
-<!-- slot: this-install -->
-package
-
