@@ -19,15 +19,20 @@ retrieve it from `get_run` afterwards. It's the fastest way to see what the brow
 | Login page when you expected content | Session-based detection, or the content genuinely needs auth |
 | The right page, but the agent stopped early or clicked the wrong thing | **Goal problem, not anti-bot** — see `goals.md` |
 
-If you can't watch the run, enable `capture_config.screenshots` and `capture_config.snapshots` and
-re-run; step screenshots and HTML snapshots tell you the same story after the fact.
+If you can't watch the run, `get_run` on it — the steps it records tell you the same story after the
+fact.
+
+Do not re-run purely to see what happened. A run that errored or timed out may still be executing, and a
+second run can duplicate a submission, message, or purchase. Inspect the existing run first with
+`get_run` or `list_runs`; only start a new one once the original is terminal and did not do the
+work. See "When a run errors or times out, do not retry" in the parent skill.
 
 **Anti-bot signatures in the result:** every field `null` or every array empty *while* the streaming
 view shows the target content never loaded; or `result.reason` mentioning "access denied", "blocked", or
 "could not find".
 
 The distinction that matters: **a bot wall means the agent never saw the content. A bad goal means it
-saw the content and did the wrong thing with it.** Screenshots settle which.
+saw the content and did the wrong thing with it.** The streaming view or the run's steps settle which.
 
 ## Step 2: Stealth and proxy together
 
@@ -38,8 +43,9 @@ correlate both signals, so changing only one often isn't enough.
 {
   "url": "https://protected.example/search",
   "goal": "...",
+  "session_id": "<a fresh UUID v4 you generate for this call>",
   "browser_profile": "stealth",
-  "proxy_config": { "enabled": true, "type": "tetra", "country_code": "US" }
+  "proxy_config": { "enabled": true, "country_code": "US" }
 }
 ```
 
@@ -76,7 +82,7 @@ Also don't keep retrying:
 
 ## Escalation order
 
-1. Confirm via `streaming_url` or screenshots that content never loaded.
+1. Confirm via `streaming_url` or the run's steps that content never loaded.
 2. `browser_profile: "stealth"` + `proxy_config`.
 3. Goal adjustments for banners and pacing.
 4. If a login gets past it: Browser Context Profile, per `tinyfish-authenticated`.

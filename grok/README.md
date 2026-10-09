@@ -64,11 +64,17 @@ key, register the server with the CLI instead — see [Authentication](#authenti
 | `search` | Ranked web results, with filters for recency, date range, domains, news, and research papers | Free |
 | `fetch_content` | Read up to 10 URLs per call as clean markdown; renders JavaScript; CSS-scoped extraction | Free |
 | `run_web_automation` | Multi-step browser automation from a natural-language goal — click, type, submit, navigate | 1 credit/step |
-| `run_web_automation_async` | The same, returning a run ID immediately for long tasks | 1 credit/step |
+| `run_web_automation_async` | The same, returning a run ID immediately — only when you ask for a background run | 1 credit/step |
 | `get_run`, `cancel_run` | Check on or stop a single run | — |
+| `list_runs` | Find recent runs, e.g. to recover a run ID after a timeout | — |
 | `batch_status`, `batch_cancel` | Poll or cancel several runs at once by ID (up to 8) | — |
 | `create_browser_session` | Remote stealth Chrome with a CDP URL for Playwright, Puppeteer, or Selenium | 1 credit / 4 browser-minutes |
-| `close_browser_session` | Close a browser session by ID; idempotent | — |
+| `list_browser_sessions`, `close_browser_session` | Find open browser sessions; close one by ID (idempotent) | — |
+| `list_profiles`, `create_profile` | List or create Browser Context Profiles (saved signed-in sessions) | — |
+| `start_profile_setup_session`, `save_profile_setup_session`, `cancel_profile_setup_session` | Open a live browser where you sign in by hand, then save that session to a profile | — |
+| `create_monitor` | Re-check a page or a search topic on a cron schedule; returns a baseline immediately | $0.005/completed check |
+| `list_monitors`, `get_monitor`, `run_monitor`, `pause_monitor`, `resume_monitor`, `cancel_monitor` | Manage monitors; `run_monitor` checks once now | `run_monitor`: $0.005 |
+| `get_wallet`, `get_search_usage`, `list_fetch_usage` | Wallet balance and rates; search and fetch history | — |
 
 Automation supports structured output via `output_schema`, stealth mode and proxy routing for protected
 sites, and authenticated runs via saved Browser Context Profiles and Vault credentials.
@@ -82,6 +88,7 @@ sites, and authenticated runs via saved Browser Context Profiles and Vault crede
 | `tinyfish-automation` | Goal-driven automation: goal writing, structured output, and diagnosing bot detection |
 | `tinyfish-authenticated` | Automating logged-in sites with Browser Context Profiles and Vault credentials |
 | `tinyfish-browser` | Remote browser sessions driven over CDP from your own code |
+| `tinyfish-monitor` | Recurring monitors on a page or search topic — price drops, restocks, new listings, news |
 
 Each skill carries its own safety rules inline — untrusted content handling, the prohibition on putting
 credentials in a goal, and confirmation before irreversible actions. `rules/security.md` documents them
