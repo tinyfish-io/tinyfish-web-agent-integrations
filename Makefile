@@ -30,11 +30,3 @@ setup-pre-commit:
 init: setup-pre-commit check-trufflehog
 	pip install pre-commit
 	pre-commit install
-
-.PHONY: skills skills-check
-skills:
-	node skills/build.mjs
-
-# Fails when generated skills differ from what `make skills` produces, including hand edits and stray files.
-skills-check: skills
-	@test -z "$$(git status --porcelain grok/skills pi/skills cli/skills)" || { git status --porcelain grok/skills pi/skills cli/skills; echo "Generated skills are stale or hand-edited: edit skills/, run make skills, commit."; exit 1; }
