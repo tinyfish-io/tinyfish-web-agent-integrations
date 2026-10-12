@@ -5,7 +5,7 @@
       "headers": {
         "X-API-Key": "${TINYFISH_API_KEY}",
         "X-TF-Client-Name": "pi",
-        "X-TF-Client-Version": "0.1.0"
+        "X-TF-Client-Version": "0.2.0"
       },
       "directTools": [
         "search",
