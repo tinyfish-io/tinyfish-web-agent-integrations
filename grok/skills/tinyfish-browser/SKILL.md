@@ -51,7 +51,7 @@ with sync_playwright() as p:
         page = browser.contexts[0].pages[0]
         print(page.title())          # no goto — the session opened on this page
     finally:
-        browser.close()
+        browser.close()              # disconnects only; then call close_browser_session
 ```
 
 ```python
