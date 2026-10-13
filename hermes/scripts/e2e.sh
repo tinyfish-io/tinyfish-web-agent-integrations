@@ -36,6 +36,11 @@ if [ "$status" != "enabled" ]; then
 fi
 
 if [ -z "${TINYFISH_API_KEY:-}" ]; then
+  # CI always has a key; a silent skip there once hid every live check.
+  if [ -n "${CI:-}" ]; then
+    echo "FAIL: TINYFISH_API_KEY unset in CI" >&2
+    exit 1
+  fi
   step "TINYFISH_API_KEY unset; skipping live checks"
   exit 0
 fi
