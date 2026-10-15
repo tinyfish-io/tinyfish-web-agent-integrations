@@ -1,0 +1,8 @@
+.DS_Store
+.claude/
+google-adk/
+langchain/
+supabase/
+zapier/
+test_tinyfish_crew/
+crew-ai/examples/
