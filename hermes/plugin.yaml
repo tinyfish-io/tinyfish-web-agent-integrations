@@ -1,6 +1,6 @@
 name: tinyfish
 version: 0.2.3
-description: "Give Hermes the live web: free TinyFish Search and Fetch as its web provider, plus a remote browser and the tinyfish_agent web agent for sites that need clicks, forms or logins (credit-gated)."
+description: "Give Hermes the live web: free TinyFish Search and Fetch as its web provider, plus a remote browser and the tinyfish_agent web agent for sites that need clicks, forms or logins."
 author: TinyFish
 kind: backend
 # 0.19 added the pre_tool_call approve directive; older Hermes would skip credit approval.
