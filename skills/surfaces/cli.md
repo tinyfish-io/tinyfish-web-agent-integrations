@@ -105,7 +105,7 @@ shell. **The CLI grammar is two-level and does not match the tool names**, so ru
 --help` before your first use of a group and follow the syntax it prints. Where this table and the
 skill text disagree, the table is right for the CLI.
 
-| These skills say | CLI command (CLI 0.49) |
+| These skills say | CLI command (CLI 0.49; `tinyfish research` 0.51) |
 |---|---|
 | `search` | `tinyfish search query "<query>"` |
 | `fetch_content` | `tinyfish fetch content get <url>...` (up to 10 URLs) |
@@ -125,7 +125,7 @@ skill text disagree, the table is right for the CLI.
 | `create_browser_session`, `list_browser_sessions`, `close_browser_session` | `tinyfish browser session create`, `list`, `close <session_id>` |
 | `get_wallet`, `get_search_usage`, `list_fetch_usage` | `tinyfish wallet status`, `search usage`, `fetch usage` |
 | `start_deep_research` | `tinyfish research run "<query>" --async --pretty` (add `--mode max` only when asked) — prints the `research_run_id`. Always `--async`: a foreground run streams for minutes, and interrupting it cancels the run |
-| `get_deep_research` | `tinyfish research run get <research_run_id> --pretty` — returns at once with `<id> <status> <query>`, then the report and numbered citations once `COMPLETED`. Wait about 30 seconds between checks. `FAILED`, `CANCELLED` and `TIMED_OUT` are final. Lost the ID? `tinyfish research run list --pretty` before starting another |
+| `get_deep_research` | `tinyfish research run get <research_run_id> --pretty` — returns at once with `<id> <status> <query>`, then the report and numbered citations once `COMPLETED`. Wait about 30 seconds between checks; don't use `research run watch`, which blocks for up to 45 minutes. `FAILED`, `CANCELLED` and `TIMED_OUT` are final. Lost the ID? `tinyfish research run list --pretty` before starting another |
 | `cancel_deep_research` | `tinyfish research run cancel <research_run_id>` |
 
 `tinyfish research` needs CLI 0.51 or later; on an older CLI, tell the user to run

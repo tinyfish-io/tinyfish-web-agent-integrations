@@ -7,7 +7,8 @@ description: "Web research powered by TinyFish search and fetch, plus TinyFish d
 
 {{research-intro}}
 
-Two tools do most of the work, and **both are free**, so depth costs latency and context — never money:
+Two tools do most of the work, and **both are free**, so search-and-fetch depth costs latency and
+context — never money. Deep research runs, below, are the exception: each is billed.
 
 - **`search`** — ranked web results with titles, snippets, URLs. Filters for recency, date range,
   domain include/exclude, news, and research papers.
@@ -22,9 +23,9 @@ sites, not reading them. The only exception is a page that requires a login to r
 **Search and fetch stay the default.** Start a TinyFish deep research run only when the user
 explicitly asks for one: "deep research", "deep dive", "comprehensive report", "cited report",
 "literature review", "survey", or "landscape". A run searches, reads, and synthesizes many sources
-into a cited report. It takes several minutes and is **billed per run**. Never use it for single
-facts, definitions, current news, docs lookups, "what is" or "compare X vs Y" questions, or reading
-known URLs.
+into a cited report. It takes several minutes and is **billed per run**. Without such an ask, never
+use it for single facts, definitions, current news, docs lookups, "what is" or "compare X vs Y"
+questions, or reading known URLs. An explicit ask wins even when the topic is news or a comparison.
 
 1. `start_deep_research` with `query` (the question plus every scope and constraint the user gave,
    dates computed as in "Dates first") and `mode`. `deep` is the default; use `max` only when the

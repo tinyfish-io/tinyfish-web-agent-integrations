@@ -5,7 +5,8 @@ description: "Pick the right TinyFish tool for a web task. Use when a request in
 
 # Choosing a TinyFish Tool
 
-TinyFish covers reading the web and acting on it. Reading is free; acting is metered. Picking correctly
+TinyFish covers reading the web and acting on it. Reading with search and fetch is free; acting is
+metered, and so are deep research runs. Picking correctly
 is mostly about not paying for the second when the first would do.
 
 ## Decision table
@@ -15,7 +16,7 @@ is mostly about not paying for the second when the first would do.
 | Find pages, or get current information | `search` | **free** | `tinyfish-research` |
 | Read pages you have URLs for (up to 10 per call) | `fetch_content` | **free** | `tinyfish-research` |
 | Research a topic across many sources | `search` + `fetch_content`, fanned out across subagents | **free** | `tinyfish-research` |
-| Write a cited deep-research report, only when the user explicitly asks for deep research | `start_deep_research`, then `get_deep_research` | billed per run | `tinyfish-research` |
+| Write a cited report, only when the user explicitly asks: "deep research", "deep dive", "comprehensive report", "cited report", "literature review", "survey", or "landscape" | `start_deep_research`, then `get_deep_research` | billed per run | `tinyfish-research` |
 | Click, type, submit, navigate a flow, or extract data that only appears after interaction | `run_web_automation` | $0.016/step | `tinyfish-automation` |
 | Do the above on a site the user is logged into | `run_web_automation` + `use_profile` / `use_vault` | $0.016/step | `tinyfish-authenticated` |
 | Drive a browser from Playwright, Puppeteer, or Selenium code | `create_browser_session` | $0.002/min | `tinyfish-browser` |
