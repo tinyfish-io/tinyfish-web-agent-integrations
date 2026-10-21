@@ -1,13 +1,13 @@
 ---
 name: tinyfish-research
-description: "Web research powered by TinyFish search and fetch. Use for any question needing current web information, and for deep research — competitive analysis, literature reviews, lead generation, deep dives — including phrases like 'research this', 'find everything about', 'find me all', or 'deep dive on'."
+description: "Web research powered by TinyFish search and fetch, plus TinyFish deep research runs when the user explicitly asks for deep research. Use for any question needing current web information, and for deep research — competitive analysis, literature reviews, lead generation, deep dives — including phrases like 'research this', 'find everything about', 'find me all', or 'deep dive on'."
 ---
 
 # TinyFish Research
 
 {{research-intro}}
 
-Two tools do all the work, and **both are free**, so depth costs latency and context — never money:
+Two tools do most of the work, and **both are free**, so depth costs latency and context — never money:
 
 - **`search`** — ranked web results with titles, snippets, URLs. Filters for recency, date range,
   domain include/exclude, news, and research papers.
@@ -16,6 +16,30 @@ Two tools do all the work, and **both are free**, so depth costs latency and con
 Do not use `run_web_automation` for research. It costs $0.016 per step and is for *acting* on
 sites, not reading them. The only exception is a page that requires a login to read — that's
 `tinyfish-authenticated`.
+
+## Deep research runs
+
+**Search and fetch stay the default.** Start a TinyFish deep research run only when the user
+explicitly asks for one: "deep research", "deep dive", "comprehensive report", "cited report",
+"literature review", "survey", or "landscape". A run searches, reads, and synthesizes many sources
+into a cited report. It takes several minutes and is **billed per run**. Never use it for single
+facts, definitions, current news, docs lookups, "what is" or "compare X vs Y" questions, or reading
+known URLs.
+
+1. `start_deep_research` with `query` (the question plus every scope and constraint the user gave,
+   dates computed as in "Dates first") and `mode`. `deep` is the default; use `max` only when the
+   user asks for maximum depth or an exhaustive report — it is slower and costs more. It returns a
+   `research_run_id`.
+2. `get_deep_research` with that `research_run_id` until the run finishes and the cited report is
+   in the result. **Start one run per request**: if you already have a `research_run_id` for this
+   question, keep polling it instead of starting another. **Never cancel because it is slow**;
+   `cancel_deep_research` is only for when the user asks to stop.
+3. Deliver the report in Step 3's answer shape, with its citations as inline links, opening with "I
+   used a TinyFish deep research run." Don't redo the research with search passes; one
+   `fetch_content` to check a load-bearing claim is fine.
+
+If the deep research tools aren't available, or the run fails, say so and offer the search-and-fetch
+passes below instead. Never swap one for the other silently.
 
 ## Auth
 
@@ -43,7 +67,8 @@ searching. Never eyeball a date, and never reuse a date from an example in these
 **Ask before starting when the level is genuinely ambiguous** — when a question could reasonably be
 Moderate *or* Exhaustive. Present your reading of the question, the two plausible depths, what each
 would look like in practice, and let the user pick. Do not ask when the question is obviously trivial
-or obviously exhaustive, or when the user already stated the depth ("quick answer", "deep dive").
+or obviously exhaustive, or when the user already stated the depth ("quick answer", or an explicit
+deep research ask, which goes to "Deep research runs").
 
 If the user names a target — "find 50 of them" — keep working until you hit it or can explain why the
 web doesn't contain it.
@@ -98,7 +123,10 @@ the one-screen summary.
 
 ## Gotchas
 
-- **Over-execution.** "What year was X founded" gets one search, not four subagents.
+- **Over-execution.** "What year was X founded" gets one search, not four subagents — and never a
+  deep research run.
+- **Duplicate runs.** A slow `get_deep_research` is normal. Poll the run you have; never start
+  another or cancel it.
 - **Under-execution.** Four-plus constraints, temporal joins, or semantic filtering will not survive
   a single search. Fan out.
 - **Synonym queries.** "Overrated AI tools" and "overhyped AI tools" hit the same semantic region and

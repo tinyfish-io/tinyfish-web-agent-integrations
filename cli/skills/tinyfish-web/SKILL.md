@@ -15,6 +15,7 @@ is mostly about not paying for the second when the first would do.
 | Find pages, or get current information | `search` | **free** | `tinyfish-research` |
 | Read pages you have URLs for (up to 10 per call) | `fetch_content` | **free** | `tinyfish-research` |
 | Research a topic across many sources | `search` + `fetch_content`, fanned out across subagents | **free** | `tinyfish-research` |
+| Write a cited deep-research report, only when the user explicitly asks for deep research | `start_deep_research`, then `get_deep_research` | billed per run | `tinyfish-research` |
 | Click, type, submit, navigate a flow, or extract data that only appears after interaction | `run_web_automation` | $0.016/step | `tinyfish-automation` |
 | Do the above on a site the user is logged into | `run_web_automation` + `use_profile` / `use_vault` | $0.016/step | `tinyfish-authenticated` |
 | Drive a browser from Playwright, Puppeteer, or Selenium code | `create_browser_session` | $0.002/min | `tinyfish-browser` |
@@ -81,6 +82,12 @@ skill text disagree, the table is right for the CLI.
 | `list_monitors`, `get_monitor`, `run_monitor`, `pause_monitor`, `resume_monitor`, `cancel_monitor` | `tinyfish monitor list`, `monitor <get\|run\|pause\|resume\|cancel> <monitor_id>` |
 | `create_browser_session`, `list_browser_sessions`, `close_browser_session` | `tinyfish browser session create`, `list`, `close <session_id>` |
 | `get_wallet`, `get_search_usage`, `list_fetch_usage` | `tinyfish wallet status`, `search usage`, `fetch usage` |
+| `start_deep_research` | `tinyfish research run "<query>" --async --pretty` (add `--mode max` only when asked) — prints the `research_run_id`. Always `--async`: a foreground run streams for minutes, and interrupting it cancels the run |
+| `get_deep_research` | `tinyfish research run get <research_run_id> --pretty` — returns at once with `<id> <status> <query>`, then the report and numbered citations once `COMPLETED`. Wait about 30 seconds between checks. `FAILED`, `CANCELLED` and `TIMED_OUT` are final. Lost the ID? `tinyfish research run list --pretty` before starting another |
+| `cancel_deep_research` | `tinyfish research run cancel <research_run_id>` |
+
+`tinyfish research` needs CLI 0.51 or later; on an older CLI, tell the user to run
+`npm i -g @tiny-fish/cli@latest`.
 
 `search query` takes `--include-domains`, `--exclude-domains`, `--location`, `--language` and `--page`
 only. The recency, date-range and `domain_type` filters in `tinyfish-research` are MCP-only; put the
