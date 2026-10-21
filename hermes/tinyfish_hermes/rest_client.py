@@ -339,10 +339,11 @@ def start_run(
     )
 
 
-def telemetry_disabled() -> bool:
+def telemetry_disabled(value: str | None = None) -> bool:
     # Matches the TinyFish CLI: anything but empty, 0 or false opts out.
-    value = os.environ.get("TINYFISH_NO_TELEMETRY", "").strip().lower()
-    return value not in ("", "0", "false")
+    if value is None:
+        value = os.environ.get("TINYFISH_NO_TELEMETRY", "")
+    return value.strip().lower() not in ("", "0", "false")
 
 
 def report_setup(outcome: str, *, key_source: str, api_key: str = "") -> None:

@@ -929,3 +929,11 @@ def test_setup_reports_backend_failure(
     cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes"]))
 
     assert [outcome for outcome, _ in env["reports"]] == ["backend_failed"]
+
+
+def test_setup_honours_opt_out_from_hermes_env(env: dict[str, Any]) -> None:
+    env["env"]["TINYFISH_NO_TELEMETRY"] = "1"
+
+    cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes"]))
+
+    assert env["reports"] == []

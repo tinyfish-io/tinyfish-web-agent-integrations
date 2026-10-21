@@ -268,6 +268,9 @@ def cmd_setup(
 
     # Catalog installs skip `tinyfish connect`; this is their install signal.
     def report(outcome: str) -> None:
+        # Hermes keeps settings in its .env, which never reaches os.environ.
+        if rest_client.telemetry_disabled(_get_env("TINYFISH_NO_TELEMETRY")):
+            return
         rest_client.report_setup(
             outcome, key_source=key_source, api_key=api_key or _api_key()
         )
