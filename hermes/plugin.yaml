@@ -1,5 +1,5 @@
 name: tinyfish
-version: 0.2.3
+version: 0.2.4
 description: "TinyFish: the web, built into Hermes. Free Search and Fetch power Hermes's own web_search and web_extract, and when a site needs clicks, forms or a login, a remote browser and the tinyfish_agent web agent handle it."
 author: TinyFish
 kind: backend

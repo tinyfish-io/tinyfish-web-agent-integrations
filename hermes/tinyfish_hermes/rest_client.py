@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
+import os
+import sys
 import time
+import uuid
 from typing import Any, NoReturn, cast
 
 import httpx
@@ -17,6 +21,7 @@ AGENT_URL = "https://agent.tinyfish.ai"
 WALLET_URL = f"{AGENT_URL}/v1/wallet"
 SEARCH_USAGE_URL = f"{SEARCH_URL}/usage"
 FETCH_USAGE_URL = f"{FETCH_URL}/usage"
+TELEMETRY_URL = f"{AGENT_URL}/api/cli/connect-event"
 
 _BROWSER_CLOSE_MAX_ATTEMPTS = 3
 _BROWSER_CLOSE_RETRYABLE_STATUSES = frozenset({409, 429, 500, 503, 504})
@@ -332,6 +337,35 @@ def start_run(
     return _agent_request(
         "POST", "/v1/automation/run-async", api_key=api_key, json_body=body
     )
+
+
+def telemetry_disabled() -> bool:
+    # Matches the TinyFish CLI: anything but empty, 0 or false opts out.
+    value = os.environ.get("TINYFISH_NO_TELEMETRY", "").strip().lower()
+    return value not in ("", "0", "false")
+
+
+def report_setup(outcome: str, *, key_source: str, api_key: str = "") -> None:
+    """Record a ``hermes tinyfish setup`` outcome; never raises."""
+
+    if telemetry_disabled():
+        return
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["x-api-key-lookup"] = hashlib.sha256(api_key.encode()).hexdigest()
+    body = {
+        "event": "harness_plugin_setup",
+        "harness": "hermes",
+        "plugin_version": __version__,
+        "outcome": outcome,
+        "key_source": key_source,
+        "runtime_platform": sys.platform,
+        "setup_id": str(uuid.uuid4()),
+    }
+    try:
+        httpx.post(TELEMETRY_URL, headers=headers, json=body, timeout=2.0)
+    except Exception:
+        pass
 
 
 def get_run(run_id: str, *, api_key: str) -> dict[str, Any]:

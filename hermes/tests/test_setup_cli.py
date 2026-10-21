@@ -92,6 +92,12 @@ def env(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
         "_enable_toolset",
         lambda name: state["enabled_toolsets"].append(name) or True,
     )
+    state["reports"] = []
+    monkeypatch.setattr(
+        rest_client,
+        "report_setup",
+        lambda outcome, **kwargs: state["reports"].append((outcome, kwargs)),
+    )
     monkeypatch.delenv("TINYFISH_API_KEY", raising=False)
     return state
 
@@ -865,3 +871,61 @@ def test_browser_enable_fails_when_agent_browser_install_fails(
     env["config"] = {}
 
     assert cli.dispatch_tinyfish_cli(_parser().parse_args(["browser", "enable"])) == 1
+
+
+def test_setup_reports_completed_with_env_key(env: dict[str, Any]) -> None:
+    assert cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes"])) == 0
+
+    assert env["reports"] == [
+        ("completed", {"key_source": "env", "api_key": "tf_test"})
+    ]
+
+
+def test_setup_reports_flag_key(env: dict[str, Any]) -> None:
+    args = _parser().parse_args(["setup", "--yes", "--api-key", "tf_new"])
+
+    cli.dispatch_tinyfish_cli(args)
+
+    assert env["reports"] == [
+        ("completed", {"key_source": "flag", "api_key": "tf_new"})
+    ]
+
+
+def test_setup_reports_rejected_key(
+    env: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(cli, "_validate_key", lambda api_key: "rejected")
+    args = _parser().parse_args(["setup", "--yes", "--api-key", "tf_bad"])
+
+    cli.dispatch_tinyfish_cli(args)
+
+    assert [outcome for outcome, _ in env["reports"]] == ["key_rejected"]
+
+
+def test_setup_reports_save_failure(
+    env: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(cli, "_read_saved_env", lambda name: "")
+    args = _parser().parse_args(["setup", "--yes", "--api-key", "tf_new"])
+
+    cli.dispatch_tinyfish_cli(args)
+
+    assert [outcome for outcome, _ in env["reports"]] == ["save_failed"]
+
+
+def test_setup_reports_missing_key(env: dict[str, Any]) -> None:
+    env["env"] = {}
+
+    cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes"]))
+
+    assert env["reports"] == [("no_key", {"key_source": "none", "api_key": ""})]
+
+
+def test_setup_reports_backend_failure(
+    env: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(cli, "_enable_toolset", lambda name: False)
+
+    cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes"]))
+
+    assert [outcome for outcome, _ in env["reports"]] == ["backend_failed"]

@@ -12,7 +12,7 @@ _AUTH_HEADERS = {
     "X-API-Key": "tf_test",
     "Accept": "application/json",
     "X-TF-Client-Name": "hermes",
-    "X-TF-Client-Version": "0.2.3",
+    "X-TF-Client-Version": "0.2.4",
 }
 
 
@@ -450,3 +450,60 @@ def test_wallet_reports_documented_not_found_account_state(
         match="legacy billing or no Metronome customer yet",
     ):
         rest_client.wallet(api_key="tf_test")
+
+
+def test_report_setup_sends_key_hash_not_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("TINYFISH_NO_TELEMETRY", raising=False)
+    captured: dict[str, Any] = {}
+
+    def fake_post(url: str, **kwargs: Any) -> httpx.Response:
+        captured.update(url=url, **kwargs)
+        return _response("POST", url, status=204)
+
+    monkeypatch.setattr(rest_client.httpx, "post", fake_post)
+
+    rest_client.report_setup("completed", key_source="flag", api_key="tf_test")
+
+    assert captured["url"] == "https://agent.tinyfish.ai/api/cli/connect-event"
+    assert captured["headers"]["x-api-key-lookup"] == (
+        "caf63824b113b6c8522e4552c6db58a9a38242c8d0c3460b6a9a140b791e0b42"
+    )
+    assert "tf_test" not in repr(captured)
+    assert captured["json"]["event"] == "harness_plugin_setup"
+    assert captured["json"]["outcome"] == "completed"
+    assert captured["json"]["harness"] == "hermes"
+
+
+def test_report_setup_omits_hash_without_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("TINYFISH_NO_TELEMETRY", raising=False)
+    captured: dict[str, Any] = {}
+    monkeypatch.setattr(
+        rest_client.httpx, "post", lambda url, **kwargs: captured.update(kwargs)
+    )
+
+    rest_client.report_setup("no_key", key_source="none")
+
+    assert "x-api-key-lookup" not in captured["headers"]
+
+
+@pytest.mark.parametrize("value", ["1", "true", "yes"])
+def test_report_setup_honours_opt_out(
+    monkeypatch: pytest.MonkeyPatch, value: str
+) -> None:
+    monkeypatch.setenv("TINYFISH_NO_TELEMETRY", value)
+    monkeypatch.setattr(
+        rest_client.httpx, "post", lambda *a, **k: pytest.fail("telemetry sent")
+    )
+
+    rest_client.report_setup("completed", key_source="env", api_key="tf_test")
+
+
+def test_report_setup_swallows_failures(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("TINYFISH_NO_TELEMETRY", raising=False)
+
+    def boom(*args: Any, **kwargs: Any) -> httpx.Response:
+        raise httpx.ConnectError("offline")
+
+    monkeypatch.setattr(rest_client.httpx, "post", boom)
+
+    rest_client.report_setup("completed", key_source="env", api_key="tf_test")

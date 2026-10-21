@@ -257,20 +257,33 @@ def cmd_setup(
     provider: TinyFishWebSearchProvider | None = None,
 ) -> int:
     api_key = (getattr(args, "api_key", None) or "").strip()
+    key_source = "flag" if api_key else "none"
     existing = _api_key_env_var()
     if not api_key and existing:
         print(f"Using the TinyFish API key from {existing}")
+        key_source = "env"
     elif not api_key and sys.stdin.isatty():
         api_key = _prompt_for_key()
+        key_source = "prompt" if api_key else "none"
+
+    # Catalog installs skip `tinyfish connect`; this is their install signal.
+    def report(outcome: str) -> None:
+        rest_client.report_setup(
+            outcome, key_source=key_source, api_key=api_key or _api_key()
+        )
+
     if api_key:
         rejection = _validate_key(api_key)
         if rejection:
             print(rejection, file=sys.stderr)
+            report("key_rejected")
             return 1
         if not _store_api_key(api_key):
+            report("save_failed")
             return 1
     elif not existing:
         print(MISSING_KEY_ERROR, file=sys.stderr)
+        report("no_key")
         return 1
 
     # Route web tools only once a usable key exists, so a failed setup changes nothing.
@@ -284,8 +297,10 @@ def cmd_setup(
         _save_config(config)
         print("Configured Hermes web backends to use TinyFish")
         if not _enable_toolset("web"):
+            report("backend_failed")
             return 1
 
+    report("completed")
     if getattr(args, "live", False):
         doctor_args = argparse.Namespace(json=False, live=True, live_paid=False)
         return cmd_doctor(doctor_args, provider=provider)
