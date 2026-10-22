@@ -8,8 +8,6 @@ Choose your platform below, or follow the [API quick start](https://docs.tinyfis
 
 ![High-level diagram: agents and workflows call the integrations in this repository, which connect to TinyFish's hosted web tools. Results return to the calling agent or workflow.](./docs/assets/tinyfish-integrations.svg)
 
-[Editable Excalidraw source](./docs/assets/tinyfish-integrations.excalidraw). Open this file in [Excalidraw](https://excalidraw.com/) to edit the diagram.
-
 ## Choose an integration
 
 ### AI assistants and coding agents
