@@ -1,101 +1,101 @@
-Slot values for the Grok plugin (grok/skills), which reaches TinyFish through the hosted MCP server.
+Slot values for the skills the tinyfish CLI installs where `tinyfish connect` registers the hosted MCP server (mcp/skills).
 
 <!-- slot: automation-batch -->
-This plugin does not start
-batches itself; kick off runs with `run_web_automation_async` and collect their `run_id`s.
+The MCP tools do not start
+batches themselves; kick off runs with `run_web_automation_async` and collect their `run_id`s.
 
 <!-- slot: browser-caveat -->
 
 
 <!-- slot: host-conversation -->
-plugin
+coding-agent
 
 <!-- slot: profiles-cli -->
 
 
 <!-- slot: research-auth -->
-The server is `https://agent.tinyfish.ai/mcp`, configured by this plugin, authenticated by OAuth on
-first connection. On an auth error, tell the user to re-authenticate the `tinyfish` MCP server (in
-Grok Build: `/mcps`, select `tinyfish`, press `i`). On a wallet-balance or rate-limit error, say so plainly.
+The server is `https://agent.tinyfish.ai/mcp`, registered in your harness by `tinyfish connect`. On an
+auth error, tell the user to run `npx -y @tiny-fish/cli@latest connect`, pick this harness,
+follow what it prints, and restart the harness. Never ask for an API key in chat. On a wallet-balance or rate-limit error, say so plainly.
 
 <!-- slot: research-broad-search -->
-Most of the subagent work.
+The bulk of the work.
 
 <!-- slot: research-dispatch -->
-## Step 2: Dispatch subagents
+## Step 2: Work the passes
 
-Subagents exist to keep raw search and page content out of your context. Each one reads the reference
-files you point it at, runs its assigned work, and returns only distilled output.
+Each pass takes one angle and ends with distilled findings, not raw output. Read
+`references/fan-out.md` before splitting a question — it covers decomposing into angles that don't
+overlap, and it applies whether you run the angles yourself or delegate them.
 
-Reference paths below are relative to the directory this file was loaded from — always give
-subagents the **absolute** path.
+Per pass:
 
-**Always point a subagent at `references/searching.md`.** Add others as they apply:
+1. State the sub-question as a question.
+2. Run 3–5 `search` calls against it — `references/searching.md` covers writing them well.
+3. `fetch_content` the hits worth reading, up to 10 URLs per call — see `references/fetching.md`.
+4. **Compress before moving on.** Write down the findings, the qualifying results, and the count of
+   unique source URLs you reviewed. Then drop the raw results from your working set.
+5. Only then start the next angle.
 
-| File | Point a subagent here when it needs to... |
-|---|---|
-| `references/searching.md` | Write good `search` calls — always |
-| `references/fetching.md` | Read pages: batching, formats, CSS scoping, failure handling |
-| `references/synthesis.md` | Produce prose rather than structured rows |
+Track `sources_reviewed` in **one running set for the whole task**, not per pass. Add every source
+URL you see in `search` results or fetch, and let the set dedupe them — the same URL surfacing in
+three passes is one source, not three. Never sum per-pass counts: that double-counts overlap. You need
+the set's size at compile time.
 
-You read `references/fan-out.md` yourself before splitting work — it covers how to decompose a
-question into angles that don't overlap.
+For prose-heavy answers rather than structured rows, `references/synthesis.md` covers the shape.
 
-**Prompt template:**
+### Fanning out
+
+If you have a subagent tool and its children can call the TinyFish MCP tools, run the passes as
+parallel children instead — one angle each, same search budget, launched in a single message so they
+run concurrently. A child without those tools cannot search; work that angle yourself. Give each one
+the **absolute** path to `references/searching.md` (and `references/fetching.md` if it reads pages),
+its sub-question, what qualifies as a result, and the exact output format. End every child prompt
+with this line, verbatim:
 
 ```
-Read the file at <absolute path>/references/searching.md for how to query TinyFish search.
-[Also read <absolute path>/references/fetching.md — you will be reading pages.]
-
-Your sub-question: [the specific angle, stated as a question]
-
-[specific queries to run, if you are prescribing them]
-[what qualifies as a valid result, so you filter before returning]
-
-Return: [exact output format — e.g. "compact JSON with name, url, one-line evidence, per result"]
-
-End with EXACTLY: `sources_reviewed: N` where N = the number of **unique** source URLs you reviewed —
-every distinct URL you saw in `search` results (across all calls and retries) or fetched. Count a URL
-once even if you both saw it in search and then fetched it.
+End with a `sources:` list of every **unique** source URL you reviewed, one per line — every distinct
+URL you saw in `search` results (across all calls and retries) or fetched — then EXACTLY
+`sources_reviewed: N` where N is the length of that list.
 ```
-
-Pass the `sources_reviewed` line to every subagent verbatim. Don't paraphrase it.
-
-**Sizing:** aim for 3–5 searches per subagent. Launch all subagents for a pass in a single message so
-they run concurrently. For per-seed enrichment, batch 3–5 seeds per subagent.
-
-**Never run bulk searching in your own context.** That defeats the purpose.
 
 <!-- slot: research-intro -->
-You are the orchestrator. Understand the question, decide how much work it deserves, dispatch
-subagents when the volume warrants it, then compile and deliver.
+You are the orchestrator. Understand the question, decide how much work it deserves, work it in
+passes, then compile and deliver. If you have a subagent tool, see "Fanning out" for when to delegate
+instead.
 
 <!-- slot: research-on-host -->
+## Context is the budget
 
+Every `search` and `fetch_content` result lands straight in your context. **Summarise an angle to its
+findings before starting the next, and never carry raw result lists forward.** If the question needs
+more passes than your context will hold, say so and size it down honestly — don't silently truncate,
+and don't claim to have fanned out when you didn't.
 
 <!-- slot: research-report-open -->
-**Format.** If you used subagents, open with: "I used TinyFish to review {X} sources across {Y}
-subagents." X is the sum of `sources_reviewed` across every subagent and pass, plus anything you
-searched directly.
+**Format.** Open with: "I used TinyFish to review {X} sources across {Y} passes." X is the size of
+the single running `sources_reviewed` set — not a sum of per-pass numbers, which would double-count
+URLs that appeared in more than one pass. If you delegated, union each child's `sources:` list into
+that same set, never add their counts, and say "subagents" instead of "passes".
 
 <!-- slot: research-sizing -->
-| Trivial | One fact, one entity, or "read this page for me" | Handle it yourself. One or two `search` calls, or a direct `fetch_content`. Answer. No subagents. |
-| Moderate | A focused question with one clear angle | One subagent, to keep raw results out of your context. |
-| Deep | A clear topic with a few independent angles | One round of 3–4 parallel subagents, then compile. |
-| Exhaustive | Cross-referencing entity types, multi-hop chains, "find everything", explicit counts | Multiple passes of parallel subagents, compiling between passes. |
+| Trivial | One fact, one entity, or "read this page for me" | One or two `search` calls, or a direct `fetch_content`. Answer. |
+| Moderate | A focused question with one clear angle | One pass: 3–5 searches, fetch the best hits, compile. |
+| Deep | A clear topic with a few independent angles | 3–4 passes, one per angle, compiling after each. |
+| Exhaustive | Cross-referencing entity types, multi-hop chains, "find everything", explicit counts | Repeated rounds of the above, compiling between rounds and re-scoping from what you found. |
+
+With a subagent tool, each pass above becomes a delegated child instead — same budgets, same order.
 
 <!-- slot: security-doc -->
-this plugin's `rules/security.md`
+<https://raw.githubusercontent.com/tinyfish-io/tinyfish-web-agent-integrations/main/pi/rules/security.md>
 
 <!-- slot: setup -->
 ## Setup and auth
 
-All of this runs through the `tinyfish` MCP server (`https://agent.tinyfish.ai/mcp`). Configured by this
-plugin, it authenticates by OAuth on first use and carries no API key. Registered instead by `tinyfish
-connect grok --api-key`, it sends a `${TINYFISH_API_KEY}` Bearer header and has no OAuth fallback.
+All of this runs through the `tinyfish` MCP server (`https://agent.tinyfish.ai/mcp`), which `tinyfish
+connect` registered in your harness. Depending on how it was connected, it signs in with OAuth or
+sends an API key. **Call the MCP tools, not the `tinyfish` CLI**: the CLI keeps its own key, and after
+an OAuth connect it has none.
 
-On an auth error, check which setup this is. Plugin: tell the user to re-authenticate — in Grok Build,
-`/mcps`, select `tinyfish`, press `i`. Keyed: signing in there fixes nothing — the key is unset in the
-shell Grok was started from, or revoked; tell the user to re-run `npx -y @tiny-fish/cli@latest connect
-grok --api-key <key>` and start Grok from a new terminal. On a wallet-balance or rate-limit error, say so
-plainly.
+On an auth error, tell the user to run `npx -y @tiny-fish/cli@latest connect`, pick this harness,
+follow what it prints, and restart the harness. Never ask for an API key in chat. On a wallet-balance or rate-limit error, say so plainly.

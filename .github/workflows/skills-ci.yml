@@ -8,6 +8,7 @@ on:
       - "makefiles/**"
       - "skills/**"
       - "grok/skills/**"
+      - "mcp/skills/**"
       - "pi/skills/**"
       - "cli/skills/**"
   push:
@@ -18,6 +19,7 @@ on:
       - "makefiles/**"
       - "skills/**"
       - "grok/skills/**"
+      - "mcp/skills/**"
       - "pi/skills/**"
       - "cli/skills/**"
 

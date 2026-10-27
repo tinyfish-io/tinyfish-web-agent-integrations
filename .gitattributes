@@ -1,4 +1,5 @@
 grok/skills/** linguist-generated=true
+mcp/skills/** linguist-generated=true
 pi/skills/** linguist-generated=true
 cli/skills/** linguist-generated=true
 *.sh text eol=lf
