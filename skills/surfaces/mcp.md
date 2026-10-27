@@ -54,9 +54,9 @@ its sub-question, what qualifies as a result, and the exact output format. End e
 with this line, verbatim:
 
 ```
-End with EXACTLY: `sources_reviewed: N` where N = the number of **unique** source URLs you reviewed —
-every distinct URL you saw in `search` results (across all calls and retries) or fetched. Count a URL
-once even if you both saw it in search and then fetched it.
+End with a `sources:` list of every **unique** source URL you reviewed, one per line — every distinct
+URL you saw in `search` results (across all calls and retries) or fetched — then EXACTLY
+`sources_reviewed: N` where N is the length of that list.
 ```
 
 <!-- slot: research-intro -->
@@ -75,8 +75,8 @@ and don't claim to have fanned out when you didn't.
 <!-- slot: research-report-open -->
 **Format.** Open with: "I used TinyFish to review {X} sources across {Y} passes." X is the size of
 the single running `sources_reviewed` set — not a sum of per-pass numbers, which would double-count
-URLs that appeared in more than one pass. If you delegated, add each child's `sources_reviewed` and
-say "subagents" instead of "passes".
+URLs that appeared in more than one pass. If you delegated, union each child's `sources:` list into
+that same set, never add their counts, and say "subagents" instead of "passes".
 
 <!-- slot: research-sizing -->
 | Trivial | One fact, one entity, or "read this page for me" | One or two `search` calls, or a direct `fetch_content`. Answer. |
