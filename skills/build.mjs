@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync } from 'nod
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const TARGETS = { mcp: 'grok/skills', pi: 'pi/skills', cli: 'cli/skills' };
+export const TARGETS = { grok: 'grok/skills', mcp: 'mcp/skills', pi: 'pi/skills', cli: 'cli/skills' };
 
 function walk(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
