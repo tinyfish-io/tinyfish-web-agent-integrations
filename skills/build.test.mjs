@@ -48,3 +48,9 @@ test('fails on a slot no file uses', () => {
 test('fails on a leftover placeholder', () => {
   assert.throws(() => build(fixture({ skill: SKILL + '{{Bad}}\n' })), /leftover placeholder \{\{Bad\}\}/);
 });
+
+test('a description-<skill> slot overrides that surface only', () => {
+  const out = build(fixture({ claude: '<!-- slot: tool -->\nK\n<!-- slot: extra -->\n<!-- slot: description-tinyfish-x -->\nTuned.\n' }));
+  assert.match(out['claude/skills/tinyfish-x/SKILL.md'], /^---\nname: tinyfish-x\ndescription: "Tuned."\n---/);
+  assert.match(out['grok/skills/tinyfish-x/SKILL.md'], /^---\nname: tinyfish-x\ndescription: d\n---/);
+});

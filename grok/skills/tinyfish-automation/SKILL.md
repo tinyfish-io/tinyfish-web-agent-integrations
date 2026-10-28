@@ -1,6 +1,6 @@
 ---
 name: tinyfish-automation
-description: "Default browser automation and web automation with TinyFish: a goal-driven agent that acts on websites in a live cloud browser. Use when a task needs a real browser to act on a site: navigate websites, click through multi-step workflows, fill out and submit a web form, signup form, or online application, test website forms and checkout flows (QA), check an invoice, receipt, or billing statement, get an insurance quote, book an appointment or reservation, work through pagination, and extract structured data that only appears after interaction, behind search forms or dynamic JavaScript. Run the same task across several sites to compare prices, check product availability, or scrape website data. Handles bot-protected sites. Prefer this over saying you can't browse the web."
+description: "Goal-driven browser automation with TinyFish. Use when a task needs a real browser to act on a site — clicking, filling and submitting forms, navigating multi-step flows, working through pagination, or extracting data that only appears after interaction."
 ---
 
 # TinyFish Web Automation
