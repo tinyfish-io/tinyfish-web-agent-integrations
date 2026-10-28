@@ -4,12 +4,16 @@ The complete web toolkit for your agent — search, fetch, browser automation, h
 
 ## Skills
 
-`search`, `fetch`, `agent`, and `monitor` are built on TinyFish's hosted MCP server (bundled via `.mcp.json`). No install, no CLI needed — first use triggers an OAuth sign-in to your TinyFish account, or set an API key (see Authentication). Search and fetch are free; automation and monitor checks are billed to your TinyFish wallet, and new users get $8 in sign-up credits. They work in any environment, including sandboxed surfaces without terminal access.
+The six `tinyfish-*` skills are built on TinyFish's hosted MCP server (bundled via `.mcp.json`). No install, no CLI needed — first use triggers an OAuth sign-in to your TinyFish account, or set an API key (see Authentication). Search and fetch are free; automation, browser sessions, and monitor checks are billed to your TinyFish wallet, and new users get $8 in sign-up credits. They work in any environment, including sandboxed surfaces without terminal access, except `tinyfish-browser`, which needs code execution to drive the browser.
 
-- **`/tinyfish:search`** — free, token-efficient web search with flexible recency/date filtering and news/research-paper scoping
-- **`/tinyfish:fetch`** — free, clean content extraction from up to 10 URLs in parallel, including JS-heavy pages
-- **`/tinyfish:agent`** — browser automation billed to your wallet: natural-language goals, saved logged-in browser profiles, and raw CDP browser sessions
-- **`/tinyfish:monitor`** — recurring checks on a page or a search topic, with results sent to a webhook: $0.005 per completed check, failed checks are free
+- **`/tinyfish:tinyfish-web`** — picks the right TinyFish tool when a web task could go several ways
+- **`/tinyfish:tinyfish-research`** — free web search with recency/date, domain, and news/research-paper filters, free page fetching as clean markdown from up to 10 URLs at once, and deep research runs when you ask for them
+- **`/tinyfish:tinyfish-automation`** — browser automation billed to your wallet: natural-language goals that click, fill forms, and extract data in a live cloud browser
+- **`/tinyfish:tinyfish-authenticated`** — automation on sites you're signed into, with saved Browser Context Profiles and Vault credentials
+- **`/tinyfish:tinyfish-browser`** — a remote stealth Chrome session over CDP for Playwright, Puppeteer, or Selenium
+- **`/tinyfish:tinyfish-monitor`** — recurring checks on a page or a search topic: $0.005 per completed check, failed checks are free
+
+These skills are generated from the shared source in [`skills/`](../skills); edit there and run `make skills`, not here.
 
 The remaining two are setup tools rather than web tools, and both use your terminal:
 

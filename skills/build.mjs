@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync } from 'nod
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const TARGETS = { grok: 'grok/skills', mcp: 'mcp/skills', pi: 'pi/skills', cli: 'cli/skills' };
+export const TARGETS = { grok: 'grok/skills', mcp: 'mcp/skills', pi: 'pi/skills', cli: 'cli/skills', claude: 'claude/skills' };
 
 function walk(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
@@ -49,7 +49,14 @@ export function build(root) {
     const used = new Set();
     for (const path of files) {
       const rel = relative(src, path);
-      outputs[join(outDir, rel)] = render(readFileSync(path, 'utf8'), slots, `skills/${rel}`, target, used);
+      let text = render(readFileSync(path, 'utf8'), slots, `skills/${rel}`, target, used);
+      // A surface can override a skill's frontmatter description, e.g. to tune it for its own plugin search.
+      const key = `description-${dirname(rel)}`;
+      if (key in slots) {
+        used.add(key);
+        text = text.replace(/^description: .*$/m, () => `description: "${slots[key]}"`);
+      }
+      outputs[join(outDir, rel)] = text;
     }
     const unused = Object.keys(slots).filter((k) => !used.has(k));
     if (unused.length) throw new Error(`${surface}: slots never used: ${unused.join(', ')}`);
