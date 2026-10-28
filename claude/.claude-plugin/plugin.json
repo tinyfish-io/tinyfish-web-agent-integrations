@@ -1,7 +1,7 @@
 {
   "name": "tinyfish",
-  "version": "1.4.0",
-  "description": "The complete web toolkit for your agent. Search the web and read any URL as clean markdown, for free. Send a browser agent to log in, fill out forms, and extract data from any website, or open a headless browser for Playwright and Puppeteer. Monitor website changes and get alerts on prices, restocks, and news.",
+  "version": "2.0.0",
+  "description": "Browser automation, web scraping, web search and fetch for Claude. A cloud browser agent automates websites: log in to portals, fill out and submit forms, test website flows, and extract data from listings, prices and reviews. Free web search and fetch return clean markdown. Monitor pages for price, restock and content changes. Open a headless browser for Playwright or Puppeteer.",
   "author": {
     "name": "TinyFish",
     "email": "support@tinyfish.io",
@@ -19,6 +19,13 @@
     "search",
     "fetch",
     "monitoring",
-    "website-change-detection"
+    "website-change-detection",
+    "web-search",
+    "browser-agent",
+    "form-filling",
+    "price-tracking",
+    "website-testing",
+    "playwright",
+    "puppeteer"
   ]
 }

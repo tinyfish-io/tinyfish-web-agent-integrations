@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.0.0 (2026-10-27)
+
+### Changed
+- **Breaking:** the web skills are renamed and now generated from the shared `skills/` source used by every TinyFish surface, which brings in the deep-research routing, CLI, fetch, CDP and monitor fixes made since 1.4.0. Slash commands change:
+
+  | 1.4.0 | 2.0.0 |
+  |---|---|
+  | `/tinyfish:search`, `/tinyfish:fetch` | `/tinyfish:tinyfish-research` |
+  | `/tinyfish:agent` | `/tinyfish:tinyfish-automation`, `/tinyfish:tinyfish-authenticated`, `/tinyfish:tinyfish-browser` |
+  | `/tinyfish:monitor` | `/tinyfish:tinyfish-monitor` |
+  | — | `/tinyfish:tinyfish-web` (new: picks the right tool) |
+
+- Plugin description leads with browser automation, web scraping, web search and fetch, and adds login, form, website testing, listings, prices, reviews, and monitoring, the words people search with. `keywords` and the marketplace `tags` gain the same terms.
+- Skill: `tinyfish-automation` description covers website and checkout QA testing, and says "check" rather than "download" for invoices, receipts, and billing statements, since there is no download feature.
+
+`doctor` and `feedback` are unchanged.
+
 ## 1.4.0 (2026-09-29)
 
 ### Added
