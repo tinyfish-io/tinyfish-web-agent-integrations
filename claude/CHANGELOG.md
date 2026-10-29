@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.1 (2026-10-28)
+
+### Changed
+- The MCP server sends an `X-TF-Connect-Source: claude_plugin` header.
+
 ## 2.0.0 (2026-10-27)
 
 ### Changed

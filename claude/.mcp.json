@@ -4,7 +4,8 @@
       "type": "http",
       "url": "https://agent.tinyfish.ai/mcp",
       "headers": {
-        "X-API-Key": "${TINYFISH_API_KEY:-}"
+        "X-API-Key": "${TINYFISH_API_KEY:-}",
+        "X-TF-Connect-Source": "claude_plugin"
       }
     }
   }
