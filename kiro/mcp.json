@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "tinyfish": {
+      "type": "streamable-http",
+      "url": "https://agent.tinyfish.ai/mcp",
+      "headers": {
+        "X-TF-Client-Name": "kiro",
+        "X-TF-Client-Version": "1.0.0"
+      }
+    }
+  }
+}

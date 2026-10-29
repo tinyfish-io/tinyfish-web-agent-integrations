@@ -8,6 +8,7 @@ on:
       - ".claude-plugin/**"
       - "claude/**"
       - "pi/**"
+      - "kiro/**"
   push:
     branches: [main]
     paths:
@@ -15,6 +16,7 @@ on:
       - ".claude-plugin/**"
       - "claude/**"
       - "pi/**"
+      - "kiro/**"
 
 permissions:
   contents: read
@@ -55,5 +57,24 @@ jobs:
           echo "package.json=$pkg mcp.json=$hdr"
           if [ "$pkg" != "$hdr" ]; then
             echo "::error file=pi/mcp.json::X-TF-Client-Version is $hdr but pi/package.json is $pkg"
+            exit 1
+          fi
+
+  kiro-versions-match:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # Same drift as pi: mcp.json hardcodes the X-TF-Client-Version it reports, and the Agent
+      # Plugins format does no expansion in headers, so it must be bumped with plugin.json.
+      - name: MCP client version matches the power version
+        run: |
+          set -euo pipefail
+          plugin=$(jq -re '.version' kiro/plugin.json)
+          hdr=$(jq -re '.mcpServers.tinyfish.headers["X-TF-Client-Version"]' kiro/mcp.json)
+          echo "plugin.json=$plugin mcp.json=$hdr"
+          if [ "$plugin" != "$hdr" ]; then
+            echo "::error file=kiro/mcp.json::X-TF-Client-Version is $hdr but kiro/plugin.json is $plugin"
             exit 1
           fi
