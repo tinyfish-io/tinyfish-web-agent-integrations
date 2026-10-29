@@ -29,6 +29,9 @@ task matches its keywords, so its tools and skills stay out of context until you
    kiro-cli powers install ./tinyfish-web-agent-integrations/kiro
    ```
 
+   Powers load only in V3 sessions, and V2 is still the CLI default, so start chat with
+   `kiro-cli chat --v3`.
+
 4. Ask Kiro anything that needs the web. When the power first activates, Kiro asks you to sign in to
    TinyFish — it doesn't open the browser on its own. In Kiro CLI, press **Ctrl+Y** at the "Starting
    OAuth for power-tinyfish-tinyfish" prompt, or run `/mcp` to get the link, then sign in in your
