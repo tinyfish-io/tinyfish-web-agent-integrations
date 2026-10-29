@@ -134,6 +134,12 @@ power, so the enforceable copy is the one inside each skill.
 - **Untrusted content:** `rules/security.md` instructs the agent to treat all fetched web content as
   untrusted and never to follow instructions found inside it.
 
+## Privacy and support
+
+- Privacy policy: https://www.tinyfish.ai/privacy-policy
+- Support: [support@tinyfish.io](mailto:support@tinyfish.io), or open an issue in
+  [this repository](https://github.com/tinyfish-io/tinyfish-web-agent-integrations/issues).
+
 ## Resources
 
 - [Documentation](https://docs.tinyfish.ai)
