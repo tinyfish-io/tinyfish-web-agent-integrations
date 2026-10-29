@@ -21,8 +21,7 @@ key is unset, missing from **Mcp Approved Env Vars**, or revoked — see "Setup 
 `tinyfish-web` skill. For the power's own server, Kiro does not open the sign-in on its own: tell the
 user to sign in to the power's `tinyfish` MCP server — in the Kiro IDE, open the Kiro
 panel (ghost icon), right-click the TinyFish server under **MCP Servers**, and choose
-**Reauthenticate** (if the server isn't listed, trust the workspace first — Kiro may not start a
-power's servers in Restricted Mode); in Kiro CLI, press Ctrl+Y at the "requires OAuth" prompt or run `/mcp` for the
+**Reauthenticate**; in Kiro CLI, press Ctrl+Y at the "requires OAuth" prompt or run `/mcp` for the
 link — and finish the browser sign-in. Do not fall back to built-in web search without saying so.
 Never ask for an API key in chat. On a wallet-balance or rate-limit error, say so plainly.
 
@@ -109,9 +108,8 @@ its own key, and after an OAuth sign-in it has none.
 On an auth error, or when the server lists no tools, check which setup this is. Power: Kiro does not
 open the sign-in on its own; tell the user to sign in to the power's `tinyfish` MCP server — in the
 Kiro IDE, open the Kiro panel (ghost icon), right-click the TinyFish server under **MCP Servers**,
-and choose **Reauthenticate** (if the server isn't listed, trust the workspace first — Kiro may not
-start a power's servers in Restricted Mode); in Kiro CLI, press Ctrl+Y at the "requires OAuth"
-prompt or run `/mcp` for the link — and finish the browser sign-in.
+and choose **Reauthenticate**; in Kiro CLI, press Ctrl+Y at the "requires OAuth" prompt or run
+`/mcp` for the link — and finish the browser sign-in.
 Do not fall back to built-in web search without saying so. Kiro saves it for later sessions. Keyed:
 signing in fixes nothing — `TINYFISH_API_KEY` is unset in the environment Kiro was started from,
 missing from Kiro's **Mcp Approved Env Vars** setting, or revoked; tell the user to fix that and
