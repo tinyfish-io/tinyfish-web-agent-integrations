@@ -35,8 +35,10 @@ task matches its keywords, so its tools and skills stay out of context until you
    `kiro-cli chat --v3`.
 
 4. Sign in to TinyFish. Kiro doesn't open the browser on its own:
-   - **Kiro IDE:** open the **MCP Servers** panel, find the power's `tinyfish` server, and click
-     **Authenticate**.
+   - **Kiro IDE:** click the Kiro (ghost) icon in the activity bar, right-click the TinyFish server
+     (`power-tinyfish-tinyfish`) under **MCP Servers**, and choose **Reauthenticate**. If the server
+     isn't listed, trust the workspace first — Kiro may not start a power's servers in Restricted
+     Mode.
    - **Kiro CLI:** ask anything that needs the web, then press **Ctrl+Y** at the "requires OAuth"
      prompt, or run `/mcp` to get the link.
 

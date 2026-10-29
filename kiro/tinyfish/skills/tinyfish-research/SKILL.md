@@ -48,9 +48,10 @@ passes below instead. Never swap one for the other silently.
 
 The server is `https://agent.tinyfish.ai/mcp`, declared by this power and authenticated by OAuth on
 first connection. Kiro does not open the sign-in on its own: on an auth error, or when the server shows no tools,
-tell the user to sign in to the power's `tinyfish` MCP server — in the Kiro IDE, open the **MCP
-Servers** panel and click **Authenticate** next to it; in Kiro CLI, press Ctrl+Y at the "requires
-OAuth" prompt or run `/mcp` for the link — and finish the browser sign-in. Do not fall back to
+tell the user to sign in to the power's `tinyfish` MCP server — in the Kiro IDE, open the Kiro
+panel (ghost icon), right-click the TinyFish server under **MCP Servers**, and choose
+**Reauthenticate**; in Kiro CLI, press Ctrl+Y at the "requires OAuth" prompt or run `/mcp` for the
+link — and finish the browser sign-in. Do not fall back to
 built-in web search without saying so. If the user registered the server by hand with an API key instead,
 the key is unset, missing from **Mcp Approved Env Vars**, or revoked — see "Setup and auth" in the `tinyfish-web` skill. Never ask
 for an API key in chat. On a wallet-balance or rate-limit error, say so plainly.
