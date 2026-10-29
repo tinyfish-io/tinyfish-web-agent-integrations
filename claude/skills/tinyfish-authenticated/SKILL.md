@@ -71,6 +71,9 @@ user instead. The user signs in by hand; the agent never types a password:
 
 Setup is a one-time cost that makes every later run cheaper. It's worth the interruption.
 
+If you can run shell commands and the user is already signed in to the site in local Chrome,
+`npx -y @tiny-fish/cli@latest profile import-cookies --domain <domain>` builds a profile from those cookies instead
+(add `--profile-id <profile_id>` for an existing profile). Ask the user first, and prefer `--domain` over `--all-domains`.
 The dashboard (<https://agent.tinyfish.ai>) also works. Full walkthrough:
 <https://docs.tinyfish.ai/key-concepts/browser-context-profiles>
 
