@@ -86,7 +86,7 @@ available through MCP. `url` and `goal` always are. Never invent a parameter nam
 | `browser_profile` | `lite` (default) or `stealth`. See `references/anti-bot.md` |
 | `use_profile` / `profile_id` | Reuse a saved logged-in session. See `tinyfish-authenticated` |
 | `use_vault` / `credential_item_ids` | Log in with vault credentials. See `tinyfish-authenticated` |
-| `proxy_config` | Geographic routing. `country_code` is one of `US`, `GB`, `CA`, `DE`, `FR`, `JP`, `AU` |
+| `proxy_config` | Geographic routing. `country_code` is any ISO 3166-1 alpha-2 code, such as `US`, `GB`, `DE` |
 
 Ask for `output_schema` whenever the result feeds anything other than a human reading it.
 

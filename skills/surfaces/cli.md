@@ -16,8 +16,13 @@ coding-agent
 From the CLI, `tinyfish profile create --name <name>` replaces steps 1–3: it prints a link where the
 user signs in and saves (`--site <site>` names the site). `--import-cookies` instead uploads the
 user's local Chrome cookies, and needs exactly one of `--domain <domain>` or `--all-domains`: ask the
-user first, and prefer `--domain`. `tinyfish profile sign-in <profile_id>` adds or refreshes a site on an existing profile, and
-`tinyfish profile list` shows each profile's signed-in sites.
+user first, and prefer `--domain`. For an existing profile, `tinyfish profile import-cookies --profile-id <profile_id>
+--domain <domain>` does the same. `tinyfish profile sign-in <profile_id>` adds or refreshes a site on an existing profile,
+`tinyfish profile update <profile_id>` changes its name or proxy country, and `tinyfish profile list` shows each
+profile's signed-in sites.
+
+`tinyfish vault connection list` shows whether a vault is connected, and `tinyfish vault item list` lists credential
+IDs. `tinyfish vault connection add` reads provider secrets from the environment: have the user run it themselves.
 
 <!-- slot: research-auth -->
 Both tools run through the `tinyfish` CLI: `search` is `tinyfish search query "<q>"` and

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.1 (2026-10-29)
+
+### Changed
+- Skill: `tinyfish-authenticated` documents building a Browser Context Profile from local Chrome cookies with `tinyfish profile import-cookies` when a shell is available, and triggers on cookie-import requests.
+- Skill: `tinyfish-automation` accepts any ISO 3166-1 alpha-2 `proxy_config.country_code`, not only seven countries.
+
 ## 2.0.0 (2026-10-27)
 
 ### Changed

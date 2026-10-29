@@ -1,6 +1,6 @@
 ---
 name: tinyfish-authenticated
-description: "Automate websites the user is logged into, using TinyFish Browser Context Profiles and Vault credentials. Use when a task needs a signed-in session — internal dashboards, SaaS apps, admin panels, account pages — or when a run hits a login wall, or when the user mentions a saved profile."
+description: "Automate websites the user is logged into, using TinyFish Browser Context Profiles and Vault credentials. Use when a task needs a signed-in session — internal dashboards, SaaS apps, admin panels, account pages — or when a run hits a login wall, or when the user mentions a saved profile or wants to import Chrome cookies."
 ---
 
 # Authenticated Automation
@@ -73,7 +73,8 @@ Setup is a one-time cost that makes every later run cheaper. It's worth the inte
 
 Without the MCP tools, the CLI does the same: `tinyfish profile list`, `tinyfish profile create --name <name>`
 (prints a link where the user signs in and saves), and `tinyfish profile sign-in <profile_id>` to add
-or refresh a site.
+or refresh a site. `tinyfish profile import-cookies --domain <domain>` (add `--profile-id <id>` for an existing profile)
+copies the user's local Chrome cookies instead: ask the user first.
 The dashboard (<https://agent.tinyfish.ai>) also works. Full walkthrough:
 <https://docs.tinyfish.ai/key-concepts/browser-context-profiles>
 

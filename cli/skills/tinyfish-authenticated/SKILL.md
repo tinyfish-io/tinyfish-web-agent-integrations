@@ -1,6 +1,6 @@
 ---
 name: tinyfish-authenticated
-description: "Automate websites the user is logged into, using TinyFish Browser Context Profiles and Vault credentials. Use when a task needs a signed-in session — internal dashboards, SaaS apps, admin panels, account pages — or when a run hits a login wall, or when the user mentions a saved profile."
+description: "Automate websites the user is logged into, using TinyFish Browser Context Profiles and Vault credentials. Use when a task needs a signed-in session — internal dashboards, SaaS apps, admin panels, account pages — or when a run hits a login wall, or when the user mentions a saved profile or wants to import Chrome cookies."
 ---
 
 # Authenticated Automation
@@ -74,8 +74,13 @@ Setup is a one-time cost that makes every later run cheaper. It's worth the inte
 From the CLI, `tinyfish profile create --name <name>` replaces steps 1–3: it prints a link where the
 user signs in and saves (`--site <site>` names the site). `--import-cookies` instead uploads the
 user's local Chrome cookies, and needs exactly one of `--domain <domain>` or `--all-domains`: ask the
-user first, and prefer `--domain`. `tinyfish profile sign-in <profile_id>` adds or refreshes a site on an existing profile, and
-`tinyfish profile list` shows each profile's signed-in sites.
+user first, and prefer `--domain`. For an existing profile, `tinyfish profile import-cookies --profile-id <profile_id>
+--domain <domain>` does the same. `tinyfish profile sign-in <profile_id>` adds or refreshes a site on an existing profile,
+`tinyfish profile update <profile_id>` changes its name or proxy country, and `tinyfish profile list` shows each
+profile's signed-in sites.
+
+`tinyfish vault connection list` shows whether a vault is connected, and `tinyfish vault item list` lists credential
+IDs. `tinyfish vault connection add` reads provider secrets from the environment: have the user run it themselves.
 The dashboard (<https://agent.tinyfish.ai>) also works. Full walkthrough:
 <https://docs.tinyfish.ai/key-concepts/browser-context-profiles>
 

@@ -16,7 +16,8 @@ pi
 <!-- slot: profiles-cli -->
 Without the MCP tools, the CLI does the same: `tinyfish profile list`, `tinyfish profile create --name <name>`
 (prints a link where the user signs in and saves), and `tinyfish profile sign-in <profile_id>` to add
-or refresh a site. 
+or refresh a site. `tinyfish profile import-cookies --domain <domain>` (add `--profile-id <id>` for an existing profile)
+copies the user's local Chrome cookies instead: ask the user first.
 
 <!-- slot: research-auth -->
 The server is `https://agent.tinyfish.ai/mcp`, configured by this package, authenticated by the
