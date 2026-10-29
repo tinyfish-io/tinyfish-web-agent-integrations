@@ -14,7 +14,7 @@
       "name": "tinyfish",
       "source": "./claude",
       "description": "Browser automation, web scraping, web search and fetch for Claude. A cloud browser agent automates websites: log in to portals, fill out and submit forms, test website flows, and extract data from listings, prices and reviews. Free web search and fetch return clean markdown. Monitor pages for price, restock and content changes. Open a headless browser for Playwright or Puppeteer.",
-      "version": "2.0.1",
+      "version": "2.1.0",
       "author": {
         "name": "TinyFish",
         "url": "https://tinyfish.ai"

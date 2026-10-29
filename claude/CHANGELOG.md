@@ -1,9 +1,9 @@
 # Changelog
 
-## 2.0.1 (2026-10-28)
+## 2.1.0 (2026-10-29)
 
-### Changed
-- The MCP server sends an `X-TF-Connect-Source: claude_plugin` header.
+### Added
+- Options `connect_source`, `connect_client` and `connect_attempt_id`, sent as query parameters on the MCP URL (defaults `claude_plugin`, `claude-code`, `none`).
 
 ## 2.0.0 (2026-10-27)
 
