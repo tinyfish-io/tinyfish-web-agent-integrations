@@ -142,7 +142,7 @@ power, so the enforceable copy is the one inside each skill.
 ## Privacy and support
 
 - Privacy policy: https://www.tinyfish.ai/privacy-policy
-- Support: [support@tinyfish.io](mailto:support@tinyfish.io), or open an issue in
+- Support: [support@tinyfish.ai](mailto:support@tinyfish.ai), or open an issue in
   [this repository](https://github.com/tinyfish-io/tinyfish-web-agent-integrations/issues).
 
 ## Resources
