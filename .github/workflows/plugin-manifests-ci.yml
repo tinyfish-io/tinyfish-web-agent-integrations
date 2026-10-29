@@ -71,10 +71,10 @@ jobs:
       - name: MCP client version matches the power version
         run: |
           set -euo pipefail
-          plugin=$(jq -re '.version' kiro/plugin.json)
-          hdr=$(jq -re '.mcpServers.tinyfish.headers["X-TF-Client-Version"]' kiro/mcp.json)
+          plugin=$(jq -re '.version' kiro/tinyfish/plugin.json)
+          hdr=$(jq -re '.mcpServers.tinyfish.headers["X-TF-Client-Version"]' kiro/tinyfish/mcp.json)
           echo "plugin.json=$plugin mcp.json=$hdr"
           if [ "$plugin" != "$hdr" ]; then
-            echo "::error file=kiro/mcp.json::X-TF-Client-Version is $hdr but kiro/plugin.json is $plugin"
+            echo "::error file=kiro/tinyfish/mcp.json::X-TF-Client-Version is $hdr but kiro/tinyfish/plugin.json is $plugin"
             exit 1
           fi

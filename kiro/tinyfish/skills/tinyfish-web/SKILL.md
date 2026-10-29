@@ -66,9 +66,10 @@ sends that key and has no OAuth fallback. **Call the MCP tools, not the `tinyfis
 its own key, and after an OAuth sign-in it has none.
 
 On an auth error, or when the server lists no tools, check which setup this is. Power: Kiro does not
-open the sign-in on its own; tell the user to authenticate `power-tinyfish-tinyfish` — in Kiro CLI,
-press Ctrl+Y at the "Starting OAuth" prompt or run `/mcp` for the link — and finish the browser
-sign-in. Kiro saves it for later sessions. Keyed:
+open the sign-in on its own; tell the user to sign in to the power's `tinyfish` MCP server — in the
+Kiro IDE, open the **MCP Servers** panel and click **Authenticate** next to it; in Kiro CLI, press
+Ctrl+Y at the "requires OAuth" prompt or run `/mcp` for the link — and finish the browser sign-in.
+Do not fall back to built-in web search without saying so. Kiro saves it for later sessions. Keyed:
 signing in fixes nothing — `TINYFISH_API_KEY` is unset in the environment Kiro was started from,
 missing from Kiro's **Mcp Approved Env Vars** setting, or revoked; tell the user to fix that and
 restart Kiro. Never ask for an API key in chat. On a wallet-balance or rate-limit error, say so plainly.

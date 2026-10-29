@@ -12,7 +12,7 @@ on:
       - "pi/skills/**"
       - "cli/skills/**"
       - "claude/skills/**"
-      - "kiro/skills/**"
+      - "kiro/tinyfish/skills/**"
   push:
     branches: [main]
     paths:
@@ -25,7 +25,7 @@ on:
       - "pi/skills/**"
       - "cli/skills/**"
       - "claude/skills/**"
-      - "kiro/skills/**"
+      - "kiro/tinyfish/skills/**"
 
 permissions:
   contents: read

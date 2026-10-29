@@ -36,7 +36,7 @@ test('renders slots and drops empty slot lines', () => {
   assert.equal(out['cli/skills/tinyfish-x/references/r.md'], 'Ref C.\n');
   assert.equal(out['mcp/skills/tinyfish-x/references/r.md'], 'Ref M.\n');
   assert.equal(out['claude/skills/tinyfish-x/references/r.md'], 'Ref K.\n');
-  assert.equal(out['kiro/skills/tinyfish-x/references/r.md'], 'Ref R.\n');
+  assert.equal(out['kiro/tinyfish/skills/tinyfish-x/references/r.md'], 'Ref R.\n');
 });
 
 test('fails on a slot missing from one surface', () => {

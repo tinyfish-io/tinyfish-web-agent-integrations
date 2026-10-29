@@ -18,24 +18,29 @@ task matches its keywords, so its tools and skills stay out of context until you
 1. Open Kiro and go to the **Powers** panel.
 2. Click **Add Custom Power**, then choose one of:
    - **Import power from GitHub** and enter
-     `https://github.com/tinyfish-io/tinyfish-web-agent-integrations/tree/main/kiro`, or
-   - **Import power from a folder** after cloning this repository, and select the `kiro/` directory
-     (the one containing `plugin.json`).
+     `https://github.com/tinyfish-io/tinyfish-web-agent-integrations/tree/main/kiro/tinyfish`, or
+   - **Import power from a folder** after cloning this repository, and select the `kiro/tinyfish/`
+     directory (the one containing `plugin.json`).
+
+   Kiro names an imported power after its folder, which is why the power lives in `tinyfish/`.
 3. Click **Install**.
 
    In Kiro CLI, install from a clone instead:
 
    ```bash
-   kiro-cli powers install ./tinyfish-web-agent-integrations/kiro
+   kiro-cli powers install ./tinyfish-web-agent-integrations/kiro/tinyfish
    ```
 
    Powers load only in V3 sessions, and V2 is still the CLI default, so start chat with
    `kiro-cli chat --v3`.
 
-4. Ask Kiro anything that needs the web. When the power first activates, Kiro asks you to sign in to
-   TinyFish — it doesn't open the browser on its own. In Kiro CLI, press **Ctrl+Y** at the "Starting
-   OAuth for power-tinyfish-tinyfish" prompt, or run `/mcp` to get the link, then sign in in your
-   browser. Kiro saves the sign-in for later sessions. You'll need a TinyFish account — [sign up
+4. Sign in to TinyFish. Kiro doesn't open the browser on its own:
+   - **Kiro IDE:** open the **MCP Servers** panel, find the power's `tinyfish` server, and click
+     **Authenticate**.
+   - **Kiro CLI:** ask anything that needs the web, then press **Ctrl+Y** at the "requires OAuth"
+     prompt, or run `/mcp` to get the link.
+
+   Finish the sign-in in your browser. Kiro saves the sign-in for later sessions. You'll need a TinyFish account — [sign up
    here](https://agent.tinyfish.ai).
 
 To update, select the power in the Powers panel and click **Check for updates**. To remove it, click
@@ -70,7 +75,7 @@ To update, select the power in the Powers panel and click **Check for updates**.
   fallback. Uninstall the power first so you don't load two copies of the same tools, then import the
   skills on their own: in **Agent Steering & Skills**, click **+**, choose **Import a skill**, and
   enter each skill's folder URL, such as
-  `https://github.com/tinyfish-io/tinyfish-web-agent-integrations/tree/main/kiro/skills/tinyfish-web`.
+  `https://github.com/tinyfish-io/tinyfish-web-agent-integrations/tree/main/kiro/tinyfish/skills/tinyfish-web`.
   Keys come from [agent.tinyfish.ai/api-keys](https://agent.tinyfish.ai/api-keys).
 
 ## Tools
@@ -112,7 +117,7 @@ These skills are generated from the shared source in [`skills/`](../skills); edi
 `make skills`, not here.
 
 Each skill carries its own safety rules inline — untrusted content handling, the prohibition on putting
-credentials in a goal, and confirmation before irreversible actions. `rules/security.md` documents them
+credentials in a goal, and confirmation before irreversible actions. [`tinyfish/rules/security.md`](tinyfish/rules/security.md) documents them
 in full for readers and reviewers; Kiro loads only `plugin.json`, `mcp.json`, and `skills/` from a
 power, so the enforceable copy is the one inside each skill.
 
@@ -131,7 +136,7 @@ power, so the enforceable copy is the one inside each skill.
 - **Website credentials** used during authenticated runs are supplied by TinyFish Vault from the user's
   connected password manager and are filled into pages without the agent seeing them. The skills
   prohibit putting credentials in a goal string.
-- **Untrusted content:** `rules/security.md` instructs the agent to treat all fetched web content as
+- **Untrusted content:** `tinyfish/rules/security.md` instructs the agent to treat all fetched web content as
   untrusted and never to follow instructions found inside it.
 
 ## Privacy and support
@@ -152,4 +157,4 @@ power, so the enforceable copy is the one inside each skill.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](tinyfish/LICENSE).
