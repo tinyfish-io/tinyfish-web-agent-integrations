@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.0 (2026-10-29)
+
+### Added
+- Options `connect_source`, `connect_client` and `connect_attempt_id`, sent as query parameters on the MCP URL (defaults `claude_plugin`, `claude-code`, `none`).
+
 ## 2.0.0 (2026-10-27)
 
 ### Changed
