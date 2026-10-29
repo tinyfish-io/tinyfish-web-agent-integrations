@@ -23,3 +23,7 @@ Current Python package version files:
 PyPI versions are immutable. If a version has already been published, bump to a new version such as a patch release before merging.
 
 The publish workflows use the repository `PYPI_API_TOKEN` Actions secret provisioned through `github-control`; never commit token values or package credentials.
+
+## Kiro power
+
+`kiro/tinyfish/plugin.json`'s `description` names the TinyFish MCP tools and their required arguments on purpose. Kiro cuts a power's activation output at 30,000 characters and shows the agent only the first and last 500, and the hosted server's tool list is about 38,000, so without those names the agent guesses tool names such as `fetch`. Kiro always shows the `description` in full. When a tool used there is renamed or gains a required argument on the server, update the description and bump `version` in `kiro/tinyfish/plugin.json` and `X-TF-Client-Version` in `kiro/tinyfish/mcp.json` together; CI checks that the two versions match. The power lives in `kiro/tinyfish/`, not `kiro/`, because the Kiro IDE names an imported power after its folder (`kiro` would name the server `power-kiro-tinyfish`); Kiro CLI uses `plugin.json`'s `name`.

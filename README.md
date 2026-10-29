@@ -16,6 +16,7 @@ Choose your platform below, or follow the [API quick start](https://docs.tinyfis
 |---|---|
 | [Claude](./claude) | Hosted MCP tools and skills for Claude Code, Claude.ai, Claude Desktop, and Cowork. Covers search, page extraction, automation, browser control, and monitoring. |
 | [Grok](./grok) | Grok Build plugin with hosted MCP tools and skills for web research, automation, authenticated sites, browser control, and monitoring. |
+| [Kiro](./kiro) | Kiro power with hosted MCP tools and six skills for web research, automation, authenticated sites, browser control, and monitoring. |
 | [Hermes](./hermes) | Search and Fetch providers, a cloud browser provider, and the `tinyfish_agent` tool for goal-based web automation. |
 | [Pi](./pi) | `@tiny-fish/pi`: six skills that use TinyFish through an MCP adapter or the TinyFish CLI. |
 
