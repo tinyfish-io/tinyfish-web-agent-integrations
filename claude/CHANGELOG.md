@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.2 (2026-10-30)
+
+### Added
+- The MCP server sends an `X-TF-Connect-Attempt-Id` header from `TINYFISH_PLUGIN_CONNECT_ATTEMPT_ID`, empty when unset.
+
 ## 2.1.1 (2026-10-29)
 
 ### Fixed
