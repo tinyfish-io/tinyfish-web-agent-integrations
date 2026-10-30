@@ -2,7 +2,7 @@
   "mcpServers": {
     "tinyfish": {
       "type": "http",
-      "url": "https://agent.tinyfish.ai/mcp?source=${user_config.connect_source}&client=${user_config.connect_client}&connect_attempt_id=${user_config.connect_attempt_id}",
+      "url": "https://agent.tinyfish.ai/mcp?source=claude_plugin",
       "headers": {
         "X-API-Key": "${TINYFISH_API_KEY:-}"
       }

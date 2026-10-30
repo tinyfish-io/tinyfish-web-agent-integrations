@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.1 (2026-10-29)
+
+### Fixed
+- Installing from claude.ai failed on the `${user_config.*}` placeholders in the MCP URL. The URL is now fixed (`?source=claude_plugin`) and the `connect_*` options are removed.
+
 ## 2.1.0 (2026-10-29)
 
 ### Added
