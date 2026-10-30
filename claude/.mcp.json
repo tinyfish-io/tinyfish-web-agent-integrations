@@ -2,7 +2,7 @@
   "mcpServers": {
     "tinyfish": {
       "type": "http",
-      "url": "https://agent.tinyfish.ai/mcp?source=claude_plugin&client=claude-code",
+      "url": "https://agent.tinyfish.ai/mcp?source=claude_plugin",
       "headers": {
         "X-API-Key": "${TINYFISH_API_KEY:-}"
       }
