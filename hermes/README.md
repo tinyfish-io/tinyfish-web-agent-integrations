@@ -7,6 +7,7 @@
 | Search, Fetch (free) | `tinyfish` web provider behind Hermes' `web_search` / `web_extract` |
 | Browser (credits) | `tinyfish` cloud browser provider behind Hermes' browser tools |
 | Agent (credits) | `tinyfish_agent` tool: goal-based automation on a real site |
+| Profiles (free) | `tinyfish_*_profile(s)` tools: saved website sign-ins that `tinyfish_agent` runs with |
 
 ## Install
 
@@ -87,6 +88,20 @@ tinyfish:
   browser:
     timeout_seconds: 300  # optional session timeout
 ```
+
+## Browser Context Profiles
+
+A Browser Context Profile is a saved website sign-in. It is unrelated to Hermes profiles and to `tinyfish_agent`'s `browser_profile` (lite/stealth).
+
+| Tool | Does |
+| ---- | ---- |
+| `tinyfish_list_profiles` | Lists profiles with their `signed_in_sites` |
+| `tinyfish_create_profile` | Creates a profile and returns `setup_url`, where the user signs in and clicks Save profile |
+| `tinyfish_profile_sign_in` | Returns `setup_url` to add or refresh a site on an existing profile |
+| `tinyfish_update_profile` | Renames a profile or makes it the default |
+| `tinyfish_delete_profile` | Deletes a profile; asks for approval first unless Hermes approvals are off (`--yolo`) |
+
+`tinyfish_agent` runs signed in with `profile_id` (or `use_profile: true` for the default profile). A profile's proxy country overrides the run's `proxy_country_code`. `setup_url` asks the user to sign in to TinyFish first if that browser isn't already. Nothing bills until the user opens it; runs bill under `tinyfish.credit_policy.agent`.
 
 ## Tool-routing guidance
 
