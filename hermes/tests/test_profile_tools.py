@@ -185,3 +185,36 @@ def test_delete_always_asks_and_approval_is_per_profile() -> None:
         "tinyfish_update_profile",
     ):
         assert pre_tool_call_policy(name, {}) is None
+
+
+@pytest.mark.parametrize(
+    ("given", "sent"), [("gb", "GB"), ("none", None), ("Direct", None)]
+)
+def test_update_sets_or_clears_the_profile_proxy(
+    http: Any, given: str, sent: str | None
+) -> None:
+    reply(http, 200, {"id": "prof_1", "proxy_country_code": sent})
+
+    call(
+        "tinyfish_update_profile", {"profile_id": "prof_1", "proxy_country_code": given}
+    )
+
+    assert http.sent[0]["json"] == {"proxy_country_code": sent}
+
+
+def test_create_sends_the_proxy_with_the_profile(http: Any) -> None:
+    reply(http, 201, {"id": "prof_1", "name": "Amazon", "proxy_country_code": "US"})
+
+    out = call(
+        "tinyfish_create_profile", {"name": "Amazon", "proxy_country_code": "us"}
+    )
+
+    assert http.sent[0]["json"] == {"name": "Amazon", "proxy_country_code": "US"}
+    assert out["proxy_country_code"] == "US"
+
+
+def test_bad_proxy_code_errors_before_calling_the_api(http: Any) -> None:
+    out = call("tinyfish_create_profile", {"name": "x", "proxy_country_code": "USA"})
+
+    assert "2-letter country code" in out["error"]
+    assert http.sent == []
