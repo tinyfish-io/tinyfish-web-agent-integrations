@@ -257,8 +257,8 @@ TELEMETRY_QUESTION = (
 def _share_usage(args: argparse.Namespace) -> bool:
     """Opt-in only: the flag, a saved tinyfish.telemetry, or a y/N answer."""
 
-    # Hermes keeps settings in its .env, which never reaches os.environ.
-    if rest_client.telemetry_disabled(_get_env("TINYFISH_NO_TELEMETRY")):
+    # Profile-scoped, so an opt-out in this profile's .env counts.
+    if rest_client.telemetry_disabled(_secret("TINYFISH_NO_TELEMETRY")):
         return False
     config = _load_config()
     section = config.get("tinyfish")
