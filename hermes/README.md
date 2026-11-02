@@ -11,17 +11,17 @@
 
 ## Install
 
-The supported path is the TinyFish CLI, which installs the plugin from npm
-(`@tiny-fish/hermes@latest`), seeds the API key, and points Hermes' web backends at it:
+Install from the Hermes plugin catalog, then add your key and route web tools to TinyFish:
 
 ```bash
-tinyfish connect hermes
+hermes plugins install tinyfish
+hermes tinyfish setup
 ```
 
-To install just the plugin straight from this repo (no key seeding, no backend wiring):
+Or let the TinyFish CLI do both: it installs the same catalog plugin, seeds the API key, and points Hermes' web backends at it:
 
 ```bash
-hermes plugins install tinyfish-io/tinyfish-web-agent-integrations/hermes --enable
+npx @tiny-fish/cli connect hermes
 ```
 
 ## Authentication
@@ -31,7 +31,7 @@ The plugin authenticates with a TinyFish API key — create one at [agent.tinyfi
 | Env var | Source |
 | ------- | ------ |
 | `TINYFISH_API_KEY` | Set it yourself (shell env, or `hermes tinyfish setup --api-key`) |
-| `MCP_TINYFISH_API_KEY` | Seeded by the TinyFish npm CLI during `tinyfish connect hermes` |
+| `MCP_TINYFISH_API_KEY` | Seeded by the TinyFish npm CLI during `npx @tiny-fish/cli connect hermes` |
 
 ## CLI
 
