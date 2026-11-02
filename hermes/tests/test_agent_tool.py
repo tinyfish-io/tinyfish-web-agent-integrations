@@ -4,6 +4,7 @@ import json
 import sys
 import types
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 
@@ -262,20 +263,17 @@ def test_tinyfish_agent_makes_profile_hint_links_absolute(api: dict[str, Any]) -
 
 
 def test_tinyfish_agent_no_default_profile_error_says_what_to_do(
-    api: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+    api: dict[str, Any],
 ) -> None:
-    def start_run(*args: Any, **kwargs: Any) -> dict[str, Any]:
-        raise rest_client.TinyFishRestError(
-            "HTTP 400: No default Browser Context Profile found.",
-            400,
-        )
-
-    monkeypatch.setattr(rest_client, "start_run", start_run)
-
-    out = json.loads(
-        agent_tool.tinyfish_agent(
-            {"url": "https://a.com", "goal": "x", "use_profile": True}
-        )
+    error = rest_client.TinyFishRestError(
+        "HTTP 400: No default Browser Context Profile found.", 400
     )
+
+    with patch.object(rest_client, "start_run", side_effect=error):
+        out = json.loads(
+            agent_tool.tinyfish_agent(
+                {"url": "https://a.com", "goal": "x", "use_profile": True}
+            )
+        )
 
     assert "tinyfish_create_profile" in out["next_step"]

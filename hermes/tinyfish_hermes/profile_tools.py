@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from http import HTTPStatus
 
 from . import rest_client
 
@@ -21,7 +22,7 @@ def error_next_step(exc: rest_client.TinyFishRestError) -> str | None:
         )
     if "not found" in message and "profile" in message:
         return "Call tinyfish_list_profiles and use an exact profile_id from it."
-    if exc.status == 409:
+    if exc.status == HTTPStatus.CONFLICT:
         return "Retry in a few seconds."
     return None
 
