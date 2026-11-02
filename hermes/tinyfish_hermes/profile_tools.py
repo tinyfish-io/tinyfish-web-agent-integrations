@@ -24,6 +24,16 @@ _SITE = {
     "type": "string",
     "description": "Site the user will sign in to, e.g. amazon.com or a URL on it.",
 }
+_PROXY = {
+    "type": "string",
+    "description": (
+        "Proxy country for both sign-in and runs on this profile, as an ISO 3166-1 "
+        "alpha-2 code such as US; 'none' connects directly. Set one when a site "
+        "blocks the sign-in page or needs a local IP. Overrides tinyfish_agent's "
+        "proxy_country_code."
+    ),
+}
+_NO_PROXY = frozenset({"none", "off", "direct"})
 
 
 def _schema(
@@ -61,6 +71,7 @@ CREATE_SCHEMA = _schema(
             "type": "boolean",
             "description": "Make this the profile use_profile picks by default.",
         },
+        "proxy_country_code": _PROXY,
     },
     ["name"],
 )
@@ -74,7 +85,8 @@ SIGN_IN_SCHEMA = _schema(
 )
 UPDATE_SCHEMA = _schema(
     "tinyfish_update_profile",
-    "Rename a TinyFish Browser Context Profile or make it the default.",
+    "Rename a TinyFish Browser Context Profile, make it the default, or change "
+    "its proxy country (e.g. when a site blocks the sign-in link).",
     {
         "profile_id": _PROFILE_ID,
         "name": {"type": "string", "description": "New name, 1-100 characters."},
@@ -82,6 +94,7 @@ UPDATE_SCHEMA = _schema(
             "type": "boolean",
             "description": "true makes this the default profile; false is ignored.",
         },
+        "proxy_country_code": _PROXY,
     },
     ["profile_id"],
 )
@@ -118,7 +131,9 @@ def sign_in_next_step(profile_id: str) -> str:
         "that is expected. They then sign in to the site and click Save profile; "
         "never ask for their password. Wait until they say they are done, check "
         "tinyfish_list_profiles (if signed_in_sites is absent, take their word), "
-        f'then run tinyfish_agent with profile_id "{profile_id}".'
+        f'then run tinyfish_agent with profile_id "{profile_id}". If the site blocks '
+        "the sign-in page, set proxy_country_code with tinyfish_update_profile and "
+        "send the same link again."
     )
 
 
@@ -181,15 +196,26 @@ def _list(args: dict[str, Any], api_key: str) -> dict[str, Any]:
     return {"profiles": [_summary(p) for p in profiles if isinstance(p, dict)]}
 
 
+def _proxy_fields(args: dict[str, Any]) -> dict[str, Any]:
+    value = str(args.get("proxy_country_code") or "").strip()
+    if not value:
+        return {}
+    if value.lower() in _NO_PROXY:
+        return {"proxy_country_code": None}
+    if len(value) != 2 or not value.isalpha():
+        raise ValueError(
+            f"proxy_country_code '{value}' must be a 2-letter country code or 'none'."
+        )
+    return {"proxy_country_code": value.upper()}
+
+
 def _create(args: dict[str, Any], api_key: str) -> dict[str, Any]:
-    name = _required(args, "name")
+    fields: dict[str, Any] = {"name": _required(args, "name")}
     site = site_host(str(args.get("site") or ""))
-    default = args.get("set_as_default")
-    profile = rest_client.create_profile(
-        name,
-        api_key=api_key,
-        set_as_default=bool(default) if default is not None else None,
-    )
+    if args.get("set_as_default") is not None:
+        fields["set_as_default"] = bool(args["set_as_default"])
+    fields.update(_proxy_fields(args))
+    profile = rest_client.create_profile(fields, api_key=api_key)
     profile_id = str(profile.get("id") or "")
     if not profile_id:
         raise rest_client.TinyFishRestError(
@@ -220,8 +246,11 @@ def _update(args: dict[str, Any], api_key: str) -> dict[str, Any]:
         fields["name"] = name
     if args.get("set_as_default") is True:
         fields["set_as_default"] = True
+    fields.update(_proxy_fields(args))
     if not fields:
-        raise ValueError("Nothing to update: pass name, or set_as_default true.")
+        raise ValueError(
+            "Nothing to update: pass name, proxy_country_code, or set_as_default true."
+        )
     return _summary(rest_client.update_profile(profile_id, fields, api_key=api_key))
 
 

@@ -420,13 +420,8 @@ def list_profiles(*, api_key: str) -> dict[str, Any]:
     return _profile_request("GET", "", api_key=api_key)
 
 
-def create_profile(
-    name: str, *, api_key: str, set_as_default: bool | None = None
-) -> dict[str, Any]:
-    body: dict[str, Any] = {"name": name}
-    if set_as_default is not None:
-        body["set_as_default"] = set_as_default
-    return _profile_request("POST", "", api_key=api_key, json_body=body)
+def create_profile(fields: dict[str, Any], *, api_key: str) -> dict[str, Any]:
+    return _profile_request("POST", "", api_key=api_key, json_body=fields)
 
 
 def update_profile(
