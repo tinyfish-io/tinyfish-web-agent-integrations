@@ -11,6 +11,8 @@ HERMES_HOME=$(mktemp -d)
 if command -v cygpath >/dev/null; then HERMES_HOME=$(cygpath -m "$HERMES_HOME"); fi
 [[ $REPO_ROOT == /* ]] || REPO_ROOT=/$REPO_ROOT
 export HERMES_HOME
+# CI setups would otherwise count as real plugin installs.
+export TINYFISH_NO_TELEMETRY=1
 trap 'rm -rf "$HERMES_HOME"' EXIT
 
 step() { printf '\n== %s\n' "$*"; }
