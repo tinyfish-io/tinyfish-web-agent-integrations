@@ -28,20 +28,20 @@ MISSING_KEY_ERROR = (
 )
 
 
-def _provider_env(name: str) -> str:
-    """Read Hermes config-aware environment values when available."""
+def _secret(name: str) -> str:
+    """Read a credential through Hermes' profile-aware secret scope."""
 
     try:
-        from agent.web_search_provider import get_provider_env
-
-        return str(get_provider_env(name) or "").strip()
-    except Exception:
+        from agent.secret_scope import get_secret_str
+    except ImportError:  # Hermes before profile secret scopes (2026-06)
         return str(os.getenv(name, "") or "").strip()
+    # Let UnscopedSecretError raise; os.environ there holds another profile's key.
+    return str(get_secret_str(name) or "").strip()
 
 
 def _api_key() -> str:
     for name in API_KEY_ENV_VARS:
-        value = _provider_env(name)
+        value = _secret(name)
         if value:
             return value
     return ""

@@ -70,7 +70,7 @@ def env(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     monkeypatch.setattr(
         cli, "_save_config", lambda config: state["saved_configs"].append(config)
     )
-    monkeypatch.setattr(cli, "_get_env", lambda name: state["env"].get(name, ""))
+    monkeypatch.setattr(cli, "_secret", lambda name: state["env"].get(name, ""))
 
     def fake_save_env_secure(name: str, value: str) -> dict[str, Any]:
         state["saved_env"].append((name, value))
