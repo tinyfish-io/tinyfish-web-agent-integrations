@@ -13,6 +13,11 @@ provides_browser_providers:
   - tinyfish
 provides_tools:
   - tinyfish_agent
+  - tinyfish_list_profiles
+  - tinyfish_create_profile
+  - tinyfish_profile_sign_in
+  - tinyfish_update_profile
+  - tinyfish_delete_profile
 provides_hooks:
   - pre_tool_call
   - pre_llm_call

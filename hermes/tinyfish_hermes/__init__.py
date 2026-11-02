@@ -48,6 +48,7 @@ def register(ctx: Any) -> None:
     from .agent_tool import TINYFISH_AGENT_SCHEMA, tinyfish_agent
     from .browser_provider import TinyFishBrowserProvider, shutdown_cleanup
     from .credit_policy import pre_tool_call_policy
+    from .profile_tools import PROFILE_TOOLS
     from .provider import TinyFishWebSearchProvider, _api_key
     from .routing_context import routing_context_hook
     from .setup_cli import (
@@ -65,16 +66,20 @@ def register(ctx: Any) -> None:
         ctx.register_hook("pre_tool_call", pre_tool_call_policy)
         ctx.register_hook("pre_llm_call", routing_context_hook)
         ctx.register_hook("on_session_finalize", shutdown_cleanup)
-    # tinyfish_agent spends credits, so it also needs the pre_tool_call gate.
+    # Agent credits and profile delete approval both rely on the pre_tool_call gate.
     if hasattr(ctx, "register_hook") and hasattr(ctx, "register_tool"):
-        ctx.register_tool(
-            name="tinyfish_agent",
-            toolset="tinyfish",
-            schema=TINYFISH_AGENT_SCHEMA,
-            handler=tinyfish_agent,
-            check_fn=lambda: bool(_api_key()),
-            emoji="🐟",
-        )
+        for schema, handler in (
+            (TINYFISH_AGENT_SCHEMA, tinyfish_agent),
+            *PROFILE_TOOLS,
+        ):
+            ctx.register_tool(
+                name=schema["name"],
+                toolset="tinyfish",
+                schema=schema,
+                handler=handler,
+                check_fn=lambda: bool(_api_key()),
+                emoji="🐟",
+            )
 
     if hasattr(ctx, "register_cli_command"):
 

@@ -125,6 +125,14 @@ def pre_tool_call_policy(
 
     if tool_name == "tinyfish_agent":
         return _directive_for_feature("agent", tool_name, target)
+    if tool_name == "tinyfish_delete_profile":
+        profile_id = str(params.get("profile_id") or "")
+        # Keyed per profile so one approval never covers deleting a different profile.
+        return {
+            "action": "approve",
+            "message": f"Permanently delete TinyFish profile {profile_id}?",
+            "rule_key": f"tinyfish:profile_delete:{profile_id}",
+        }
     if not tool_name.startswith("browser_"):
         return None
     config = load_config()
