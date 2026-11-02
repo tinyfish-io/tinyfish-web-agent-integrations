@@ -101,7 +101,9 @@ UPDATE_SCHEMA = _schema(
 DELETE_SCHEMA = _schema(
     "tinyfish_delete_profile",
     "Permanently delete a TinyFish Browser Context Profile and its saved sign-ins. "
-    "Only when the user asks; name the profile to them first. It cannot be undone.",
+    "Only when the user asks; name the profile to them first. It cannot be undone. "
+    "Deletes one profile per call: to delete several, call once per profile, one "
+    "after another, never in parallel or batched.",
     {"profile_id": _PROFILE_ID},
     ["profile_id"],
 )
@@ -147,7 +149,7 @@ def error_next_step(exc: rest_client.TinyFishRestError) -> str | None:
     if "not found" in message and "profile" in message:
         return "Call tinyfish_list_profiles and use an exact profile_id from it."
     if exc.status == 409:
-        return "Retry in a few seconds."
+        return "Wait for the previous call on this profile to finish, then retry."
     return None
 
 

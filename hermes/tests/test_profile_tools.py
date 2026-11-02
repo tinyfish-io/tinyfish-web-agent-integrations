@@ -218,3 +218,13 @@ def test_bad_proxy_code_errors_before_calling_the_api(http: Any) -> None:
 
     assert "2-letter country code" in out["error"]
     assert http.sent == []
+
+
+def test_delete_in_progress_says_to_wait_before_retrying(http: Any) -> None:
+    message = "Profile delete is still in progress. Retry in a moment."
+    reply(http, 409, {"error": {"code": "RETRY_REQUIRED", "message": message}})
+
+    out = call("tinyfish_delete_profile", {"profile_id": "prof_1"})
+
+    assert message in out["error"]
+    assert "Wait for the previous call" in out["next_step"]
