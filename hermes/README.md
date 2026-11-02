@@ -14,7 +14,7 @@
 Install from the Hermes plugin catalog, then add your key and route web tools to TinyFish:
 
 ```bash
-hermes plugins install tinyfish
+hermes plugins install tinyfish --enable
 hermes tinyfish setup
 ```
 
