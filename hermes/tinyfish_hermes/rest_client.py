@@ -9,6 +9,7 @@ import sys
 import time
 import uuid
 from typing import Any, NoReturn, cast
+from urllib.parse import quote
 
 import httpx
 
@@ -57,6 +58,15 @@ def _json_headers(api_key: str) -> dict[str, str]:
     return headers
 
 
+def _server_message(response: httpx.Response) -> str:
+    try:
+        error = response.json().get("error")
+    except Exception:
+        return ""
+    message = error.get("message") if isinstance(error, dict) else None
+    return message[:500] if isinstance(message, str) else ""
+
+
 def _raise_http_error(service: str, exc: httpx.HTTPStatusError) -> NoReturn:
     status = exc.response.status_code
     if status == 402:
@@ -65,7 +75,12 @@ def _raise_http_error(service: str, exc: httpx.HTTPStatusError) -> NoReturn:
             "TinyFish credits or billing may be required.",
             status,
         ) from exc
-    raise TinyFishRestError(f"{service} returned HTTP {status}", status) from exc
+    # 4xx text is TinyFish's own validation message and tells the agent what to fix.
+    detail = _server_message(exc.response) if 400 <= status < 500 else ""
+    suffix = f": {detail}" if detail else ""
+    raise TinyFishRestError(
+        f"{service} returned HTTP {status}{suffix}", status
+    ) from exc
 
 
 def search(
@@ -294,6 +309,7 @@ def _agent_request(
     api_key: str,
     json_body: dict[str, Any] | None = None,
     timeout: float = 30.0,
+    service: str = "TinyFish Agent",
 ) -> dict[str, Any]:
     try:
         response = httpx.request(
@@ -306,13 +322,13 @@ def _agent_request(
         response.raise_for_status()
         data = response.json()
     except httpx.HTTPStatusError as exc:
-        _raise_http_error("TinyFish Agent", exc)
+        _raise_http_error(service, exc)
     except httpx.RequestError as exc:
-        raise TinyFishRestError(f"Could not reach TinyFish Agent: {exc}") from exc
+        raise TinyFishRestError(f"Could not reach {service}: {exc}") from exc
     except ValueError as exc:
-        raise TinyFishRestError("TinyFish Agent returned invalid JSON") from exc
+        raise TinyFishRestError(f"{service} returned invalid JSON") from exc
     if not isinstance(data, dict):
-        raise TinyFishRestError("TinyFish Agent returned an unexpected response")
+        raise TinyFishRestError(f"{service} returned an unexpected response")
     return data
 
 
@@ -323,6 +339,8 @@ def start_run(
     api_key: str,
     browser_profile: str = "lite",
     proxy_country_code: str | None = None,
+    use_profile: bool = False,
+    profile_id: str | None = None,
 ) -> dict[str, Any]:
     """Enqueue a TinyFish Agent run; returns immediately with ``run_id``."""
 
@@ -334,6 +352,11 @@ def start_run(
     }
     if proxy_country_code:
         body["proxy_config"] = {"enabled": True, "country_code": proxy_country_code}
+    # The API rejects profile_id without use_profile, so an id implies it.
+    if use_profile or profile_id:
+        body["use_profile"] = True
+    if profile_id:
+        body["profile_id"] = profile_id
     return _agent_request(
         "POST", "/v1/automation/run-async", api_key=api_key, json_body=body
     )
@@ -375,3 +398,44 @@ def get_run(run_id: str, *, api_key: str) -> dict[str, Any]:
 
 def cancel_run(run_id: str, *, api_key: str) -> dict[str, Any]:
     return _agent_request("POST", f"/v1/runs/{run_id}/cancel", api_key=api_key)
+
+
+def _profile_request(
+    method: str, path: str, *, api_key: str, json_body: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    return _agent_request(
+        method,
+        f"/v1/profiles{path}",
+        api_key=api_key,
+        json_body=json_body,
+        service="TinyFish Profiles",
+    )
+
+
+def _profile_path(profile_id: str) -> str:
+    return "/" + quote(profile_id, safe="")
+
+
+def list_profiles(*, api_key: str) -> dict[str, Any]:
+    return _profile_request("GET", "", api_key=api_key)
+
+
+def create_profile(
+    name: str, *, api_key: str, set_as_default: bool | None = None
+) -> dict[str, Any]:
+    body: dict[str, Any] = {"name": name}
+    if set_as_default is not None:
+        body["set_as_default"] = set_as_default
+    return _profile_request("POST", "", api_key=api_key, json_body=body)
+
+
+def update_profile(
+    profile_id: str, fields: dict[str, Any], *, api_key: str
+) -> dict[str, Any]:
+    return _profile_request(
+        "PATCH", _profile_path(profile_id), api_key=api_key, json_body=fields
+    )
+
+
+def delete_profile(profile_id: str, *, api_key: str) -> dict[str, Any]:
+    return _profile_request("DELETE", _profile_path(profile_id), api_key=api_key)
