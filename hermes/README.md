@@ -92,10 +92,6 @@ tinyfish:
 
 When the `tinyfish` MCP server is also configured in Hermes (`mcp_servers.tinyfish.url: https://agent.tinyfish.ai/mcp`), the plugin injects once-per-context guidance steering the model between the generic web tools and the native MCP tools. Disable with `tinyfish.routing_context: false`.
 
-## Telemetry
-
-Each `hermes tinyfish setup` run sends one event to TinyFish, whether it succeeds or fails: the outcome (for example `completed` or `key_rejected`), where the key came from (`flag`, `prompt`, `env` or `none`), the plugin version and OS. It sends a one-way hash of the API key, never the key itself, so the event joins your account. Set `TINYFISH_NO_TELEMETRY=1` in your shell or in `~/.hermes/.env` to turn it off.
-
 ## Development
 
 ```bash
