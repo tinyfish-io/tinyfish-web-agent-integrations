@@ -401,13 +401,19 @@ def cancel_run(run_id: str, *, api_key: str) -> dict[str, Any]:
 
 
 def _profile_request(
-    method: str, path: str, *, api_key: str, json_body: dict[str, Any] | None = None
+    method: str,
+    path: str,
+    *,
+    api_key: str,
+    json_body: dict[str, Any] | None = None,
+    timeout: float = 30.0,
 ) -> dict[str, Any]:
     return _agent_request(
         method,
         f"/v1/profiles{path}",
         api_key=api_key,
         json_body=json_body,
+        timeout=timeout,
         service="TinyFish Profiles",
     )
 
@@ -422,6 +428,14 @@ def list_profiles(*, api_key: str) -> dict[str, Any]:
 
 def create_profile(fields: dict[str, Any], *, api_key: str) -> dict[str, Any]:
     return _profile_request("POST", "", api_key=api_key, json_body=fields)
+
+
+def get_profile(
+    profile_id: str, *, api_key: str, timeout: float = 30.0
+) -> dict[str, Any]:
+    return _profile_request(
+        "GET", _profile_path(profile_id), api_key=api_key, timeout=timeout
+    )
 
 
 def update_profile(

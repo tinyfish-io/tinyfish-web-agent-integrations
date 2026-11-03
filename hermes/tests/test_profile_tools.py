@@ -173,7 +173,7 @@ def test_missing_key_never_calls_the_api(
     assert http.sent == []
 
 
-def test_delete_always_asks_and_approval_is_per_profile() -> None:
+def test_delete_always_asks_and_approval_is_per_profile(http: Any) -> None:
     first = pre_tool_call_policy("tinyfish_delete_profile", {"profile_id": "prof_1"})
     second = pre_tool_call_policy("tinyfish_delete_profile", {"profile_id": "prof_2"})
 
@@ -228,3 +228,27 @@ def test_delete_in_progress_says_to_wait_before_retrying(http: Any) -> None:
 
     assert message in out["error"]
     assert "Wait for the previous call" in out["next_step"]
+
+
+def test_delete_approval_names_the_profile(http: Any) -> None:
+    reply(http, 200, {"id": "prof_1", "name": "Amazon Personal"})
+
+    directive = pre_tool_call_policy(
+        "tinyfish_delete_profile", {"profile_id": "prof_1"}
+    )
+
+    assert http.sent[0]["method"] == "GET"
+    assert http.sent[0]["url"].endswith("/v1/profiles/prof_1")
+    assert directive and "'Amazon Personal' (prof_1)" in directive["message"]
+
+
+def test_delete_approval_falls_back_to_the_id(http: Any) -> None:
+    reply(http, 404, {"error": {"message": "Profile with id 'prof_1' not found"}})
+
+    directive = pre_tool_call_policy(
+        "tinyfish_delete_profile", {"profile_id": "prof_1"}
+    )
+
+    assert directive and directive["message"] == (
+        "Permanently delete TinyFish profile prof_1?"
+    )
