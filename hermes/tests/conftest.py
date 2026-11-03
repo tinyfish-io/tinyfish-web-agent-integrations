@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import sys
 import types
 from pathlib import Path
@@ -14,14 +13,9 @@ class WebSearchProvider:
     pass
 
 
-def get_provider_env(name: str) -> str:
-    return os.getenv(name, "")
-
-
 agent_pkg = types.ModuleType("agent")
 web_provider_mod = types.ModuleType("agent.web_search_provider")
 web_provider_mod.WebSearchProvider = WebSearchProvider  # type: ignore[attr-defined]
-web_provider_mod.get_provider_env = get_provider_env  # type: ignore[attr-defined]
 sys.modules.setdefault("agent", agent_pkg)
 sys.modules["agent.web_search_provider"] = web_provider_mod
 

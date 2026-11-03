@@ -293,3 +293,38 @@ def test_extract_honors_interrupt(monkeypatch: pytest.MonkeyPatch) -> None:
     docs = TinyFishWebSearchProvider().extract(["https://example.com"])
 
     assert docs[0]["error"] == "Interrupted"
+
+
+def test_api_key_reads_through_hermes_secret_scope(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import types
+
+    scope = types.ModuleType("agent.secret_scope")
+    scope.get_secret_str = lambda name, default="": {  # type: ignore[attr-defined]
+        "TINYFISH_API_KEY": " scoped_key "
+    }.get(name, default)
+    monkeypatch.setitem(sys.modules, "agent.secret_scope", scope)
+    monkeypatch.setenv("TINYFISH_API_KEY", "process_env_key")
+
+    assert provider_mod._api_key() == "scoped_key"
+
+
+def test_unscoped_secret_error_is_not_swallowed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import types
+
+    class UnscopedSecretError(RuntimeError):
+        pass
+
+    def get_secret_str(name: str, default: str = "") -> str:
+        raise UnscopedSecretError(name)
+
+    scope = types.ModuleType("agent.secret_scope")
+    scope.get_secret_str = get_secret_str  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "agent.secret_scope", scope)
+    monkeypatch.setenv("TINYFISH_API_KEY", "other_profile_key")
+
+    with pytest.raises(UnscopedSecretError):
+        provider_mod._api_key()

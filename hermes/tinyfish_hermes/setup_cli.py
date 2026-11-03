@@ -30,6 +30,7 @@ from .provider import (
     MISSING_KEY_ERROR,
     TinyFishWebSearchProvider,
     _api_key,
+    _secret,
 )
 from .routing_context import tinyfish_mcp_configured
 
@@ -145,15 +146,6 @@ def _save_config(config: dict[str, Any]) -> None:
     save_config(config)
 
 
-def _get_env(name: str) -> str:
-    try:
-        from hermes_cli.config import get_env_value
-
-        return str(get_env_value(name) or "").strip()
-    except Exception:
-        return str(os.getenv(name, "") or "").strip()
-
-
 def _save_env_secure(name: str, value: str) -> dict[str, Any]:
     from hermes_cli.config import save_env_value_secure
 
@@ -171,7 +163,7 @@ def _read_saved_env(name: str) -> str:
 
 def _api_key_env_var() -> str:
     for name in API_KEY_ENV_VARS:
-        if _get_env(name):
+        if _secret(name):
             return name
     return ""
 
@@ -265,8 +257,8 @@ TELEMETRY_QUESTION = (
 def _share_usage(args: argparse.Namespace) -> bool:
     """Opt-in only: the flag, a saved tinyfish.telemetry, or a y/N answer."""
 
-    # Hermes keeps settings in its .env, which never reaches os.environ.
-    if rest_client.telemetry_disabled(_get_env("TINYFISH_NO_TELEMETRY")):
+    # Profile-scoped, so an opt-out in this profile's .env counts.
+    if rest_client.telemetry_disabled(_secret("TINYFISH_NO_TELEMETRY")):
         return False
     config = _load_config()
     section = config.get("tinyfish")

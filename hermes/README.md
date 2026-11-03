@@ -7,20 +7,21 @@
 | Search, Fetch (free) | `tinyfish` web provider behind Hermes' `web_search` / `web_extract` |
 | Browser (credits) | `tinyfish` cloud browser provider behind Hermes' browser tools |
 | Agent (credits) | `tinyfish_agent` tool: goal-based automation on a real site |
+| Profiles (free) | `tinyfish_*_profile(s)` tools: saved website sign-ins that `tinyfish_agent` runs with |
 
 ## Install
 
-The supported path is the TinyFish CLI, which installs the plugin from npm
-(`@tiny-fish/hermes@latest`), seeds the API key, and points Hermes' web backends at it:
+Install from the Hermes plugin catalog, then add your key and route web tools to TinyFish:
 
 ```bash
-tinyfish connect hermes
+hermes plugins install tinyfish --enable
+hermes tinyfish setup
 ```
 
-To install just the plugin straight from this repo (no key seeding, no backend wiring):
+Or let the TinyFish CLI do both: it installs the same catalog plugin, seeds the API key, and points Hermes' web backends at it:
 
 ```bash
-hermes plugins install tinyfish-io/tinyfish-web-agent-integrations/hermes --enable
+npx @tiny-fish/cli connect hermes
 ```
 
 ## Authentication
@@ -30,7 +31,7 @@ The plugin authenticates with a TinyFish API key — create one at [agent.tinyfi
 | Env var | Source |
 | ------- | ------ |
 | `TINYFISH_API_KEY` | Set it yourself (shell env, or `hermes tinyfish setup --api-key`) |
-| `MCP_TINYFISH_API_KEY` | Seeded by the TinyFish npm CLI during `tinyfish connect hermes` |
+| `MCP_TINYFISH_API_KEY` | Seeded by the TinyFish npm CLI during `npx @tiny-fish/cli connect hermes` |
 
 ## CLI
 
@@ -87,6 +88,20 @@ tinyfish:
   browser:
     timeout_seconds: 300  # optional session timeout
 ```
+
+## Browser Context Profiles
+
+A Browser Context Profile is a saved website sign-in. It is unrelated to Hermes profiles and to `tinyfish_agent`'s `browser_profile` (lite/stealth).
+
+| Tool | Does |
+| ---- | ---- |
+| `tinyfish_list_profiles` | Lists profiles with their `signed_in_sites` |
+| `tinyfish_create_profile` | Creates a profile and returns `setup_url`, where the user signs in and clicks Save profile |
+| `tinyfish_profile_sign_in` | Returns `setup_url` to add or refresh a site on an existing profile |
+| `tinyfish_update_profile` | Renames a profile, makes it the default, or sets its proxy country (`none` removes it) |
+| `tinyfish_delete_profile` | Deletes a profile; asks for approval first unless Hermes approvals are off (`--yolo`) |
+
+`tinyfish_agent` runs signed in with `profile_id` (or `use_profile: true` for the default profile). A profile's proxy country (set on create or update) is used for both sign-in and runs, and overrides the run's `proxy_country_code`. If a site blocks the sign-in page, set one and reopen the same link. `setup_url` asks the user to sign in to TinyFish first if that browser isn't already. Nothing bills until the user opens it; runs bill under `tinyfish.credit_policy.agent`.
 
 ## Tool-routing guidance
 
