@@ -83,7 +83,15 @@ def test_register_with_full_context_adds_browser_provider_and_hooks() -> None:
         "on_session_finalize",
     ]
     assert all(callable(handler) for _, handler in ctx.hooks)
-    assert [tool["name"] for tool in ctx.tools] == ["tinyfish_agent"]
+    assert [tool["name"] for tool in ctx.tools] == [
+        "tinyfish_agent",
+        "tinyfish_list_profiles",
+        "tinyfish_create_profile",
+        "tinyfish_profile_sign_in",
+        "tinyfish_update_profile",
+        "tinyfish_delete_profile",
+    ]
+    assert all(tool["toolset"] == "tinyfish" for tool in ctx.tools)
     assert ctx.tools[0]["schema"]["name"] == "tinyfish_agent"
 
 
