@@ -115,6 +115,20 @@ def _directive_for_feature(
     return None
 
 
+def _profile_label(profile_id: str) -> str:
+    from . import rest_client
+    from .provider import _api_key
+
+    # The approver needs the real name, not the agent's claim; the id alone still works.
+    try:
+        name = rest_client.get_profile(profile_id, api_key=_api_key(), timeout=5.0).get(
+            "name"
+        )
+    except Exception:
+        return profile_id
+    return f"'{name}' ({profile_id})" if name else profile_id
+
+
 def pre_tool_call_policy(
     tool_name: str, args: dict[str, Any] | None = None, **_: Any
 ) -> dict[str, str] | None:
@@ -127,10 +141,11 @@ def pre_tool_call_policy(
         return _directive_for_feature("agent", tool_name, target)
     if tool_name == "tinyfish_delete_profile":
         profile_id = str(params.get("profile_id") or "")
+        label = _profile_label(profile_id)
         # Keyed per profile so one approval never covers deleting a different profile.
         return {
             "action": "approve",
-            "message": f"Permanently delete TinyFish profile {profile_id}?",
+            "message": f"Permanently delete TinyFish profile {label}?",
             "rule_key": f"tinyfish:profile_delete:{profile_id}",
         }
     if not tool_name.startswith("browser_"):
