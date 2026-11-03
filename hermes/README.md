@@ -94,7 +94,15 @@ When the `tinyfish` MCP server is also configured in Hermes (`mcp_servers.tinyfi
 
 ## Telemetry
 
-Each `hermes tinyfish setup` run sends one event to TinyFish, whether it succeeds or fails: the outcome (for example `completed` or `key_rejected`), where the key came from (`flag`, `prompt`, `env` or `none`), the plugin version and OS. It sends a one-way hash of the API key, never the key itself, so the event joins your account. Set `TINYFISH_NO_TELEMETRY=1` in your shell or in `~/.hermes/.env` to turn it off.
+Off unless you turn it on. When you opt in, each `hermes tinyfish setup` run sends TinyFish one event, whether it succeeds or fails: the outcome (for example `completed` or `key_rejected`), where the key came from (`flag`, `prompt`, `env` or `none`), the plugin version and OS. It sends a one-way hash of the API key, never the key itself, so the event joins your account.
+
+| Opt in | How |
+|---|---|
+| Interactive setup | Answer `y` to the setup question (default No). The answer is saved. |
+| Flag | `hermes tinyfish setup --share-usage` |
+| Config | `tinyfish.telemetry: true` in Hermes config |
+
+Set `tinyfish.telemetry: false` to stop sending. `TINYFISH_NO_TELEMETRY=1` (in your shell or `~/.hermes/.env`) turns it off regardless of the other settings.
 
 ## Development
 

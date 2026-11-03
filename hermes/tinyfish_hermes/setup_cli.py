@@ -51,6 +51,11 @@ def setup_tinyfish_cli(parser: argparse.ArgumentParser) -> None:
     setup.add_argument(
         "--live", action="store_true", help="Run live doctor checks after setup"
     )
+    setup.add_argument(
+        "--share-usage",
+        action="store_true",
+        help="Send TinyFish the setup outcome (sets tinyfish.telemetry: true)",
+    )
 
     status = sub.add_parser("status", help="Print non-secret TinyFish status")
     status.add_argument(
@@ -251,11 +256,41 @@ def _store_api_key(api_key: str) -> bool:
     return False
 
 
+TELEMETRY_QUESTION = (
+    "Share setup results with TinyFish (outcome, plugin version, OS and a hash "
+    "of your API key, never the key)?"
+)
+
+
+def _share_usage(args: argparse.Namespace) -> bool:
+    """Opt-in only: the flag, a saved tinyfish.telemetry, or a y/N answer."""
+
+    # Hermes keeps settings in its .env, which never reaches os.environ.
+    if rest_client.telemetry_disabled(_get_env("TINYFISH_NO_TELEMETRY")):
+        return False
+    config = _load_config()
+    section = config.get("tinyfish")
+    if not isinstance(section, dict):
+        section = config["tinyfish"] = {}
+    if getattr(args, "share_usage", False):
+        choice = True
+    elif isinstance(section.get("telemetry"), bool):
+        return bool(section["telemetry"])
+    elif getattr(args, "yes", False) or not sys.stdin.isatty():
+        return False
+    else:
+        choice = _confirm(TELEMETRY_QUESTION, default=False)
+    section["telemetry"] = choice
+    _save_config(config)
+    return choice
+
+
 def cmd_setup(
     args: argparse.Namespace,
     *,
     provider: TinyFishWebSearchProvider | None = None,
 ) -> int:
+    share_usage = _share_usage(args)
     api_key = (getattr(args, "api_key", None) or "").strip()
     key_source = "flag" if api_key else "none"
     existing = _api_key_env_var()
@@ -268,8 +303,7 @@ def cmd_setup(
 
     # Catalog installs skip `tinyfish connect`; this is their install signal.
     def report(outcome: str) -> None:
-        # Hermes keeps settings in its .env, which never reaches os.environ.
-        if rest_client.telemetry_disabled(_get_env("TINYFISH_NO_TELEMETRY")):
+        if not share_usage:
             return
         rest_client.report_setup(
             outcome, key_source=key_source, api_key=api_key or _api_key()

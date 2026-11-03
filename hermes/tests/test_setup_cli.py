@@ -874,7 +874,12 @@ def test_browser_enable_fails_when_agent_browser_install_fails(
 
 
 def test_setup_reports_completed_with_env_key(env: dict[str, Any]) -> None:
-    assert cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes"])) == 0
+    assert (
+        cli.dispatch_tinyfish_cli(
+            _parser().parse_args(["setup", "--yes", "--share-usage"])
+        )
+        == 0
+    )
 
     assert env["reports"] == [
         ("completed", {"key_source": "env", "api_key": "tf_test"})
@@ -882,7 +887,9 @@ def test_setup_reports_completed_with_env_key(env: dict[str, Any]) -> None:
 
 
 def test_setup_reports_flag_key(env: dict[str, Any]) -> None:
-    args = _parser().parse_args(["setup", "--yes", "--api-key", "tf_new"])
+    args = _parser().parse_args(
+        ["setup", "--yes", "--share-usage", "--api-key", "tf_new"]
+    )
 
     cli.dispatch_tinyfish_cli(args)
 
@@ -895,7 +902,9 @@ def test_setup_reports_rejected_key(
     env: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(cli, "_validate_key", lambda api_key: "rejected")
-    args = _parser().parse_args(["setup", "--yes", "--api-key", "tf_bad"])
+    args = _parser().parse_args(
+        ["setup", "--yes", "--share-usage", "--api-key", "tf_bad"]
+    )
 
     cli.dispatch_tinyfish_cli(args)
 
@@ -906,7 +915,9 @@ def test_setup_reports_save_failure(
     env: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(cli, "_read_saved_env", lambda name: "")
-    args = _parser().parse_args(["setup", "--yes", "--api-key", "tf_new"])
+    args = _parser().parse_args(
+        ["setup", "--yes", "--share-usage", "--api-key", "tf_new"]
+    )
 
     cli.dispatch_tinyfish_cli(args)
 
@@ -916,7 +927,7 @@ def test_setup_reports_save_failure(
 def test_setup_reports_missing_key(env: dict[str, Any]) -> None:
     env["env"] = {}
 
-    cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes"]))
+    cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes", "--share-usage"]))
 
     assert env["reports"] == [("no_key", {"key_source": "none", "api_key": ""})]
 
@@ -926,13 +937,57 @@ def test_setup_reports_backend_failure(
 ) -> None:
     monkeypatch.setattr(cli, "_enable_toolset", lambda name: False)
 
-    cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes"]))
+    cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes", "--share-usage"]))
 
     assert [outcome for outcome, _ in env["reports"]] == ["backend_failed"]
 
 
 def test_setup_honours_opt_out_from_hermes_env(env: dict[str, Any]) -> None:
     env["env"]["TINYFISH_NO_TELEMETRY"] = "1"
+
+    cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes", "--share-usage"]))
+
+    assert env["reports"] == []
+
+
+def test_setup_sends_nothing_without_opt_in(env: dict[str, Any]) -> None:
+    cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes"]))
+
+    assert env["reports"] == []
+    assert "telemetry" not in env["config"].get("tinyfish", {})
+
+
+def test_share_usage_flag_saves_the_opt_in(env: dict[str, Any]) -> None:
+    cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes", "--share-usage"]))
+    env["reports"].clear()
+
+    cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes"]))
+
+    assert env["config"]["tinyfish"]["telemetry"] is True
+    assert [outcome for outcome, _ in env["reports"]] == ["completed"]
+
+
+@pytest.mark.parametrize(("answer", "sent"), [("", False), ("y", True)])
+def test_setup_question_defaults_to_no_and_is_remembered(
+    env: dict[str, Any], monkeypatch: pytest.MonkeyPatch, answer: str, sent: bool
+) -> None:
+    questions: list[str] = []
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(
+        "builtins.input", lambda question: questions.append(question) or answer
+    )
+
+    cli.dispatch_tinyfish_cli(_parser().parse_args(["setup"]))
+    cli.dispatch_tinyfish_cli(_parser().parse_args(["setup"]))
+
+    assert sum("Share setup results" in q for q in questions) == 1
+    assert "[y/N]" in questions[0]
+    assert env["config"]["tinyfish"]["telemetry"] is sent
+    assert bool(env["reports"]) is sent
+
+
+def test_saved_opt_out_sends_nothing(env: dict[str, Any]) -> None:
+    env["config"]["tinyfish"] = {"telemetry": False}
 
     cli.dispatch_tinyfish_cli(_parser().parse_args(["setup", "--yes"]))
 
