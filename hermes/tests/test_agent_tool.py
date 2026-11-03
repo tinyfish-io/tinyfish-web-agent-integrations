@@ -4,6 +4,7 @@ import json
 import sys
 import types
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 
@@ -215,3 +216,64 @@ def test_agent_request_rejects_non_object_json(
 
     with pytest.raises(rest_client.TinyFishRestError, match="unexpected response"):
         rest_client.get_run("run_1", api_key="tf_test")
+
+
+def test_tinyfish_agent_passes_trimmed_profile_id(api: dict[str, Any]) -> None:
+    api["runs"] = [{"run_id": "run_1", "status": "COMPLETED", "result": "ok"}]
+
+    agent_tool.tinyfish_agent(
+        {"url": "https://a.com", "goal": "x", "profile_id": " prof_1 "}
+    )
+
+    assert api["started"]["profile_id"] == "prof_1"
+
+
+def test_start_run_body_carries_profile_fields(monkeypatch: pytest.MonkeyPatch) -> None:
+    bodies: list[dict[str, Any]] = []
+    monkeypatch.setattr(
+        rest_client,
+        "_agent_request",
+        lambda *a, json_body=None, **k: bodies.append(json_body) or {},
+    )
+
+    rest_client.start_run("https://a.com", "x", api_key="k", profile_id="prof_1")
+    rest_client.start_run("https://a.com", "x", api_key="k", use_profile=True)
+    rest_client.start_run("https://a.com", "x", api_key="k")
+
+    assert (bodies[0]["use_profile"], bodies[0]["profile_id"]) == (True, "prof_1")
+    assert bodies[1]["use_profile"] is True and "profile_id" not in bodies[1]
+    assert "use_profile" not in bodies[2]
+
+
+def test_tinyfish_agent_makes_profile_hint_links_absolute(api: dict[str, Any]) -> None:
+    hint = {"message": "Sign in", "setup_url": "/profiles/p/setup"}
+    absolute = f"{rest_client.AGENT_URL}/profiles/p/setup"
+    api["runs"] = [
+        {"run_id": "run_1", "status": "COMPLETED", "result": "", "profile_hint": hint}
+    ]
+    ok = json.loads(agent_tool.tinyfish_agent({"url": "https://a.com", "goal": "x"}))
+    failed_run = {"message": "Login wall", "profile_hint": dict(hint)}
+    api["runs"] = [{"run_id": "run_1", "status": "FAILED", "error": failed_run}]
+    failed = json.loads(
+        agent_tool.tinyfish_agent({"url": "https://a.com", "goal": "x"})
+    )
+
+    assert ok["profile_hint"]["setup_url"] == absolute
+    assert failed["error"]["profile_hint"]["setup_url"] == absolute
+
+
+def test_tinyfish_agent_no_default_profile_error_says_what_to_do(
+    api: dict[str, Any],
+) -> None:
+    error = rest_client.TinyFishRestError(
+        "HTTP 400: No default Browser Context Profile found.", 400
+    )
+
+    with patch.object(rest_client, "start_run", side_effect=error):
+        out = json.loads(
+            agent_tool.tinyfish_agent(
+                {"url": "https://a.com", "goal": "x", "use_profile": True}
+            )
+        )
+
+    assert "tinyfish_create_profile" in out["next_step"]

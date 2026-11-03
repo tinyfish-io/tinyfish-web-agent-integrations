@@ -452,6 +452,41 @@ def test_wallet_reports_documented_not_found_account_state(
         rest_client.wallet(api_key="tf_test")
 
 
+def test_client_errors_carry_the_server_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_request(method: str, url: str, **kwargs: Any) -> httpx.Response:
+        payload = {
+            "error": {
+                "code": "INVALID_INPUT",
+                "message": "Browser Context Profile not found.",
+            }
+        }
+        return _response(method, url, status=400, payload=payload)
+
+    monkeypatch.setattr(rest_client.httpx, "request", fake_request)
+
+    with pytest.raises(
+        rest_client.TinyFishRestError,
+        match="HTTP 400: Browser Context Profile not found",
+    ):
+        rest_client.list_profiles(api_key="tf_test")
+
+
+def test_server_errors_never_echo_the_body(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_request(method: str, url: str, **kwargs: Any) -> httpx.Response:
+        return _response(
+            method, url, status=500, payload={"error": {"message": "stack trace"}}
+        )
+
+    monkeypatch.setattr(rest_client.httpx, "request", fake_request)
+
+    with pytest.raises(rest_client.TinyFishRestError) as exc_info:
+        rest_client.list_profiles(api_key="tf_test")
+
+    assert "stack trace" not in str(exc_info.value)
+
+
 def test_report_setup_sends_key_hash_not_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("TINYFISH_NO_TELEMETRY", raising=False)
     captured: dict[str, Any] = {}
