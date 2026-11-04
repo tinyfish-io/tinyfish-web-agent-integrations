@@ -71,8 +71,7 @@ detect whether the page changed. Both are **single-URL only** — combining eith
   not read what you asked for.
 - **Use `published_date`** rather than trusting a date in the body text.
 - **Retry a timeout once** with a higher `per_url_timeout_ms`. If the page is behind a bot wall or
-  needs a login, that's not a fetch problem — see the `tinyfish-automation` and
-  `tinyfish-authenticated` skills.
+  needs a login, that's not a fetch problem: {{fetch-blocked-pointer}}.
 
 Return distilled findings to your orchestrator, not raw page text. The point of fetching inside a
 subagent is that the full text never enters the main context.

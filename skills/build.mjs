@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Renders skills/tinyfish-*/ into each surface's output dir; `make skills-check` uses git to catch drift.
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
-import { join, dirname, relative } from 'node:path';
+import { join, dirname, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const TARGETS = { grok: 'grok/skills', mcp: 'mcp/skills', pi: 'pi/skills', cli: 'cli/skills', claude: 'claude/skills', kiro: 'kiro/tinyfish/skills', chatgpt: 'chatgpt/skills' };
@@ -52,7 +52,7 @@ export function build(root) {
     const used = new Set();
     for (const path of files) {
       const rel = relative(src, path);
-      if (ships && !ships.includes(rel.split('/')[0])) continue;
+      if (ships && !ships.includes(rel.split(sep)[0])) continue;
       let out = render(readFileSync(path, 'utf8'), slots, `skills/${rel}`, target, used);
       // A surface can override a skill's frontmatter description, e.g. to tune it for its own plugin search.
       const key = `description-${dirname(rel)}`;

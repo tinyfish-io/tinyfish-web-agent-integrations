@@ -10,6 +10,9 @@ see `tinyfish-authenticated`
 <!-- slot: browser-caveat -->
 
 
+<!-- slot: fetch-blocked-pointer -->
+see the `tinyfish-automation` and `tinyfish-authenticated` skills
+
 <!-- slot: host-conversation -->
 plugin
 

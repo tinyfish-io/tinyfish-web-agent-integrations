@@ -5,6 +5,10 @@ Slot values for the ChatGPT plugin (chatgpt/skills), vendored into ux-labs `chat
 <!-- slot: authenticated-pointer -->
 use `run_web_automation` with a signed-in Browser Context Profile
 
+<!-- slot: fetch-blocked-pointer -->
+for a login, use `run_web_automation` with a signed-in Browser Context Profile; for a bot
+wall, tell the user the page can't be read here
+
 <!-- slot: research-auth -->
 The TinyFish tools come from this plugin's connector, signed in with OAuth. On an auth error, tell the
 user to reconnect TinyFish from ChatGPT's apps settings. Never ask for an API key in chat. On a

@@ -13,6 +13,9 @@ see `tinyfish-authenticated`
 <session_id>`. Run `tinyfish browser session --help` before first use, and close every session you open
 — an open session bills until its inactivity timeout.
 
+<!-- slot: fetch-blocked-pointer -->
+see the `tinyfish-automation` and `tinyfish-authenticated` skills
+
 <!-- slot: host-conversation -->
 pi
 
