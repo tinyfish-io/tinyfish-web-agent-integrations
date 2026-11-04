@@ -6,7 +6,7 @@
       "url": "https://agent.tinyfish.ai/mcp",
       "headers": {
         "X-TF-Client-Name": "kiro",
-        "X-TF-Client-Version": "1.0.0"
+        "X-TF-Client-Version": "2.0.0"
       }
     }
   }

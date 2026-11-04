@@ -4,8 +4,14 @@ Slot values for the Kiro power (kiro/tinyfish/skills), which reaches TinyFish th
 This power does not start
 batches itself; kick off runs with `run_web_automation_async` and collect their `run_id`s.
 
+<!-- slot: authenticated-pointer -->
+see `tinyfish-authenticated`
+
 <!-- slot: browser-caveat -->
 
+
+<!-- slot: fetch-blocked-pointer -->
+see the `tinyfish-automation` and `tinyfish-authenticated` skills
 
 <!-- slot: host-conversation -->
 Kiro

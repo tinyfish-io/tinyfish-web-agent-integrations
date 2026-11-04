@@ -53,7 +53,7 @@ jobs:
               'README.md',
               'rules/security.md',
               'skills/tinyfish-web/SKILL.md',
-              'skills/tinyfish-research/SKILL.md',
+              'skills/tinyfish-websearch/SKILL.md',
               'skills/tinyfish-automation/SKILL.md',
               'skills/tinyfish-authenticated/SKILL.md',
               'skills/tinyfish-browser/SKILL.md',

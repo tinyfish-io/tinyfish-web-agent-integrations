@@ -13,7 +13,7 @@ failed checks are free.**
 
 | The user wants to... | Use |
 |---|---|
-| Read a page once | `fetch_content` — free. See `tinyfish-research` |
+| Read a page once | `fetch_content` — free. See `tinyfish-websearch` |
 | Know when a public page changes | `create_monitor` with `type: "fetch"` |
 | Know when new pages or news appear on a topic | `create_monitor` with `type: "search"` |
 | Watch a page behind a login | Not a monitor — fetch monitors need a public URL. Offer a one-off authenticated run instead; see `tinyfish-authenticated` |

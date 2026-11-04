@@ -4,8 +4,14 @@ Slot values for the Grok plugin (grok/skills), which reaches TinyFish through th
 This plugin does not start
 batches itself; kick off runs with `run_web_automation_async` and collect their `run_id`s.
 
+<!-- slot: authenticated-pointer -->
+see `tinyfish-authenticated`
+
 <!-- slot: browser-caveat -->
 
+
+<!-- slot: fetch-blocked-pointer -->
+see the `tinyfish-automation` and `tinyfish-authenticated` skills
 
 <!-- slot: host-conversation -->
 plugin

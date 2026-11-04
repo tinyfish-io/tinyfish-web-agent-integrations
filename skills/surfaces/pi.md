@@ -4,11 +4,17 @@ Slot values for the pi package (pi/skills), which reaches TinyFish through pi-mc
 This package does not start
 batches itself; kick off runs with `run_web_automation_async` and collect their `run_id`s.
 
+<!-- slot: authenticated-pointer -->
+see `tinyfish-authenticated`
+
 <!-- slot: browser-caveat -->
 **Prefer the MCP tools.** Without them, `tinyfish` CLI 0.49 or later has all three:
 `tinyfish browser session create`, `tinyfish browser session list` and `tinyfish browser session close
 <session_id>`. Run `tinyfish browser session --help` before first use, and close every session you open
 — an open session bills until its inactivity timeout.
+
+<!-- slot: fetch-blocked-pointer -->
+see the `tinyfish-automation` and `tinyfish-authenticated` skills
 
 <!-- slot: host-conversation -->
 pi

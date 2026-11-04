@@ -37,7 +37,7 @@ Either path works. Pick one — you don't need both.
 | Skill | What it does |
 |---|---|
 | `tinyfish-web` | Router — picks the right tool for a web task, and keeps free reads from being done as metered automations |
-| `tinyfish-research` | Research orchestrator: plans the work, runs it in passes, compiles deduplicated cited results |
+| `tinyfish-websearch` | Research orchestrator: plans the work, runs it in passes, compiles deduplicated cited results |
 | `tinyfish-automation` | Goal-driven automation: goal writing, structured output, and diagnosing bot detection |
 | `tinyfish-authenticated` | Automating logged-in sites with Browser Context Profiles and Vault credentials |
 | `tinyfish-browser` | Remote browser sessions driven over CDP from your own code |
