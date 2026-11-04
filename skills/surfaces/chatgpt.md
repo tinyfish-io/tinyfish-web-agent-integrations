@@ -1,20 +1,9 @@
-Slot values for the ChatGPT plugin (chatgpt/skills), vendored into ux-labs `chatgpt-plugin/skills/`. It reaches TinyFish through `https://agent.tinyfish.ai/mcp/chatgpt`, has no subagents, and ships only tinyfish-monitor and tinyfish-websearch; the other skills render only so the build stays total.
+Slot values for the ChatGPT plugin (chatgpt/skills), vendored into ux-labs `chatgpt-plugin/skills/`. It reaches TinyFish through `https://agent.tinyfish.ai/mcp/chatgpt` and has no subagents.
 
-<!-- slot: automation-batch -->
-The MCP tools do not start
-batches themselves; kick off runs with `run_web_automation_async` and collect their `run_id`s.
+<!-- ships: tinyfish-monitor tinyfish-websearch -->
 
 <!-- slot: authenticated-pointer -->
 use `run_web_automation` with a signed-in Browser Context Profile
-
-<!-- slot: browser-caveat -->
-
-
-<!-- slot: host-conversation -->
-ChatGPT
-
-<!-- slot: profiles-cli -->
-
 
 <!-- slot: research-auth -->
 The TinyFish tools come from this plugin's connector, signed in with OAuth. On an auth error, tell the
@@ -71,14 +60,3 @@ URLs that appeared in more than one pass.
 | Moderate | A focused question with one clear angle | One pass: 3–5 searches, fetch the best hits, compile. |
 | Deep | A clear topic with a few independent angles | 3–4 passes, one per angle, compiling after each. |
 | Exhaustive | Cross-referencing entity types, multi-hop chains, "find everything", explicit counts | Repeated rounds of the above, compiling between rounds and re-scoping from what you found. |
-
-<!-- slot: security-doc -->
-<https://raw.githubusercontent.com/tinyfish-io/tinyfish-web-agent-integrations/main/pi/rules/security.md>
-
-<!-- slot: setup -->
-## Setup and auth
-
-All of this runs through this plugin's TinyFish connector, signed in with OAuth.
-
-On an auth error, tell the user to reconnect TinyFish from ChatGPT's apps settings. Never ask for an
-API key in chat. On a wallet-balance or rate-limit error, say so plainly.

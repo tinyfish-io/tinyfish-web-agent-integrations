@@ -58,3 +58,9 @@ test('a description-<skill> slot overrides that surface only', () => {
   assert.match(out['claude/skills/tinyfish-x/SKILL.md'], /^---\nname: tinyfish-x\ndescription: "Tuned."\n---/);
   assert.match(out['grok/skills/tinyfish-x/SKILL.md'], /^---\nname: tinyfish-x\ndescription: d\n---/);
 });
+
+test('a ships list renders only the named skills', () => {
+  const out = build(fixture({ chatgpt: '<!-- ships: tinyfish-y -->\n' }));
+  assert.ok(!Object.keys(out).some((p) => p.startsWith('chatgpt/')));
+  assert.ok('grok/skills/tinyfish-x/SKILL.md' in out);
+});

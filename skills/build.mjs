@@ -45,18 +45,22 @@ export function build(root) {
   const outputs = {};
   for (const [target, outDir] of Object.entries(TARGETS)) {
     const surface = `skills/surfaces/${target}.md`;
-    const slots = parseSlots(readFileSync(join(root, surface), 'utf8'), surface);
+    const text = readFileSync(join(root, surface), 'utf8');
+    const slots = parseSlots(text, surface);
+    // Optional `<!-- ships: a b -->` limits a surface to the skills its package ships.
+    const ships = text.match(/^<!-- ships: ([a-z0-9 -]+) -->$/m)?.[1].split(' ');
     const used = new Set();
     for (const path of files) {
       const rel = relative(src, path);
-      let text = render(readFileSync(path, 'utf8'), slots, `skills/${rel}`, target, used);
+      if (ships && !ships.includes(rel.split('/')[0])) continue;
+      let out = render(readFileSync(path, 'utf8'), slots, `skills/${rel}`, target, used);
       // A surface can override a skill's frontmatter description, e.g. to tune it for its own plugin search.
       const key = `description-${dirname(rel)}`;
       if (key in slots) {
         used.add(key);
-        text = text.replace(/^description: .*$/m, () => `description: "${slots[key]}"`);
+        out = out.replace(/^description: .*$/m, () => `description: "${slots[key]}"`);
       }
-      outputs[join(outDir, rel)] = text;
+      outputs[join(outDir, rel)] = out;
     }
     const unused = Object.keys(slots).filter((k) => !used.has(k));
     if (unused.length) throw new Error(`${surface}: slots never used: ${unused.join(', ')}`);
