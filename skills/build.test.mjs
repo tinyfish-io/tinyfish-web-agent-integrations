@@ -7,7 +7,7 @@ import { build } from './build.mjs';
 
 const SKILL = '---\nname: tinyfish-x\ndescription: d\n---\n\nUse {{tool}}.\n\n{{extra}}\n\nEnd.\n';
 
-function fixture({ skill = SKILL, grok = '<!-- slot: tool -->\nA\n<!-- slot: extra -->\n', mcp = '<!-- slot: tool -->\nM\n<!-- slot: extra -->\n', pi = '<!-- slot: tool -->\nB\n<!-- slot: extra -->\nMore.\n', cli = '<!-- slot: tool -->\nC\n<!-- slot: extra -->\n', claude = '<!-- slot: tool -->\nK\n<!-- slot: extra -->\n', kiro = '<!-- slot: tool -->\nR\n<!-- slot: extra -->\n' } = {}) {
+function fixture({ skill = SKILL, grok = '<!-- slot: tool -->\nA\n<!-- slot: extra -->\n', mcp = '<!-- slot: tool -->\nM\n<!-- slot: extra -->\n', pi = '<!-- slot: tool -->\nB\n<!-- slot: extra -->\nMore.\n', cli = '<!-- slot: tool -->\nC\n<!-- slot: extra -->\n', claude = '<!-- slot: tool -->\nK\n<!-- slot: extra -->\n', kiro = '<!-- slot: tool -->\nR\n<!-- slot: extra -->\n', chatgpt = '<!-- slot: tool -->\nG\n<!-- slot: extra -->\n' } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'skills-'));
   const files = {
     'skills/tinyfish-x/SKILL.md': skill,
@@ -18,6 +18,7 @@ function fixture({ skill = SKILL, grok = '<!-- slot: tool -->\nA\n<!-- slot: ext
     'skills/surfaces/cli.md': cli,
     'skills/surfaces/claude.md': claude,
     'skills/surfaces/kiro.md': kiro,
+    'skills/surfaces/chatgpt.md': chatgpt,
   };
   for (const [p, c] of Object.entries(files)) {
     mkdirSync(dirname(join(root, p)), { recursive: true });
@@ -37,6 +38,7 @@ test('renders slots and drops empty slot lines', () => {
   assert.equal(out['mcp/skills/tinyfish-x/references/r.md'], 'Ref M.\n');
   assert.equal(out['claude/skills/tinyfish-x/references/r.md'], 'Ref K.\n');
   assert.equal(out['kiro/tinyfish/skills/tinyfish-x/references/r.md'], 'Ref R.\n');
+  assert.equal(out['chatgpt/skills/tinyfish-x/references/r.md'], 'Ref G.\n');
 });
 
 test('fails on a slot missing from one surface', () => {
