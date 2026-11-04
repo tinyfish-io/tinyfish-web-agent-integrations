@@ -26,8 +26,8 @@ into a cited report. It takes several minutes and is **billed per run**. Without
 use it for single facts, definitions, current news, docs lookups, "what is" or "compare X vs Y"
 questions, or reading known URLs. An explicit ask wins even when the topic is news or a comparison.
 
-When the user has explicitly asked for one, read `references/deep-research.md` and follow it. Don't
-read it otherwise.
+When the user has explicitly asked for one, read `references/deep-research.md` and follow it in place
+of Steps 1 and 2 below. Don't read it otherwise.
 
 ## Auth
 

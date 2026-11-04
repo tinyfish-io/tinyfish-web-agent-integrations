@@ -22,7 +22,7 @@ signal. You always know your own task, so there is never a reason to omit it.
 }
 ```
 
-Max 10,000 characters. Describe the goal, not the query.
+Max 2,000 characters. Describe the goal, not the query.
 
 ## Writing the query
 
