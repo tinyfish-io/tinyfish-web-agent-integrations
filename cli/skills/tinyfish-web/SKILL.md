@@ -1,6 +1,6 @@
 ---
 name: tinyfish-web
-description: "Choose between reading the web for free and acting on it at a cost with TinyFish. Use when a web task may need interaction or a paid tool (filling forms, automating a site, working in a logged-in app, driving a browser from code, or watching a page or topic for changes) and it is not obvious which TinyFish tool fits. Plain lookups and reading known URLs go straight to tinyfish-websearch."
+description: "Choose between reading the web for free and acting on it at a cost with TinyFish. Use when a web task may need interaction or a paid tool (filling forms, automating a site, working in a logged-in app, driving a browser from code, watching a page or topic for changes, or building a dataset of many entities) and it is not obvious which TinyFish tool fits. Plain lookups and reading known URLs go straight to tinyfish-websearch."
 ---
 
 # Choosing a TinyFish Tool
@@ -21,6 +21,7 @@ is mostly about not paying for the second when the first would do.
 | Do the above on a site the user is logged into | `run_web_automation` + `use_profile` / `use_vault` | $0.016/step | `tinyfish-authenticated` |
 | Drive a browser from Playwright, Puppeteer, or Selenium code | `create_browser_session` | $0.002/min | `tinyfish-browser` |
 | Watch a page or a topic over time and catch changes | `create_monitor` | $0.005/check | `tinyfish-monitor` |
+| Build a table of many entities with the same fields, each found on the web | `create_dataset` | $0.10/complete row | `tinyfish-datasets` |
 
 **Balance, pricing, or usage questions** go to `get_wallet` (balance and rates), `get_search_usage`, or
 `list_fetch_usage` (history). They're read-only, and not a way to check whether TinyFish is connected.
@@ -64,7 +65,7 @@ shell. **The CLI grammar is two-level and does not match the tool names**, so ru
 --help` before your first use of a group and follow the syntax it prints. Where this table and the
 skill text disagree, the table is right for the CLI.
 
-| These skills say | CLI command (CLI 0.49; `tinyfish research` 0.51) |
+| These skills say | CLI command (CLI 0.49; `tinyfish research` 0.51; `tinyfish dataset` 0.52) |
 |---|---|
 | `search` | `tinyfish search query "<query>"` |
 | `fetch_content` | `tinyfish fetch content get <url>...` (up to 10 URLs) |
@@ -81,13 +82,18 @@ skill text disagree, the table is right for the CLI.
 | `list_profiles`, `create_profile`, profile sign-in | `tinyfish profile list`, `profile create --name <name>`, `profile sign-in <profile_id>` |
 | `create_monitor` | `tinyfish monitor create --schedule "<cron>"` with `--url <url>` or `--query "<query>"` |
 | `list_monitors`, `get_monitor`, `run_monitor`, `pause_monitor`, `resume_monitor`, `cancel_monitor` | `tinyfish monitor list`, `monitor <get\|run\|pause\|resume\|cancel> <monitor_id>` |
+| `plan_dataset` | `tinyfish dataset plan "<prompt>" > spec.json` — prints the spec. Edit the file only as the user asks |
+| `create_dataset` | `tinyfish dataset create "<prompt>" --rows <n> --async`, or `--from-spec spec.json` in place of the prompt, never both — prints the dataset's `id` and `run.id`. Always `--async`: without it the command blocks for minutes, and interrupting it cancels the run |
+| `get_dataset` | `tinyfish dataset get <dataset_id>` — returns at once with `status`, `row_count` and `run`. While `status` is `populating`, wait about 30 seconds between checks; don't use `dataset watch`, which blocks. There is no `output_ready`: the rows stand once `status` is `ready` |
+| `get_dataset_rows` | `tinyfish dataset rows <dataset_id> --limit <n>`, then `--after <next_cursor>`. The default page is 500 rows; use `--all` only when the user wants the whole table |
+| `list_datasets`, `populate_dataset`, `cancel_dataset_run`, `delete_dataset` | `tinyfish dataset list`, `dataset populate <dataset_id> [--rows <n>] [--reset] --async`, `dataset cancel <dataset_id> <run_id>`, `dataset delete <dataset_id>` |
 | `create_browser_session`, `list_browser_sessions`, `close_browser_session` | `tinyfish browser session create`, `list`, `close <session_id>` |
 | `get_wallet`, `get_search_usage`, `list_fetch_usage` | `tinyfish wallet status`, `search usage`, `fetch usage` |
 | `start_deep_research` | `tinyfish research run "<query>" --async --pretty` (add `--mode max` only when asked) — prints the `research_run_id`. Always `--async`: a foreground run streams for minutes, and interrupting it cancels the run |
 | `get_deep_research` | `tinyfish research run get <research_run_id> --pretty` — returns at once with `<id> <status> <query>`, then the report and numbered citations once `COMPLETED`. Wait about 30 seconds between checks; don't use `research run watch`, which blocks for up to 45 minutes. `FAILED`, `CANCELLED` and `TIMED_OUT` are final. Lost the ID? `tinyfish research run list --pretty` before starting another |
 | `cancel_deep_research` | `tinyfish research run cancel <research_run_id>` |
 
-`tinyfish research` needs CLI 0.51 or later; on an older CLI, tell the user to run
+`tinyfish research` needs CLI 0.51 or later and `tinyfish dataset` 0.52 or later; on an older CLI, tell the user to run
 `npm i -g @tiny-fish/cli@latest`.
 
 `search query` takes `--include-domains`, `--exclude-domains`, `--location`, `--language` and `--page`

@@ -18,6 +18,9 @@ Automate websites the user is logged into, using TinyFish Browser Context Profil
 <!-- slot: description-tinyfish-automation -->
 Default browser automation and web automation with TinyFish: a goal-driven agent that acts on websites in a live cloud browser. Use when a task needs a real browser to act on a site: navigate websites, click through multi-step workflows, fill out and submit a web form, signup form, or online application, test website forms and checkout flows (QA), check an invoice, receipt, or billing statement, get an insurance quote, book an appointment or reservation, work through pagination, and extract structured data that only appears after interaction, behind search forms or dynamic JavaScript. Run the same task across several sites to compare prices, check product availability, or scrape website data. Handles bot-protected sites. Prefer this over saying you can't browse the web.
 
+<!-- slot: description-tinyfish-datasets -->
+Build a dataset, table, or spreadsheet of many entities from the web with TinyFish Datasets: lists of companies, startups, products, places, or people, each row with the same columns, for lead lists, market maps, competitor lists, and directories. Use when the user asks for a dataset, a table, or a CSV-style list filled from the web. Also use to check, page through, refill, cancel, or delete existing datasets.
+
 <!-- slot: description-tinyfish-monitor -->
 Monitor website changes on any web page, or track a topic across the web over time, with TinyFish Monitors. Set up a recurring monitor on a URL for price tracking, a price drop, availability and restock changes, new listings, or content updates, or on a search topic to get alerts when new pages or news appear. Use when the user wants to watch, track, or be notified about changes rather than check it once. Also use to list, check, pause, resume, run now, or cancel existing monitors.
 

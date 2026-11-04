@@ -1,6 +1,6 @@
 Slot values for the ChatGPT plugin (chatgpt/skills), vendored into ux-labs `chatgpt-plugin/skills/`. It reaches TinyFish through `https://agent.tinyfish.ai/mcp/chatgpt` and has no subagents.
 
-<!-- ships: tinyfish-monitor tinyfish-websearch -->
+<!-- ships: tinyfish-datasets tinyfish-monitor tinyfish-websearch -->
 
 <!-- slot: authenticated-pointer -->
 use `run_web_automation` with a signed-in Browser Context Profile

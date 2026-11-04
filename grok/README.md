@@ -89,6 +89,7 @@ sites, and authenticated runs via saved Browser Context Profiles and Vault crede
 | `tinyfish-authenticated` | Automating logged-in sites with Browser Context Profiles and Vault credentials |
 | `tinyfish-browser` | Remote browser sessions driven over CDP from your own code |
 | `tinyfish-monitor` | Recurring monitors on a page or search topic — price drops, restocks, new listings, news |
+| `tinyfish-datasets` | Tables of many entities filled from the web — plan the columns, create, poll, page through rows; $0.10 per complete row |
 
 Each skill carries its own safety rules inline — untrusted content handling, the prohibition on putting
 credentials in a goal, and confirmation before irreversible actions. `rules/security.md` documents them
