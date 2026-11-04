@@ -162,7 +162,7 @@ Most pi users have no MCP adapter, and that is fine — the same capabilities ar
 away. **The CLI grammar is two-level and does not match the tool names in these skills**, so run
 `tinyfish <group> --help` before your first use of a group and follow the syntax it prints.
 
-| These skills say | CLI equivalent (verified against CLI 0.49) |
+| These skills say | CLI equivalent (verified against CLI 0.49; datasets against 0.56) |
 |---|---|
 | `search` | `tinyfish search query "<query>"` |
 | `fetch_content` | `tinyfish fetch content get <url>...` |
@@ -175,13 +175,18 @@ away. **The CLI grammar is two-level and does not match the tool names in these 
 | `list_profiles`, `create_profile`, profile sign-in | `tinyfish profile list`, `profile create --name <name>`, `profile sign-in <profile_id>` |
 | `create_monitor` | `tinyfish monitor create --schedule "<cron>"` with `--url <url>` or `--query "<query>"` |
 | `list_monitors`, `get_monitor`, `run_monitor`, `pause_monitor`, `resume_monitor`, `cancel_monitor` | `tinyfish monitor list`, `monitor <get\|run\|pause\|resume\|cancel> <monitor_id>` |
+| `plan_dataset` | `tinyfish dataset plan "<prompt>" > spec.json` — prints the spec. Edit the file only as the user asks |
+| `create_dataset` | `tinyfish dataset create "<prompt>" --rows <n> --async`, or `--from-spec spec.json` in place of the prompt, never both — prints the dataset's `id` and `run.id`. Always `--async`: without it the command blocks for minutes, and interrupting it cancels the run |
+| `get_dataset` | `tinyfish dataset get <dataset_id>` — returns at once with `status`, `row_count` and `run`. While `status` is `populating`, wait about 30 seconds between checks; don't use `dataset watch`, which blocks. There is no `output_ready`: the rows stand once `status` is `ready` |
+| `get_dataset_rows` | `tinyfish dataset rows <dataset_id> --limit <n>`, then `--after <next_cursor>`. The default page is 500 rows; use `--all` only when the user wants the whole table |
+| `list_datasets`, `populate_dataset`, `cancel_dataset_run`, `delete_dataset` | `tinyfish dataset list`, `dataset populate <dataset_id> [--rows <n>] [--reset] --async`, `dataset cancel <dataset_id> <run_id>`, `dataset delete <dataset_id>` |
 | `create_browser_session`, `list_browser_sessions`, `close_browser_session` | `tinyfish browser session create`, `list`, `close <session_id>` |
 | `get_wallet`, `get_search_usage`, `list_fetch_usage` | `tinyfish wallet status`, `search usage`, `fetch usage` |
 
 These are **flags on `agent run`**, not separate command groups. `tinyfish profile` and
 `tinyfish vault` manage profiles and credentials; they do not run automations.
 
-Monitors and browser sessions need CLI 0.49 or later. On an older CLI, tell the user to run
+Monitors and browser sessions need CLI 0.49 or later, and datasets 0.52 or later. On an older CLI, tell the user to run
 `npm i -g @tiny-fish/cli@latest`; never open a browser session you cannot close.
 
 If `tinyfish` is not installed, say so and give the user the fix rather than stopping:

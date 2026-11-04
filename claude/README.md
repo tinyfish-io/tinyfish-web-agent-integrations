@@ -12,6 +12,7 @@ The six `tinyfish-*` skills are built on TinyFish's hosted MCP server (bundled v
 - **`/tinyfish:tinyfish-authenticated`** — automation on sites you're signed into, with saved Browser Context Profiles and Vault credentials
 - **`/tinyfish:tinyfish-browser`** — a remote stealth Chrome session over CDP for Playwright, Puppeteer, or Selenium
 - **`/tinyfish:tinyfish-monitor`** — recurring checks on a page or a search topic: $0.005 per completed check, failed checks are free
+- **`/tinyfish:tinyfish-datasets`** — tables of many entities filled from the web, such as companies, products, or places with the same columns: $0.10 per complete row
 
 These skills are generated from the shared source in [`skills/`](../skills); edit there and run `make skills`, not here.
 

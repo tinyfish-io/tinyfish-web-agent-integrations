@@ -42,6 +42,7 @@ Either path works. Pick one — you don't need both.
 | `tinyfish-authenticated` | Automating logged-in sites with Browser Context Profiles and Vault credentials |
 | `tinyfish-browser` | Remote browser sessions driven over CDP from your own code |
 | `tinyfish-monitor` | Recurring monitors on a page or search topic — price drops, restocks, new listings, news |
+| `tinyfish-datasets` | Tables of many entities filled from the web — plan the columns, create, poll, page through rows; $0.10 per complete row |
 
 Each is also available on demand as `/skill:tinyfish-web`, and so on.
 
@@ -95,9 +96,9 @@ the prefix only names the install.
 | no adapter | `tinyfish search query "..."` (the CLI) |
 
 The long prefix is derived by the adapter from the npm package name — it is not a different product.
-This package registers 27 tools directly — search, fetch, the automation, run-management and
-batch tools, the browser-session tools, monitors, Browser Context Profile setup, and wallet and
-usage. Only the onboarding tool `guide_next_step` stays behind the adapter's `mcp` proxy tool; ask
+This package registers 35 tools directly — search, fetch, the automation, run-management and
+batch tools, the browser-session tools, monitors, datasets, Browser Context Profile setup, and
+wallet and usage. Only the onboarding tool `guide_next_step` stays behind the adapter's `mcp` proxy tool; ask
 it for a name with `mcp({ search: "tinyfish" })` rather than guessing one, since the prefix depends
 on how you installed.
 

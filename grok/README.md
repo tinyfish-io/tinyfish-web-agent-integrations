@@ -74,6 +74,8 @@ key, register the server with the CLI instead — see [Authentication](#authenti
 | `start_profile_setup_session`, `save_profile_setup_session`, `cancel_profile_setup_session` | Open a live browser where you sign in by hand, then save that session to a profile | — |
 | `create_monitor` | Re-check a page or a search topic on a cron schedule; returns a baseline immediately | $0.005/completed check |
 | `list_monitors`, `get_monitor`, `run_monitor`, `pause_monitor`, `resume_monitor`, `cancel_monitor` | Manage monitors; `run_monitor` checks once now | `run_monitor`: $0.005 |
+| `plan_dataset`, `create_dataset` | Design a table's columns from a prompt, then fill one row per entity from the web | $0.10/complete row |
+| `get_dataset`, `get_dataset_rows`, `list_datasets`, `populate_dataset`, `cancel_dataset_run`, `delete_dataset` | Poll a run and page rows; refill, cancel or delete a dataset | `populate_dataset`: $0.10/complete row |
 | `get_wallet`, `get_search_usage`, `list_fetch_usage` | Wallet balance and rates; search and fetch history | — |
 
 Automation supports structured output via `output_schema`, stealth mode and proxy routing for protected
@@ -89,6 +91,7 @@ sites, and authenticated runs via saved Browser Context Profiles and Vault crede
 | `tinyfish-authenticated` | Automating logged-in sites with Browser Context Profiles and Vault credentials |
 | `tinyfish-browser` | Remote browser sessions driven over CDP from your own code |
 | `tinyfish-monitor` | Recurring monitors on a page or search topic — price drops, restocks, new listings, news |
+| `tinyfish-datasets` | Tables of many entities filled from the web — plan the columns, create, poll, page through rows; $0.10 per complete row |
 
 Each skill carries its own safety rules inline — untrusted content handling, the prohibition on putting
 credentials in a goal, and confirmation before irreversible actions. `rules/security.md` documents them

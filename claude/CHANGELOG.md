@@ -2,6 +2,9 @@
 
 ## 3.0.0 (2026-11-04)
 
+### Added
+- `/tinyfish:tinyfish-datasets`: build a table of many entities from the web with the dataset tools, including when to plan the columns first, sending `prompt` or `spec` but never both, and waiting on `get_dataset` instead of cancelling. `tinyfish-web` routes to it.
+
 ### Changed
 - **Breaking:** `/tinyfish:tinyfish-research` is now `/tinyfish:tinyfish-websearch`, so the name no longer reads as the billed Research product. Deep research steps moved to `references/deep-research.md`; the explicit-ask rule stays in the skill.
 - `tinyfish-web` describes choosing between reading and acting, so plain lookups load `tinyfish-websearch` directly.

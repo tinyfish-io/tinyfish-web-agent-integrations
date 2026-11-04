@@ -1,6 +1,6 @@
 ---
 name: tinyfish-web
-description: "Choose between reading the web for free and acting on it at a cost with TinyFish. Use when a web task may need interaction or a paid tool (filling forms, automating a site, working in a logged-in app, driving a browser from code, or watching a page or topic for changes) and it is not obvious which TinyFish tool fits. Plain lookups and reading known URLs go straight to tinyfish-websearch."
+description: "Choose between reading the web for free and acting on it at a cost with TinyFish. Use when a web task may need interaction or a paid tool (filling forms, automating a site, working in a logged-in app, driving a browser from code, watching a page or topic for changes, or building a dataset of many entities) and it is not obvious which TinyFish tool fits. Plain lookups and reading known URLs go straight to tinyfish-websearch."
 ---
 
 # Choosing a TinyFish Tool
@@ -21,6 +21,7 @@ is mostly about not paying for the second when the first would do.
 | Do the above on a site the user is logged into | `run_web_automation` + `use_profile` / `use_vault` | $0.016/step | `tinyfish-authenticated` |
 | Drive a browser from Playwright, Puppeteer, or Selenium code | `create_browser_session` | $0.002/min | `tinyfish-browser` |
 | Watch a page or a topic over time and catch changes | `create_monitor` | $0.005/check | `tinyfish-monitor` |
+| Build a table of many entities with the same fields, each found on the web | `create_dataset` | $0.10/complete row | `tinyfish-datasets` |
 
 **Balance, pricing, or usage questions** go to `get_wallet` (balance and rates), `get_search_usage`, or
 `list_fetch_usage` (history). They're read-only, and not a way to check whether TinyFish is connected.
