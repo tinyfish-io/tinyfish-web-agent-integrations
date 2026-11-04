@@ -4,6 +4,9 @@ Slot values for the skills the tinyfish CLI installs (cli/skills), which reach T
 To start many runs at once from a CSV with `url,goal` columns, use `tinyfish agent batch run --input
 <file>`; `tinyfish agent batch get <batch_id>` and `agent batch cancel <batch_id>` manage it.
 
+<!-- slot: authenticated-pointer -->
+see `tinyfish-authenticated`
+
 <!-- slot: browser-caveat -->
 From the CLI these are `tinyfish browser session create`, `tinyfish browser session list` and `tinyfish
 browser session close <session_id>`. Run `tinyfish browser session --help` before first use, and close
@@ -132,7 +135,7 @@ skill text disagree, the table is right for the CLI.
 `npm i -g @tiny-fish/cli@latest`.
 
 `search query` takes `--include-domains`, `--exclude-domains`, `--location`, `--language` and `--page`
-only. The recency, date-range and `domain_type` filters in `tinyfish-research` are MCP-only; put the
+only. The recency, date-range and `domain_type` filters in `tinyfish-websearch` are MCP-only; put the
 time window in the query text instead. Likewise `fetch content get` has no `purpose`, `ttl` or
 selector flags; skip that advice in `references/fetching.md`.
 

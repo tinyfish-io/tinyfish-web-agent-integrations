@@ -4,6 +4,9 @@ Slot values for the skills the tinyfish CLI installs where `tinyfish connect` re
 The MCP tools do not start
 batches themselves; kick off runs with `run_web_automation_async` and collect their `run_id`s.
 
+<!-- slot: authenticated-pointer -->
+see `tinyfish-authenticated`
+
 <!-- slot: browser-caveat -->
 
 

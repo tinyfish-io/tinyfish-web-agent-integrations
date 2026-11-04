@@ -1,9 +1,9 @@
 ---
-name: tinyfish-research
-description: "Web research powered by TinyFish search and fetch, plus TinyFish deep research runs when the user explicitly asks for deep research. Use for any question needing current web information, and for deep research — competitive analysis, literature reviews, lead generation, deep dives — including phrases like 'research this', 'find everything about', 'find me all', or 'deep dive on'."
+name: tinyfish-websearch
+description: "Free web search and page reading with TinyFish search and fetch_content. Use for any question needing current web information, reading known URLs, or multi-source research such as competitive analysis, literature reviews, lead generation, or deep dives, including phrases like 'research this', 'find everything about', 'find me all', or 'deep dive on'. Starts a billed TinyFish deep research run only when the user explicitly asks for deep research, a comprehensive or cited report, a literature review, a survey, or a landscape."
 ---
 
-# TinyFish Research
+# TinyFish Web Search
 
 You are the orchestrator. Understand the question, decide how much work it deserves, work it in
 passes, then compile and deliver. Pi runs this in your own context by default; if you have a
@@ -17,8 +17,7 @@ context — never money. Deep research runs, below, are the exception: each is b
 - **`fetch_content`** — up to **10 URLs per call**, rendered and returned as clean markdown.
 
 Do not use `run_web_automation` for research. It costs $0.016 per step and is for *acting* on
-sites, not reading them. The only exception is a page that requires a login to read — that's
-`tinyfish-authenticated`.
+sites, not reading them. The only exception is a page that requires a login to read; for that, see `tinyfish-authenticated`.
 
 ## Deep research runs
 
@@ -29,20 +28,8 @@ into a cited report. It takes several minutes and is **billed per run**. Without
 use it for single facts, definitions, current news, docs lookups, "what is" or "compare X vs Y"
 questions, or reading known URLs. An explicit ask wins even when the topic is news or a comparison.
 
-1. `start_deep_research` with `query` (the question plus every scope and constraint the user gave,
-   dates computed as in "Dates first") and `mode`. `deep` is the default; use `max` only when the
-   user asks for maximum depth or an exhaustive report — it is slower and costs more. It returns a
-   `research_run_id`.
-2. `get_deep_research` with that `research_run_id` until the run finishes and the cited report is
-   in the result. **Start one run per request**: if you already have a `research_run_id` for this
-   question, keep polling it instead of starting another. **Never cancel because it is slow**;
-   `cancel_deep_research` is only for when the user asks to stop.
-3. Deliver the report in Step 3's answer shape, with its citations as inline links, opening with "I
-   used a TinyFish deep research run." Don't redo the research with search passes; one
-   `fetch_content` to check a load-bearing claim is fine.
-
-If the deep research tools aren't available, or the run fails, say so and offer the search-and-fetch
-passes below instead. Never swap one for the other silently.
+When the user has explicitly asked for one, read `references/deep-research.md` and follow it. Don't
+read it otherwise.
 
 ## Auth
 

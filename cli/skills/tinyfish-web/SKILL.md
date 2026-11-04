@@ -1,6 +1,6 @@
 ---
 name: tinyfish-web
-description: "Pick the right TinyFish tool for a web task. Use when a request involves the live web — searching, reading pages, extracting data, filling forms, automating a site, working in a logged-in app, or watching a page or topic for changes — and it isn't already obvious which TinyFish tool fits."
+description: "Choose between reading the web for free and acting on it at a cost with TinyFish. Use when a web task may need interaction or a paid tool (filling forms, automating a site, working in a logged-in app, driving a browser from code, or watching a page or topic for changes) and it is not obvious which TinyFish tool fits. Plain lookups and reading known URLs go straight to tinyfish-websearch."
 ---
 
 # Choosing a TinyFish Tool
@@ -13,10 +13,10 @@ is mostly about not paying for the second when the first would do.
 
 | The task needs to... | Tool | Cost | Depth |
 |---|---|---|---|
-| Find pages, or get current information | `search` | **free** | `tinyfish-research` |
-| Read pages you have URLs for (up to 10 per call) | `fetch_content` | **free** | `tinyfish-research` |
-| Research a topic across many sources | `search` + `fetch_content`, fanned out across subagents | **free** | `tinyfish-research` |
-| Write a cited report, only when the user explicitly asks: "deep research", "deep dive", "comprehensive report", "cited report", "literature review", "survey", or "landscape" | `start_deep_research`, then `get_deep_research` | billed per run | `tinyfish-research` |
+| Find pages, or get current information | `search` | **free** | `tinyfish-websearch` |
+| Read pages you have URLs for (up to 10 per call) | `fetch_content` | **free** | `tinyfish-websearch` |
+| Research a topic across many sources | `search` + `fetch_content`, fanned out across subagents | **free** | `tinyfish-websearch` |
+| Write a cited report, only when the user explicitly asks: "deep research", "deep dive", "comprehensive report", "cited report", "literature review", "survey", or "landscape" | `start_deep_research`, then `get_deep_research` | billed per run | `tinyfish-websearch` |
 | Click, type, submit, navigate a flow, or extract data that only appears after interaction | `run_web_automation` | $0.016/step | `tinyfish-automation` |
 | Do the above on a site the user is logged into | `run_web_automation` + `use_profile` / `use_vault` | $0.016/step | `tinyfish-authenticated` |
 | Drive a browser from Playwright, Puppeteer, or Selenium code | `create_browser_session` | $0.002/min | `tinyfish-browser` |
@@ -42,7 +42,7 @@ Using `run_web_automation` to read a page is the most common and most expensive 
 - **Fetch** takes up to **10 URLs per `fetch_content` call** — that's how you read a batch of pages in
   one shot, for free.
 - **Search** has no batch: parallelism is just concurrent `search` calls, which is what subagent
-  fan-out does. See `tinyfish-research`.
+  fan-out does. See `tinyfish-websearch`.
 
 ## Sequencing
 
@@ -91,7 +91,7 @@ skill text disagree, the table is right for the CLI.
 `npm i -g @tiny-fish/cli@latest`.
 
 `search query` takes `--include-domains`, `--exclude-domains`, `--location`, `--language` and `--page`
-only. The recency, date-range and `domain_type` filters in `tinyfish-research` are MCP-only; put the
+only. The recency, date-range and `domain_type` filters in `tinyfish-websearch` are MCP-only; put the
 time window in the query text instead. Likewise `fetch content get` has no `purpose`, `ttl` or
 selector flags; skip that advice in `references/fetching.md`.
 

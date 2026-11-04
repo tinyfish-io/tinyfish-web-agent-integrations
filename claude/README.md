@@ -7,7 +7,7 @@ The complete web toolkit for your agent — search, fetch, browser automation, h
 The six `tinyfish-*` skills are built on TinyFish's hosted MCP server (bundled via `.mcp.json`). No install, no CLI needed — first use triggers an OAuth sign-in to your TinyFish account, or set an API key (see Authentication). Search and fetch are free; automation, browser sessions, and monitor checks are billed to your TinyFish wallet, and new users get $8 in sign-up credits. They work in any environment, including sandboxed surfaces without terminal access, except `tinyfish-browser`, which needs code execution to drive the browser.
 
 - **`/tinyfish:tinyfish-web`** — picks the right TinyFish tool when a web task could go several ways
-- **`/tinyfish:tinyfish-research`** — free web search with recency/date, domain, and news/research-paper filters, free page fetching as clean markdown from up to 10 URLs at once, and deep research runs when you ask for them
+- **`/tinyfish:tinyfish-websearch`** — free web search with recency/date, domain, and news/research-paper filters, free page fetching as clean markdown from up to 10 URLs at once, and deep research runs when you ask for them
 - **`/tinyfish:tinyfish-automation`** — browser automation billed to your wallet: natural-language goals that click, fill forms, and extract data in a live cloud browser
 - **`/tinyfish:tinyfish-authenticated`** — automation on sites you're signed into, with saved Browser Context Profiles and Vault credentials
 - **`/tinyfish:tinyfish-browser`** — a remote stealth Chrome session over CDP for Playwright, Puppeteer, or Selenium

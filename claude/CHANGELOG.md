@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.0.0 (2026-11-04)
+
+### Changed
+- **Breaking:** `/tinyfish:tinyfish-research` is now `/tinyfish:tinyfish-websearch`, so the name no longer reads as the billed Research product. Deep research steps moved to `references/deep-research.md`; the explicit-ask rule stays in the skill.
+- `tinyfish-web` describes choosing between reading and acting, so plain lookups load `tinyfish-websearch` directly.
+
 ## 2.1.2 (2026-10-30)
 
 ### Added

@@ -1,8 +1,11 @@
-Slot values for the ChatGPT plugin (chatgpt/skills), vendored into ux-labs `chatgpt-plugin/skills/`. It reaches TinyFish through `https://agent.tinyfish.ai/mcp/chatgpt`, has no subagents, and ships only tinyfish-monitor and tinyfish-research; the other skills render only so the build stays total.
+Slot values for the ChatGPT plugin (chatgpt/skills), vendored into ux-labs `chatgpt-plugin/skills/`. It reaches TinyFish through `https://agent.tinyfish.ai/mcp/chatgpt`, has no subagents, and ships only tinyfish-monitor and tinyfish-websearch; the other skills render only so the build stays total.
 
 <!-- slot: automation-batch -->
 The MCP tools do not start
 batches themselves; kick off runs with `run_web_automation_async` and collect their `run_id`s.
+
+<!-- slot: authenticated-pointer -->
+use `run_web_automation` with a signed-in Browser Context Profile
 
 <!-- slot: browser-caveat -->
 
