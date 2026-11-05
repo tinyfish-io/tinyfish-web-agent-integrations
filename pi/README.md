@@ -96,7 +96,7 @@ the prefix only names the install.
 | no adapter | `tinyfish search query "..."` (the CLI) |
 
 The long prefix is derived by the adapter from the npm package name — it is not a different product.
-This package registers 35 tools directly — search, fetch, the automation, run-management and
+This package registers 36 tools directly — search, fetch, the automation, run-management and
 batch tools, the browser-session tools, monitors, datasets, Browser Context Profile setup, and
 wallet and usage. Only the onboarding tool `guide_next_step` stays behind the adapter's `mcp` proxy tool; ask
 it for a name with `mcp({ search: "tinyfish" })` rather than guessing one, since the prefix depends

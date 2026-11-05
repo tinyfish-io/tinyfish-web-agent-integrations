@@ -1,6 +1,6 @@
 ---
 name: tinyfish-monitor
-description: "Watch a web page or a web topic over time with TinyFish Monitors. Use when the user wants to track, watch, or be alerted about changes — a price drop, a restock, new listings, content updates on a URL, or new pages and news on a topic — rather than check it once. Also use to list, check, pause, resume, run now, or cancel existing monitors."
+description: "Watch a web page or a web topic over time with TinyFish Monitors. Use when the user wants to track, watch, or be alerted about changes — a price drop, a restock, new listings, content updates on a URL, or new pages and news on a topic — rather than check it once. Also use to list, check, update, pause, resume, run now, or cancel existing monitors."
 ---
 
 # TinyFish Monitors
@@ -58,6 +58,7 @@ a day, about $0.12/day. Creating a monitor returns its baseline result immediate
 | `get_monitor` | Config, schedule, `status`, and `last_error` for one `monitor_id`. It does **not** return check results |
 | `run_monitor` | Check once now and return the result. Billed like any check |
 | `pause_monitor` / `resume_monitor` | Stop and restart the schedule |
+| `update_monitor` | Change schedule, name, webhook, or purpose. Send only what changes. The query or URL can't change |
 | `cancel_monitor` | Delete it. **Only when the user explicitly asks** |
 
 ## Notes

@@ -170,7 +170,7 @@ if (dirs) {
     'create_browser_session', 'list_browser_sessions', 'close_browser_session',
     'get_wallet', 'get_search_usage', 'list_fetch_usage',
     'create_monitor', 'list_monitors', 'get_monitor', 'pause_monitor', 'resume_monitor',
-    'run_monitor', 'cancel_monitor',
+    'update_monitor', 'run_monitor', 'cancel_monitor',
     'plan_dataset', 'create_dataset', 'get_dataset', 'get_dataset_rows', 'list_datasets',
     'populate_dataset', 'cancel_dataset_run', 'delete_dataset',
     'list_profiles', 'create_profile', 'start_profile_setup_session',
