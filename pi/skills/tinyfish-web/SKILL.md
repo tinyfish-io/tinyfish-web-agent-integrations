@@ -112,6 +112,7 @@ away. **The CLI grammar is two-level and does not match the tool names in these 
 | `list_profiles`, `create_profile`, profile sign-in | `tinyfish profile list`, `profile create --name <name>`, `profile sign-in <profile_id>` |
 | `create_monitor` | `tinyfish monitor create --schedule "<cron>"` with `--url <url>` or `--query "<query>"` |
 | `list_monitors`, `get_monitor`, `run_monitor`, `pause_monitor`, `resume_monitor`, `cancel_monitor` | `tinyfish monitor list`, `monitor <get\|run\|pause\|resume\|cancel> <monitor_id>` |
+| `update_monitor` | `tinyfish monitor update <monitor_id>` with any of `--schedule`, `--name`, `--webhook-url`, `--purpose` (`""` clears name, webhook or purpose). CLI 0.57+ |
 | `plan_dataset` | `tinyfish dataset plan "<prompt>" > spec.json` — prints the spec. Edit the file only as the user asks |
 | `create_dataset` | `tinyfish dataset create "<prompt>" --rows <n> --async`, or `--from-spec spec.json` in place of the prompt, never both — prints the dataset's `id` and `run.id`. Always `--async`: without it the command blocks for minutes, and interrupting it cancels the run |
 | `get_dataset` | `tinyfish dataset get <dataset_id>` — returns at once with `status`, `row_count` and `run`. While `status` is `populating`, wait about 30 seconds between checks; don't use `dataset watch`, which blocks. There is no `output_ready`: the rows stand once `status` is `ready` |
@@ -123,7 +124,7 @@ away. **The CLI grammar is two-level and does not match the tool names in these 
 These are **flags on `agent run`**, not separate command groups. `tinyfish profile` and
 `tinyfish vault` manage profiles and credentials; they do not run automations.
 
-Monitors and browser sessions need CLI 0.49 or later, and datasets 0.52 or later. On an older CLI, tell the user to run
+Monitors and browser sessions need CLI 0.49 or later, datasets 0.52 or later, and `monitor update` 0.57. On an older CLI, tell the user to run
 `npm i -g @tiny-fish/cli@latest`; never open a browser session you cannot close.
 
 If `tinyfish` is not installed, say so and give the user the fix rather than stopping:
