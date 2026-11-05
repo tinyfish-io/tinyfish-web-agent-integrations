@@ -1,6 +1,6 @@
 ---
 name: tinyfish-monitor
-description: "Monitor website changes on any web page, or track a topic across the web over time, with TinyFish Monitors. Set up a recurring monitor on a URL for price tracking, a price drop, availability and restock changes, new listings, or content updates, or on a search topic to get alerts when new pages or news appear. Use when the user wants to watch, track, or be notified about changes rather than check it once. Also use to list, check, pause, resume, run now, or cancel existing monitors."
+description: "Monitor website changes on any web page, or track a topic across the web over time, with TinyFish Monitors. Set up a recurring monitor on a URL for price tracking, a price drop, availability and restock changes, new listings, or content updates, or on a search topic to get alerts when new pages or news appear. Use when the user wants to watch, track, or be notified about changes rather than check it once. Also use to list, check, update, pause, resume, run now, or cancel existing monitors."
 ---
 
 # TinyFish Monitors

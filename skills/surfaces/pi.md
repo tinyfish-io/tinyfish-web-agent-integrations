@@ -187,7 +187,7 @@ away. **The CLI grammar is two-level and does not match the tool names in these 
 These are **flags on `agent run`**, not separate command groups. `tinyfish profile` and
 `tinyfish vault` manage profiles and credentials; they do not run automations.
 
-Monitors and browser sessions need CLI 0.49 or later, datasets 0.52 or later, and `monitor update` 0.57. On an older CLI, tell the user to run
+Monitors and browser sessions need CLI 0.49 or later, datasets 0.52 or later, and `monitor update` 0.57 or later. On an older CLI, tell the user to run
 `npm i -g @tiny-fish/cli@latest`; never open a browser session you cannot close.
 
 If `tinyfish` is not installed, say so and give the user the fix rather than stopping:
