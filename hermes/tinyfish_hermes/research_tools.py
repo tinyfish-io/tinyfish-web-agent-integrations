@@ -279,8 +279,9 @@ def research_status(run: dict[str, Any]) -> dict[str, Any]:
             if deep.get(key):
                 out[key] = deep[key]
         return out
-    if run.get("error"):
-        return {**base, "output_ready": False, "error": run["error"]}
+    if run.get("error") or run.get("status") not in ACTIVE_STATUSES:
+        error = run.get("error") or f"The run ended {run.get('status')}"
+        return {**base, "output_ready": False, "error": error}
     out = {**base, "output_ready": False, "next_action": _POLL_AGAIN}
     progress = _progress(run)
     if progress:

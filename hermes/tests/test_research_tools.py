@@ -200,3 +200,11 @@ def test_start_follows_the_research_policy(monkeypatch: pytest.MonkeyPatch) -> N
     policy["tinyfish"]["credit_policy"]["research"] = "request"
     assert pre_tool_call_policy(tool, {})["rule_key"] == "tinyfish:research"  # type: ignore[index]
     assert pre_tool_call_policy("tinyfish_get_deep_research", {}) is None
+
+
+@pytest.mark.parametrize("status", ["CANCELLED", "FAILED"])
+def test_a_finished_run_without_error_never_says_poll_again(status: str) -> None:
+    out = research_tools.research_status({"research_run_id": RUN_ID, "status": status})
+
+    assert out["error"] == f"The run ended {status}"
+    assert "next_action" not in out
