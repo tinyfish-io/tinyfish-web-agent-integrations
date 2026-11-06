@@ -33,9 +33,20 @@ _BROWSER_CLOSE_RETRY_BASE_SECONDS = 0.25
 class TinyFishRestError(RuntimeError):
     """Raised for TinyFish REST transport or HTTP failures."""
 
-    def __init__(self, message: str, status: int | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        status: int | None = None,
+        *,
+        code: str | None = None,
+        details: dict[str, Any] | None = None,
+        retry_after: str | None = None,
+    ) -> None:
         super().__init__(message)
         self.status = status
+        self.code = code
+        self.details = details
+        self.retry_after = retry_after
 
 
 class TinyFishWalletNotFound(TinyFishRestError):
@@ -58,28 +69,41 @@ def _json_headers(api_key: str) -> dict[str, str]:
     return headers
 
 
-def _server_message(response: httpx.Response) -> str:
+def _server_error(response: httpx.Response) -> dict[str, Any]:
     try:
         error = response.json().get("error")
     except Exception:
-        return ""
-    message = error.get("message") if isinstance(error, dict) else None
+        return {}
+    return error if isinstance(error, dict) else {}
+
+
+def _server_message(response: httpx.Response) -> str:
+    message = _server_error(response).get("message")
     return message[:500] if isinstance(message, str) else ""
 
 
 def _raise_http_error(service: str, exc: httpx.HTTPStatusError) -> NoReturn:
     status = exc.response.status_code
+    error = _server_error(exc.response)
+    code, details = error.get("code"), error.get("details")
+    # Datasets names an already-created dataset in details on any refusal status.
+    extra: dict[str, Any] = {
+        "code": code if isinstance(code, str) else None,
+        "details": details if isinstance(details, dict) else None,
+        "retry_after": exc.response.headers.get("Retry-After"),
+    }
     if status == 402:
         raise TinyFishRestError(
             f"{service} returned HTTP 402. "
             "TinyFish credits or billing may be required.",
             status,
+            **extra,
         ) from exc
     # 4xx text is TinyFish's own validation message and tells the agent what to fix.
     detail = _server_message(exc.response) if 400 <= status < 500 else ""
     suffix = f": {detail}" if detail else ""
     raise TinyFishRestError(
-        f"{service} returned HTTP {status}{suffix}", status
+        f"{service} returned HTTP {status}{suffix}", status, **extra
     ) from exc
 
 
@@ -308,6 +332,7 @@ def _agent_request(
     *,
     api_key: str,
     json_body: dict[str, Any] | None = None,
+    params: dict[str, Any] | None = None,
     timeout: float = 30.0,
     service: str = "TinyFish Agent",
 ) -> dict[str, Any]:
@@ -316,6 +341,7 @@ def _agent_request(
             method,
             f"{AGENT_URL}{path}",
             json=json_body,
+            params=params,
             headers=_json_headers(api_key),
             timeout=timeout,
         )
@@ -448,3 +474,182 @@ def update_profile(
 
 def delete_profile(profile_id: str, *, api_key: str) -> dict[str, Any]:
     return _profile_request("DELETE", _profile_path(profile_id), api_key=api_key)
+
+
+def _id(value: str) -> str:
+    return quote(value, safe="")
+
+
+_MONITORS = "TinyFish Monitors"
+_RESEARCH = "TinyFish Research"
+_DATASETS = "TinyFish Datasets"
+
+
+def create_monitor(fields: dict[str, Any], *, api_key: str) -> dict[str, Any]:
+    # The baseline check runs inside the request.
+    return _agent_request(
+        "POST",
+        "/v1/monitors",
+        api_key=api_key,
+        json_body=fields,
+        timeout=60.0,
+        service=_MONITORS,
+    )
+
+
+def list_monitors(*, api_key: str) -> dict[str, Any]:
+    return _agent_request("GET", "/v1/monitors", api_key=api_key, service=_MONITORS)
+
+
+def get_monitor(
+    monitor_id: str, *, api_key: str, timeout: float = 30.0
+) -> dict[str, Any]:
+    return _agent_request(
+        "GET",
+        f"/v1/monitors/{_id(monitor_id)}",
+        api_key=api_key,
+        timeout=timeout,
+        service=_MONITORS,
+    )
+
+
+def update_monitor(
+    monitor_id: str, fields: dict[str, Any], *, api_key: str
+) -> dict[str, Any]:
+    return _agent_request(
+        "PATCH",
+        f"/v1/monitors/{_id(monitor_id)}",
+        api_key=api_key,
+        json_body=fields,
+        service=_MONITORS,
+    )
+
+
+def delete_monitor(monitor_id: str, *, api_key: str) -> dict[str, Any]:
+    return _agent_request(
+        "DELETE", f"/v1/monitors/{_id(monitor_id)}", api_key=api_key, service=_MONITORS
+    )
+
+
+def run_monitor(monitor_id: str, *, api_key: str) -> dict[str, Any]:
+    return _agent_request(
+        "POST",
+        f"/v1/monitors/{_id(monitor_id)}/runs",
+        api_key=api_key,
+        timeout=60.0,
+        service=_MONITORS,
+    )
+
+
+def start_research(fields: dict[str, Any], *, api_key: str) -> dict[str, Any]:
+    return _agent_request(
+        "POST",
+        "/v1/automation/run-research-async",
+        api_key=api_key,
+        json_body=fields,
+        service=_RESEARCH,
+    )
+
+
+def list_research(params: dict[str, Any], *, api_key: str) -> dict[str, Any]:
+    return _agent_request(
+        "GET", "/v1/research-run", api_key=api_key, params=params, service=_RESEARCH
+    )
+
+
+def get_research(research_run_id: str, *, api_key: str) -> dict[str, Any]:
+    return _agent_request(
+        "GET",
+        f"/v1/research-run/{_id(research_run_id)}",
+        api_key=api_key,
+        service=_RESEARCH,
+    )
+
+
+def cancel_research(research_run_id: str, *, api_key: str) -> dict[str, Any]:
+    return _agent_request(
+        "POST",
+        f"/v1/research-run/{_id(research_run_id)}/cancel",
+        api_key=api_key,
+        service=_RESEARCH,
+    )
+
+
+# Plan and prompt-based create run the spec agent in-request (server maxDuration 90s).
+def plan_dataset(prompt: str, *, api_key: str) -> dict[str, Any]:
+    return _agent_request(
+        "POST",
+        "/v1/datasets/plan",
+        api_key=api_key,
+        json_body={"prompt": prompt},
+        timeout=95.0,
+        service=_DATASETS,
+    )
+
+
+def create_dataset(fields: dict[str, Any], *, api_key: str) -> dict[str, Any]:
+    return _agent_request(
+        "POST",
+        "/v1/datasets",
+        api_key=api_key,
+        json_body=fields,
+        timeout=95.0,
+        service=_DATASETS,
+    )
+
+
+def list_datasets(params: dict[str, Any], *, api_key: str) -> dict[str, Any]:
+    return _agent_request(
+        "GET", "/v1/datasets", api_key=api_key, params=params, service=_DATASETS
+    )
+
+
+def get_dataset(
+    dataset_id: str, *, api_key: str, timeout: float = 30.0
+) -> dict[str, Any]:
+    return _agent_request(
+        "GET",
+        f"/v1/datasets/{_id(dataset_id)}",
+        api_key=api_key,
+        timeout=timeout,
+        service=_DATASETS,
+    )
+
+
+def get_dataset_rows(
+    dataset_id: str, params: dict[str, Any], *, api_key: str
+) -> dict[str, Any]:
+    return _agent_request(
+        "GET",
+        f"/v1/datasets/{_id(dataset_id)}/rows",
+        api_key=api_key,
+        params=params,
+        service=_DATASETS,
+    )
+
+
+def populate_dataset(
+    dataset_id: str, fields: dict[str, Any], *, api_key: str
+) -> dict[str, Any]:
+    return _agent_request(
+        "POST",
+        f"/v1/datasets/{_id(dataset_id)}/populate",
+        api_key=api_key,
+        json_body=fields,
+        service=_DATASETS,
+    )
+
+
+def cancel_dataset_run(dataset_id: str, run_id: str, *, api_key: str) -> dict[str, Any]:
+    return _agent_request(
+        "POST",
+        f"/v1/datasets/{_id(dataset_id)}/runs/{_id(run_id)}/cancel",
+        api_key=api_key,
+        service=_DATASETS,
+    )
+
+
+def delete_dataset(dataset_id: str, *, api_key: str) -> dict[str, Any]:
+    return _agent_request(
+        "DELETE", f"/v1/datasets/{_id(dataset_id)}", api_key=api_key, service=_DATASETS
+    )
