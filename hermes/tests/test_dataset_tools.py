@@ -276,3 +276,9 @@ def test_reset_always_asks_and_names_the_dataset(
     )
     policy["tinyfish"]["credit_policy"]["datasets"] = "deny"
     assert pre_tool_call_policy("tinyfish_populate_dataset", args)["action"] == "block"  # type: ignore[index]
+
+
+def test_create_approval_names_the_row_target() -> None:
+    directive = pre_tool_call_policy("tinyfish_create_dataset", {"target_rows": 25})
+
+    assert directive is not None and "Fills up to 25 rows" in directive["message"]

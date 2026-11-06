@@ -140,6 +140,26 @@ _BILLED_TOOLS: dict[str, CreditFeature] = {
 }
 
 
+def _charge_scope(tool_name: str, params: dict[str, Any]) -> str:
+    rows = params.get("target_rows")
+    if tool_name == "tinyfish_create_monitor":
+        config = params.get("config")
+        config = config if isinstance(config, dict) else {}
+        watched = str(config.get("url") or config.get("query") or "?")[:120]
+        cron = params.get("schedule_cron")
+        return (
+            f" Watches {watched} on schedule '{cron}', billing every check until "
+            "paused or cancelled."
+        )
+    if tool_name == "tinyfish_resume_monitor":
+        return " Its scheduled checks bill again until paused or cancelled."
+    if tool_name == "tinyfish_create_dataset":
+        return f" Fills up to {rows or 100} rows, $0.10 per complete row."
+    if tool_name == "tinyfish_populate_dataset" and rows:
+        return f" Fills up to {rows} rows, $0.10 per complete row."
+    return ""
+
+
 def _confirm_delete(
     kind: str, getter: Callable[..., dict[str, Any]], item_id: str
 ) -> dict[str, str]:
@@ -163,6 +183,8 @@ def pre_tool_call_policy(
 
     if tool_name in _BILLED_TOOLS:
         directive = _directive_for_feature(_BILLED_TOOLS[tool_name], tool_name, target)
+        if directive and directive["action"] == "approve":
+            directive["message"] += _charge_scope(tool_name, params)
         if tool_name == "tinyfish_populate_dataset" and params.get("reset"):
             if directive and directive["action"] == "block":
                 return directive

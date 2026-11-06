@@ -136,3 +136,15 @@ def test_cancel_always_asks_and_names_the_monitor(http: Any) -> None:
         "rule_key": "tinyfish:monitor_delete:m1",
     }
     assert http.sent[0]["timeout"] == 5.0
+
+
+def test_create_approval_names_the_target_and_recurring_schedule() -> None:
+    directive = pre_tool_call_policy(
+        "tinyfish_create_monitor",
+        {"config": {"url": "https://example.com/p"}, "schedule_cron": "0 9 * * *"},
+    )
+
+    assert directive is not None
+    assert "https://example.com/p" in directive["message"]
+    assert "'0 9 * * *'" in directive["message"]
+    assert "until paused or cancelled" in directive["message"]

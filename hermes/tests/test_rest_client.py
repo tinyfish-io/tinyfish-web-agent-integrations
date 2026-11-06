@@ -765,5 +765,7 @@ def test_post_timeout_warns_the_request_may_have_landed(
 
     with pytest.raises(rest_client.TinyFishRestError, match="may have gone through"):
         rest_client.create_dataset({"prompt": "p"}, api_key="tf_test")
+    with pytest.raises(rest_client.TinyFishRestError, match="may have gone through"):
+        rest_client.delete_monitor("m1", api_key="tf_test")
     with pytest.raises(rest_client.TinyFishRestError, match="Could not reach"):
         rest_client.list_datasets({}, api_key="tf_test")
