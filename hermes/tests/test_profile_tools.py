@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from types import SimpleNamespace
 from typing import Any
 
 import httpx
@@ -15,22 +14,6 @@ TOOLS = {schema["name"]: handler for schema, handler in profile_tools.PROFILE_TO
 
 def call(name: str, args: dict[str, Any]) -> dict[str, Any]:
     return json.loads(TOOLS[name](args))
-
-
-@pytest.fixture
-def http(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
-    monkeypatch.setenv("TINYFISH_API_KEY", "tf_test")
-    sent: list[dict[str, Any]] = []
-    replies: list[httpx.Response] = []
-
-    def fake_request(method: str, url: str, **kwargs: Any) -> httpx.Response:
-        sent.append({"method": method, "url": url, "json": kwargs.get("json")})
-        reply = replies.pop(0) if replies else httpx.Response(200, json={})
-        reply.request = httpx.Request(method, url)
-        return reply
-
-    monkeypatch.setattr(rest_client.httpx, "request", fake_request)
-    return SimpleNamespace(sent=sent, replies=replies)
 
 
 def reply(http: Any, status: int, payload: dict[str, Any]) -> None:

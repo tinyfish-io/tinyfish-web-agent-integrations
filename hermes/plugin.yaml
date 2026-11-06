@@ -18,6 +18,14 @@ provides_tools:
   - tinyfish_profile_sign_in
   - tinyfish_update_profile
   - tinyfish_delete_profile
+  - tinyfish_create_monitor
+  - tinyfish_list_monitors
+  - tinyfish_get_monitor
+  - tinyfish_update_monitor
+  - tinyfish_pause_monitor
+  - tinyfish_resume_monitor
+  - tinyfish_run_monitor
+  - tinyfish_cancel_monitor
 provides_hooks:
   - pre_tool_call
   - pre_llm_call

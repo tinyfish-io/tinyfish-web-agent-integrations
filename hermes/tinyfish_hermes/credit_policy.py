@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlparse
 
@@ -117,18 +118,34 @@ def _directive_for_feature(
     return None
 
 
-def _profile_label(profile_id: str) -> str:
-    from . import rest_client
+def _label(getter: Callable[..., dict[str, Any]], item_id: str) -> str:
     from .provider import _api_key
 
     # The approver needs the real name, not the agent's claim; the id alone still works.
     try:
-        name = rest_client.get_profile(profile_id, api_key=_api_key(), timeout=5.0).get(
-            "name"
-        )
+        name = getter(item_id, api_key=_api_key(), timeout=5.0).get("name")
     except Exception:
-        return profile_id
-    return f"'{name}' ({profile_id})" if name else profile_id
+        return item_id
+    return f"'{name}' ({item_id})" if name else item_id
+
+
+_BILLED_TOOLS: dict[str, CreditFeature] = {
+    "tinyfish_agent": "agent",
+    "tinyfish_create_monitor": "monitor",
+    "tinyfish_run_monitor": "monitor",
+    "tinyfish_resume_monitor": "monitor",
+}
+
+
+def _confirm_delete(
+    kind: str, getter: Callable[..., dict[str, Any]], item_id: str
+) -> dict[str, str]:
+    # Keyed per item so one approval never covers deleting a different one.
+    return {
+        "action": "approve",
+        "message": f"Permanently delete TinyFish {kind} {_label(getter, item_id)}?",
+        "rule_key": f"tinyfish:{kind}_delete:{item_id}",
+    }
 
 
 def pre_tool_call_policy(
@@ -139,17 +156,16 @@ def pre_tool_call_policy(
     params = args or {}
     target = str(params.get("url") or params.get("target") or "")
 
-    if tool_name == "tinyfish_agent":
-        return _directive_for_feature("agent", tool_name, target)
+    from . import rest_client
+
+    if tool_name in _BILLED_TOOLS:
+        return _directive_for_feature(_BILLED_TOOLS[tool_name], tool_name, target)
     if tool_name == "tinyfish_delete_profile":
         profile_id = str(params.get("profile_id") or "")
-        label = _profile_label(profile_id)
-        # Keyed per profile so one approval never covers deleting a different profile.
-        return {
-            "action": "approve",
-            "message": f"Permanently delete TinyFish profile {label}?",
-            "rule_key": f"tinyfish:profile_delete:{profile_id}",
-        }
+        return _confirm_delete("profile", rest_client.get_profile, profile_id)
+    if tool_name == "tinyfish_cancel_monitor":
+        monitor_id = str(params.get("monitor_id") or "")
+        return _confirm_delete("monitor", rest_client.get_monitor, monitor_id)
     if not tool_name.startswith("browser_"):
         return None
     config = load_config()

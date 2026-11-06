@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import pytest
 
 import tinyfish_hermes
+
+MANIFEST = Path(tinyfish_hermes.__file__).resolve().parents[1] / "plugin.yaml"
 
 
 class MinimalContext:
@@ -83,7 +86,8 @@ def test_register_with_full_context_adds_browser_provider_and_hooks() -> None:
         "on_session_finalize",
     ]
     assert all(callable(handler) for _, handler in ctx.hooks)
-    assert [tool["name"] for tool in ctx.tools] == [
+    names = [tool["name"] for tool in ctx.tools]
+    assert names[:6] == [
         "tinyfish_agent",
         "tinyfish_list_profiles",
         "tinyfish_create_profile",
@@ -91,6 +95,7 @@ def test_register_with_full_context_adds_browser_provider_and_hooks() -> None:
         "tinyfish_update_profile",
         "tinyfish_delete_profile",
     ]
+    assert "tinyfish_create_monitor" in names
     assert all(tool["toolset"] == "tinyfish" for tool in ctx.tools)
     assert ctx.tools[0]["schema"]["name"] == "tinyfish_agent"
 
@@ -121,3 +126,19 @@ def test_registered_cli_handler_returns_nonzero_exit_status(
 
     # Hermes' CLI main() forwards a nonzero int return to sys.exit.
     assert ctx.cli_commands[0]["handler_fn"](object()) == 7
+
+
+def test_manifest_tools_match_registration() -> None:
+    # Hermes' doctor only warns on a mismatch, so this is the gate.
+    lines = MANIFEST.read_text(encoding="utf-8").splitlines()
+    start = lines.index("provides_tools:") + 1
+    manifest: list[str] = []
+    for line in lines[start:]:
+        if not line.startswith("  - "):
+            break
+        manifest.append(line[4:].strip())
+    ctx = FullContext()
+
+    tinyfish_hermes.register(ctx)
+
+    assert manifest == [tool["name"] for tool in ctx.tools]
