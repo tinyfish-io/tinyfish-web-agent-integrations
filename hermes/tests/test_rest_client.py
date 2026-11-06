@@ -752,7 +752,8 @@ def test_refusals_keep_code_details_and_retry_after(
     assert info.value.code == "SERVICE_BUSY"
     assert info.value.details == {"dataset_id": "d1"}
     assert info.value.retry_after == "30"
-    assert "busy" not in str(info.value)
+    # Only 4xx text is echoed; a 5xx body never is.
+    assert ("busy" in str(info.value)) == (status == 402)
 
 
 def test_post_timeout_warns_the_request_may_have_landed(
@@ -769,3 +770,21 @@ def test_post_timeout_warns_the_request_may_have_landed(
         rest_client.delete_monitor("m1", api_key="tf_test")
     with pytest.raises(rest_client.TinyFishRestError, match="Could not reach"):
         rest_client.list_datasets({}, api_key="tf_test")
+
+
+def test_402_keeps_the_server_message(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_request(m: str, u: str, **kwargs: Any) -> httpx.Response:
+        return _response(
+            m,
+            u,
+            status=402,
+            payload={"error": {"code": "INSUFFICIENT_CREDITS", "message": "Add funds"}},
+        )
+
+    monkeypatch.setattr(rest_client.httpx, "request", fake_request)
+
+    with pytest.raises(rest_client.TinyFishRestError) as info:
+        rest_client.start_research({"query": "q"}, api_key="tf_test")
+    assert str(info.value).endswith("credits or billing may be required. Add funds")
+    assert info.value.code == "INSUFFICIENT_CREDITS"
+    assert info.value.service == "TinyFish Research"

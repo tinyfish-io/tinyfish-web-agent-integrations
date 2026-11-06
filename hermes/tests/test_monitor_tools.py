@@ -148,3 +148,17 @@ def test_create_approval_names_the_target_and_recurring_schedule() -> None:
     assert "https://example.com/p" in directive["message"]
     assert "'0 9 * * *'" in directive["message"]
     assert "until paused or cancelled" in directive["message"]
+
+
+def test_schedule_change_follows_the_monitor_policy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    policy = {"tinyfish": {"credit_policy": {"monitor": "deny"}}}
+    monkeypatch.setattr(config, "load_config", lambda: policy)
+    args = {"monitor_id": "m1", "schedule_cron": "* * * * *"}
+
+    assert pre_tool_call_policy("tinyfish_update_monitor", args)["action"] == "block"  # type: ignore[index]
+    policy["tinyfish"]["credit_policy"]["monitor"] = "request"
+    directive = pre_tool_call_policy("tinyfish_update_monitor", args)
+    assert directive is not None and "'* * * * *'" in directive["message"]
+    assert pre_tool_call_policy("tinyfish_update_monitor", {"name": "x"}) is None

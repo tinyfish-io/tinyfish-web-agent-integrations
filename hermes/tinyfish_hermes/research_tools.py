@@ -148,7 +148,14 @@ LIST_SCHEMA = _schema(
     {
         "status": {
             "type": "string",
-            "enum": ["QUEUED", "RUNNING", "COMPLETED", "FAILED", "CANCELLED"],
+            "enum": [
+                "QUEUED",
+                "RUNNING",
+                "COMPLETED",
+                "FAILED",
+                "CANCELLED",
+                "TIMED_OUT",
+            ],
             "description": "Filter by research run status.",
         },
         "query": {

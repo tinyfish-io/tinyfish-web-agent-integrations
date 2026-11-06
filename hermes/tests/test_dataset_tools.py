@@ -282,3 +282,16 @@ def test_create_approval_names_the_row_target() -> None:
     directive = pre_tool_call_policy("tinyfish_create_dataset", {"target_rows": 25})
 
     assert directive is not None and "Fills up to 25 rows" in directive["message"]
+
+
+def test_refusal_after_the_run_started_points_at_get(http: Any) -> None:
+    http.reply(
+        503,
+        {"error": {"message": "busy", "details": {"dataset_id": "d1", "run_id": "r9"}}},
+    )
+
+    out = call("tinyfish_populate_dataset", {"dataset_id": "d1"})
+
+    assert out["run_id"] == "r9"
+    assert out["next_action"].startswith("The run started as run_id=r9.")
+    assert "tinyfish_get_dataset with dataset_id=d1" in out["next_action"]

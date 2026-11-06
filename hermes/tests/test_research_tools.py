@@ -208,3 +208,13 @@ def test_a_finished_run_without_error_never_says_poll_again(status: str) -> None
 
     assert out["error"] == f"The run ended {status}"
     assert "next_action" not in out
+
+
+def test_list_can_filter_timed_out_runs() -> None:
+    lister = next(
+        schema
+        for schema, _ in research_tools.RESEARCH_TOOLS
+        if schema["name"] == "tinyfish_list_deep_research"
+    )
+
+    assert "TIMED_OUT" in lister["parameters"]["properties"]["status"]["enum"]

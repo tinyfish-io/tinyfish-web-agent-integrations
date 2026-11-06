@@ -224,7 +224,16 @@ def dataset_error_json(exc: rest_client.TinyFishRestError) -> str:
     named = isinstance(dataset_id, str)
     if named:
         payload["dataset_id"] = dataset_id
-    if exc.status == 429:
+    run_id = (exc.details or {}).get("run_id")
+    if named and isinstance(run_id, str):
+        # The run started before the readback failed; populating again bills twice.
+        payload["run_id"] = run_id
+        payload["next_action"] = (
+            f"The run started as run_id={run_id}. Call tinyfish_get_dataset with "
+            f"dataset_id={dataset_id}; do not call tinyfish_populate_dataset or "
+            "tinyfish_create_dataset again."
+        )
+    elif exc.status == 429:
         payload["next_action"] = (
             "Run limit reached: too many runs are in progress. The dataset exists as "
             f"dataset_id={dataset_id}. Tell the user to wait for a run to finish, "

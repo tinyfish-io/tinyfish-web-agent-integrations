@@ -198,6 +198,15 @@ def pre_tool_call_policy(
                 "rule_key": f"tinyfish:dataset_reset:{dataset_id}",
             }
         return directive
+    if tool_name == "tinyfish_update_monitor" and params.get("schedule_cron"):
+        # A new schedule is a new spend decision; fetch monitors have no floor.
+        directive = _directive_for_feature("monitor", tool_name, target)
+        if directive and directive["action"] == "approve":
+            directive["message"] += (
+                f" Changes the schedule to '{params['schedule_cron']}'; every check "
+                "bills until paused or cancelled."
+            )
+        return directive
     if tool_name == "tinyfish_delete_profile":
         profile_id = str(params.get("profile_id") or "")
         return _confirm_delete("profile", rest_client.get_profile, profile_id)

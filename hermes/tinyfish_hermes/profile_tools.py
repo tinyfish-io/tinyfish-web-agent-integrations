@@ -163,16 +163,18 @@ def error_json(exc: rest_client.TinyFishRestError) -> str:
 
 
 def _feature_off(exc: rest_client.TinyFishRestError) -> bool:
-    # Research start refuses with a bare 403 FORBIDDEN, so its message is the signal.
+    # Research start refuses an unflagged account with a bare 403 FORBIDDEN.
     return exc.code == "FEATURE_NOT_AVAILABLE" or (
-        exc.status == HTTPStatus.FORBIDDEN and "is not available" in str(exc)
+        exc.status == HTTPStatus.FORBIDDEN and str(exc).endswith("API is not available")
     )
 
 
 def plain_error(exc: rest_client.TinyFishRestError) -> dict[str, Any]:
     payload: dict[str, Any] = {"error": str(exc)}
+    if exc.code:
+        payload["code"] = exc.code
     if _feature_off(exc):
-        product = str(exc).rsplit(": ", 1)[-1].split(" API", 1)[0] or "This product"
+        product = (exc.service or "").removeprefix("TinyFish ") or "This product"
         payload["next_action"] = (
             f"{product} isn't enabled for this TinyFish account yet; tell the user, "
             "don't retry."

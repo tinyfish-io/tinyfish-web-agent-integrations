@@ -41,12 +41,14 @@ class TinyFishRestError(RuntimeError):
         code: str | None = None,
         details: dict[str, Any] | None = None,
         retry_after: str | None = None,
+        service: str | None = None,
     ) -> None:
         super().__init__(message)
         self.status = status
         self.code = code
         self.details = details
         self.retry_after = retry_after
+        self.service = service
 
 
 class TinyFishWalletNotFound(TinyFishRestError):
@@ -91,16 +93,19 @@ def _raise_http_error(service: str, exc: httpx.HTTPStatusError) -> NoReturn:
         "code": code if isinstance(code, str) else None,
         "details": details if isinstance(details, dict) else None,
         "retry_after": exc.response.headers.get("Retry-After"),
+        "service": service,
     }
+    # 4xx text is TinyFish's own validation message and tells the agent what to fix.
+    detail = _server_message(exc.response) if 400 <= status < 500 else ""
     if status == 402:
+        # The server text carries the fix, e.g. the wallet link or allowance reset.
         raise TinyFishRestError(
             f"{service} returned HTTP 402. "
-            "TinyFish credits or billing may be required.",
+            "TinyFish credits or billing may be required."
+            + (f" {detail}" if detail else ""),
             status,
             **extra,
         ) from exc
-    # 4xx text is TinyFish's own validation message and tells the agent what to fix.
-    detail = _server_message(exc.response) if 400 <= status < 500 else ""
     suffix = f": {detail}" if detail else ""
     raise TinyFishRestError(
         f"{service} returned HTTP {status}{suffix}", status, **extra

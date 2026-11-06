@@ -248,12 +248,33 @@ def test_plain_error_json_flags_a_product_that_is_off(
     status: int, code: str, message: str, product: str
 ) -> None:
     exc = rest_client.TinyFishRestError(
-        f"TinyFish {product} returned HTTP {status}: {message}", status, code=code
+        f"TinyFish {product} returned HTTP {status}: {message}",
+        status,
+        code=code,
+        service=f"TinyFish {product}",
     )
 
     out = json.loads(profile_tools.plain_error_json(exc))
 
+    assert out["code"] == code
     assert out["next_action"].startswith(f"{product} isn't enabled")
+
+
+def test_plain_error_json_keeps_the_org_key_refusal_as_is() -> None:
+    message = (
+        "Research is not available on organization API keys yet. Use a personal key."
+    )
+    exc = rest_client.TinyFishRestError(
+        f"TinyFish Research returned HTTP 403: {message}",
+        403,
+        code="FORBIDDEN",
+        service="TinyFish Research",
+    )
+
+    out = json.loads(profile_tools.plain_error_json(exc))
+
+    assert "next_action" not in out
+    assert "Use a personal key" in out["error"]
 
 
 def test_plain_error_json_leaves_other_errors_bare() -> None:
