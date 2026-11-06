@@ -349,6 +349,14 @@ def _agent_request(
         data = response.json()
     except httpx.HTTPStatusError as exc:
         _raise_http_error(service, exc)
+    except httpx.ReadTimeout as exc:
+        # An unanswered POST may still have landed; a blind retry duplicates it.
+        if method == "POST":
+            raise TinyFishRestError(
+                f"{service} did not answer in time, so the request may have gone "
+                "through. List existing items before retrying."
+            ) from exc
+        raise TinyFishRestError(f"Could not reach {service}: {exc}") from exc
     except httpx.RequestError as exc:
         raise TinyFishRestError(f"Could not reach {service}: {exc}") from exc
     except ValueError as exc:

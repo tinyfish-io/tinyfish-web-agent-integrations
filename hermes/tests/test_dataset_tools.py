@@ -256,3 +256,23 @@ def test_delete_always_asks_and_names_the_dataset(http: Any) -> None:
         "message": "Permanently delete TinyFish dataset 'Coffee' (d1)?",
         "rule_key": "tinyfish:dataset_delete:d1",
     }
+
+
+def test_reset_always_asks_and_names_the_dataset(
+    http: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    policy = {"tinyfish": {"credit_policy": {"datasets": "allow"}}}
+    monkeypatch.setattr(config, "load_config", lambda: policy)
+    http.reply(200, dataset("ready"))
+    args = {"dataset_id": "d1", "reset": True}
+
+    directive = pre_tool_call_policy("tinyfish_populate_dataset", args)
+
+    assert directive is not None
+    assert directive["rule_key"] == "tinyfish:dataset_reset:d1"
+    assert "'Coffee' (d1)" in directive["message"]
+    assert (
+        pre_tool_call_policy("tinyfish_populate_dataset", {"dataset_id": "d1"}) is None
+    )
+    policy["tinyfish"]["credit_policy"]["datasets"] = "deny"
+    assert pre_tool_call_policy("tinyfish_populate_dataset", args)["action"] == "block"  # type: ignore[index]

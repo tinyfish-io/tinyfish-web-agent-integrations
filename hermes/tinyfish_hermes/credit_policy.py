@@ -162,7 +162,20 @@ def pre_tool_call_policy(
     from . import rest_client
 
     if tool_name in _BILLED_TOOLS:
-        return _directive_for_feature(_BILLED_TOOLS[tool_name], tool_name, target)
+        directive = _directive_for_feature(_BILLED_TOOLS[tool_name], tool_name, target)
+        if tool_name == "tinyfish_populate_dataset" and params.get("reset"):
+            if directive and directive["action"] == "block":
+                return directive
+            dataset_id = str(params.get("dataset_id") or "")
+            label = _label(rest_client.get_dataset, dataset_id)
+            # Reset deletes rows, so it asks even under `allow`, once per dataset.
+            return {
+                "action": "approve",
+                "message": f"Empty TinyFish dataset {label} and refill it? Its current "
+                "rows are deleted, and refilling consumes TinyFish credits.",
+                "rule_key": f"tinyfish:dataset_reset:{dataset_id}",
+            }
+        return directive
     if tool_name == "tinyfish_delete_profile":
         profile_id = str(params.get("profile_id") or "")
         return _confirm_delete("profile", rest_client.get_profile, profile_id)

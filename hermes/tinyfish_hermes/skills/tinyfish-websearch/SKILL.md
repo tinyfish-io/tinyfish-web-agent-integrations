@@ -38,7 +38,10 @@ In Hermes, `search` is `web_search` and `fetch_content` is `web_extract`; the de
 and location in the query text; the recency, date, `domain_type` and location filters in
 `references/searching.md` need the `tinyfish` MCP server's `search`, when it is configured.
 `web_extract` returns Hermes' own result shape, so read the fields it gives rather than the ones
-`references/fetching.md` names. On an auth error, run `hermes tinyfish doctor`, then tell the user to
+`references/fetching.md` names. The references' `purpose`, `format` and other `search` and
+`fetch_content` parameters are for the MCP tools: pass `web_search` and `web_extract` only what their
+schemas show. `web_search` and `web_extract` reach TinyFish only when Hermes routes them there: if
+`hermes tinyfish status` shows `web_backend_configured: no`, don't credit TinyFish for the results. On an auth error, run `hermes tinyfish doctor`, then tell the user to
 run `hermes tinyfish setup`. Never ask for the API key in chat. On a wallet-balance or rate-limit
 error, say so plainly.
 

@@ -753,3 +753,17 @@ def test_refusals_keep_code_details_and_retry_after(
     assert info.value.details == {"dataset_id": "d1"}
     assert info.value.retry_after == "30"
     assert "busy" not in str(info.value)
+
+
+def test_post_timeout_warns_the_request_may_have_landed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_request(m: str, u: str, **kwargs: Any) -> httpx.Response:
+        raise httpx.ReadTimeout("timed out")
+
+    monkeypatch.setattr(rest_client.httpx, "request", fake_request)
+
+    with pytest.raises(rest_client.TinyFishRestError, match="may have gone through"):
+        rest_client.create_dataset({"prompt": "p"}, api_key="tf_test")
+    with pytest.raises(rest_client.TinyFishRestError, match="Could not reach"):
+        rest_client.list_datasets({}, api_key="tf_test")
