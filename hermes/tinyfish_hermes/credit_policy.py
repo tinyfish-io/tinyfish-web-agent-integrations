@@ -17,6 +17,9 @@ from .config import (
 FEATURE_LABELS: dict[CreditFeature, str] = {
     "browser": "TinyFish Browser",
     "agent": "TinyFish Agent",
+    "monitor": "TinyFish Monitors",
+    "research": "TinyFish Deep Research",
+    "datasets": "TinyFish Datasets",
 }
 
 
@@ -40,7 +43,7 @@ def policy_message(
     normalized = normalize_feature(str(feature))
     resolved = policy or credit_policy(normalized)
     return (
-        f"{FEATURE_LABELS[normalized]} sessions consume TinyFish credits. "
+        f"{FEATURE_LABELS[normalized]} consumes TinyFish credits. "
         f"Current policy is '{resolved}'."
     )
 
@@ -50,8 +53,7 @@ def block_message(feature: CreditFeature | str) -> str:
     return (
         f"BLOCKED: {policy_message(normalized, 'deny')} "
         f"Set `tinyfish.credit_policy.{normalized}` to `request` (per-session "
-        "approval) or `allow` in Hermes config; `hermes tinyfish browser` "
-        "manages this setting."
+        f"approval) or `allow` with `hermes tinyfish credits set {normalized}`."
     )
 
 

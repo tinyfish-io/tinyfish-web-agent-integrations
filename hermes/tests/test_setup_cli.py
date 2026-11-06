@@ -222,7 +222,13 @@ def test_status_reports_non_secret_fields(
     assert payload["api_key_env_var"] == "TINYFISH_API_KEY"
     assert payload["api_key_configured"] is True
     assert payload["web_backend_configured"] is True
-    assert payload["credit_policy"] == {"browser": "request", "agent": "request"}
+    assert payload["credit_policy"] == {
+        "browser": "request",
+        "agent": "request",
+        "monitor": "request",
+        "research": "request",
+        "datasets": "request",
+    }
     assert payload["routing_context_enabled"] is True
     assert payload["mcp_configured"] is False
     assert payload["plugin_version"]
@@ -450,7 +456,13 @@ def test_credits_status_json(
 
     assert cli.dispatch_tinyfish_cli(args) == 0
     assert json.loads(capsys.readouterr().out) == {
-        "credit_policy": {"browser": "request", "agent": "request"}
+        "credit_policy": {
+            "browser": "request",
+            "agent": "request",
+            "monitor": "request",
+            "research": "request",
+            "datasets": "request",
+        }
     }
 
 
@@ -466,6 +478,16 @@ def test_credits_set_saves_policy(
     assert "Set TinyFish browser credit policy to allow." in capsys.readouterr().out
 
 
+@pytest.mark.parametrize("feature", ["monitor", "research", "datasets"])
+def test_credits_set_accepts_new_features(
+    env: dict[str, Any], capsys: pytest.CaptureFixture[str], feature: str
+) -> None:
+    args = _parser().parse_args(["credits", "set", feature, "deny"])
+
+    assert cli.dispatch_tinyfish_cli(args) == 0
+    assert env["saved_configs"][-1]["tinyfish"]["credit_policy"] == {feature: "deny"}
+
+
 def test_credits_reset_restores_request_default(
     env: dict[str, Any], capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -478,6 +500,9 @@ def test_credits_reset_restores_request_default(
     assert saved["tinyfish"]["credit_policy"] == {
         "browser": "request",
         "agent": "request",
+        "monitor": "request",
+        "research": "request",
+        "datasets": "request",
     }
     out = capsys.readouterr().out
     assert "request" in out

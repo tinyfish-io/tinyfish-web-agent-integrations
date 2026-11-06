@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
-CreditFeature = Literal["browser", "agent"]
+CreditFeature = Literal["browser", "agent", "monitor", "research", "datasets"]
 CreditPolicy = Literal["deny", "request", "allow"]
 
-CREDIT_FEATURES: tuple[CreditFeature, ...] = ("browser", "agent")
+CREDIT_FEATURES: tuple[CreditFeature, ...] = (
+    "browser",
+    "agent",
+    "monitor",
+    "research",
+    "datasets",
+)
 CREDIT_POLICIES: tuple[CreditPolicy, ...] = ("deny", "request", "allow")
 # 'request' is inert until browser.cloud_provider is tinyfish, and still
 # routes each session through Hermes approval once it is.
@@ -40,13 +46,12 @@ def tinyfish_config(config: dict[str, Any] | None = None) -> dict[str, Any]:
 
 def normalize_feature(value: str) -> CreditFeature:
     feature = value.strip().lower().replace("_", "-")
-    if feature == "browser":
-        return "browser"
-    if feature == "agent":
-        return "agent"
-    raise ValueError(
-        f"Unknown TinyFish credit feature '{value}'. Valid features: browser, agent"
-    )
+    if feature not in CREDIT_FEATURES:
+        valid = ", ".join(CREDIT_FEATURES)
+        raise ValueError(
+            f"Unknown TinyFish credit feature '{value}'. Valid features: {valid}"
+        )
+    return cast(CreditFeature, feature)
 
 
 def normalize_policy(value: Any) -> CreditPolicy:
