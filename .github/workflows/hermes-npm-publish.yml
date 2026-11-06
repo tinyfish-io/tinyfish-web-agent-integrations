@@ -95,6 +95,7 @@ jobs:
               'tinyfish_hermes/__init__.py',
               'tinyfish_hermes/provider.py',
               'tinyfish_hermes/setup_cli.py',
+              'tinyfish_hermes/skills/tinyfish-monitor/SKILL.md',
             ];
             const missing = required.filter((p) => !set.has(p));
             if (missing.length) {

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from importlib import metadata
 from pathlib import Path
 from typing import Any
@@ -40,6 +41,17 @@ def _resolve_version() -> str:
 
 
 __version__ = _resolve_version()
+
+_SKILLS_DIR = Path(__file__).resolve().parent / "skills"
+_DESCRIPTION = re.compile(r'^description: "?(.*?)"?$', re.MULTILINE)
+
+
+def _register_skills(ctx: Any) -> None:
+    for path in sorted(_SKILLS_DIR.glob("tinyfish-*/SKILL.md")):
+        match = _DESCRIPTION.search(path.read_text(encoding="utf-8"))
+        ctx.register_skill(
+            path.parent.name, path, description=match.group(1) if match else ""
+        )
 
 
 def register(ctx: Any) -> None:
@@ -86,6 +98,9 @@ def register(ctx: Any) -> None:
                 check_fn=lambda: bool(_api_key()),
                 emoji="🐟",
             )
+
+    if hasattr(ctx, "register_skill"):
+        _register_skills(ctx)
 
     if hasattr(ctx, "register_cli_command"):
 

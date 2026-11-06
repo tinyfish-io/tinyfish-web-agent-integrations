@@ -26,6 +26,7 @@ class FullContext(MinimalContext):
         self.cli_commands: list[dict[str, Any]] = []
         self.commands: list[dict[str, Any]] = []
         self.tools: list[dict[str, Any]] = []
+        self.skills: list[tuple[str, Path, str]] = []
 
     def register_tool(self, **kwargs: Any) -> None:
         self.tools.append(kwargs)
@@ -41,6 +42,9 @@ class FullContext(MinimalContext):
 
     def register_command(self, **kwargs: Any) -> None:
         self.commands.append(kwargs)
+
+    def register_skill(self, name: str, path: Path, description: str = "") -> None:
+        self.skills.append((name, path, description))
 
 
 def test_register_with_minimal_context_adds_only_web_provider() -> None:
@@ -142,3 +146,18 @@ def test_manifest_tools_match_registration() -> None:
     tinyfish_hermes.register(ctx)
 
     assert manifest == [tool["name"] for tool in ctx.tools]
+
+
+def test_register_ships_the_rendered_skills() -> None:
+    ctx = FullContext()
+
+    tinyfish_hermes.register(ctx)
+
+    assert [name for name, _, _ in ctx.skills] == [
+        "tinyfish-datasets",
+        "tinyfish-monitor",
+        "tinyfish-websearch",
+    ]
+    for _, path, description in ctx.skills:
+        assert path.is_file()
+        assert description and not description.startswith('"')
