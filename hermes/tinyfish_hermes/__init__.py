@@ -48,6 +48,7 @@ def register(ctx: Any) -> None:
     from .agent_tool import TINYFISH_AGENT_SCHEMA, tinyfish_agent
     from .browser_provider import TinyFishBrowserProvider, shutdown_cleanup
     from .credit_policy import pre_tool_call_policy
+    from .dataset_tools import DATASET_TOOLS
     from .monitor_tools import MONITOR_TOOLS
     from .profile_tools import PROFILE_TOOLS
     from .provider import TinyFishWebSearchProvider, _api_key
@@ -75,6 +76,7 @@ def register(ctx: Any) -> None:
             *PROFILE_TOOLS,
             *MONITOR_TOOLS,
             *RESEARCH_TOOLS,
+            *DATASET_TOOLS,
         ):
             ctx.register_tool(
                 name=schema["name"],

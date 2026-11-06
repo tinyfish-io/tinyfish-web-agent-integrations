@@ -135,6 +135,8 @@ _BILLED_TOOLS: dict[str, CreditFeature] = {
     "tinyfish_run_monitor": "monitor",
     "tinyfish_resume_monitor": "monitor",
     "tinyfish_start_deep_research": "research",
+    "tinyfish_create_dataset": "datasets",
+    "tinyfish_populate_dataset": "datasets",
 }
 
 
@@ -167,6 +169,9 @@ def pre_tool_call_policy(
     if tool_name == "tinyfish_cancel_monitor":
         monitor_id = str(params.get("monitor_id") or "")
         return _confirm_delete("monitor", rest_client.get_monitor, monitor_id)
+    if tool_name == "tinyfish_delete_dataset":
+        dataset_id = str(params.get("dataset_id") or "")
+        return _confirm_delete("dataset", rest_client.get_dataset, dataset_id)
     if not tool_name.startswith("browser_"):
         return None
     config = load_config()
