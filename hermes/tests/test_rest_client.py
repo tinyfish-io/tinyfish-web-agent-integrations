@@ -544,187 +544,6 @@ def test_report_setup_swallows_failures(monkeypatch: pytest.MonkeyPatch) -> None
     rest_client.report_setup("completed", key_source="env", api_key="tf_test")
 
 
-_A = rest_client.AGENT_URL
-_PRODUCT_CALLS: list[
-    tuple[Callable[..., Any], tuple[Any, ...], str, str, Any, Any, float]
-] = [
-    (
-        rest_client.create_monitor,
-        ({"type": "fetch"},),
-        "POST",
-        f"{_A}/v1/monitors",
-        {"type": "fetch"},
-        None,
-        60.0,
-    ),
-    (rest_client.list_monitors, (), "GET", f"{_A}/v1/monitors", None, None, 30.0),
-    (
-        rest_client.get_monitor,
-        ("m/1",),
-        "GET",
-        f"{_A}/v1/monitors/m%2F1",
-        None,
-        None,
-        30.0,
-    ),
-    (
-        rest_client.update_monitor,
-        ("m1", {"name": "x"}),
-        "PATCH",
-        f"{_A}/v1/monitors/m1",
-        {"name": "x"},
-        None,
-        30.0,
-    ),
-    (
-        rest_client.delete_monitor,
-        ("m1",),
-        "DELETE",
-        f"{_A}/v1/monitors/m1",
-        None,
-        None,
-        30.0,
-    ),
-    (
-        rest_client.run_monitor,
-        ("m1",),
-        "POST",
-        f"{_A}/v1/monitors/m1/runs",
-        None,
-        None,
-        60.0,
-    ),
-    (
-        rest_client.start_research,
-        ({"query": "q"},),
-        "POST",
-        f"{_A}/v1/automation/run-research-async",
-        {"query": "q"},
-        None,
-        30.0,
-    ),
-    (
-        rest_client.list_research,
-        ({"limit": 5},),
-        "GET",
-        f"{_A}/v1/research-run",
-        None,
-        {"limit": 5},
-        30.0,
-    ),
-    (
-        rest_client.get_research,
-        ("r1",),
-        "GET",
-        f"{_A}/v1/research-run/r1",
-        None,
-        None,
-        30.0,
-    ),
-    (
-        rest_client.cancel_research,
-        ("r1",),
-        "POST",
-        f"{_A}/v1/research-run/r1/cancel",
-        None,
-        None,
-        30.0,
-    ),
-    (
-        rest_client.plan_dataset,
-        ("coffee",),
-        "POST",
-        f"{_A}/v1/datasets/plan",
-        {"prompt": "coffee"},
-        None,
-        95.0,
-    ),
-    (
-        rest_client.create_dataset,
-        ({"prompt": "p"},),
-        "POST",
-        f"{_A}/v1/datasets",
-        {"prompt": "p"},
-        None,
-        95.0,
-    ),
-    (
-        rest_client.list_datasets,
-        ({"limit": 2},),
-        "GET",
-        f"{_A}/v1/datasets",
-        None,
-        {"limit": 2},
-        30.0,
-    ),
-    (rest_client.get_dataset, ("d1",), "GET", f"{_A}/v1/datasets/d1", None, None, 30.0),
-    (
-        rest_client.get_dataset_rows,
-        ("d1", {"after": "c"}),
-        "GET",
-        f"{_A}/v1/datasets/d1/rows",
-        None,
-        {"after": "c"},
-        30.0,
-    ),
-    (
-        rest_client.populate_dataset,
-        ("d1", {"reset": True}),
-        "POST",
-        f"{_A}/v1/datasets/d1/populate",
-        {"reset": True},
-        None,
-        30.0,
-    ),
-    (
-        rest_client.cancel_dataset_run,
-        ("d1", "r1"),
-        "POST",
-        f"{_A}/v1/datasets/d1/runs/r1/cancel",
-        None,
-        None,
-        30.0,
-    ),
-    (
-        rest_client.delete_dataset,
-        ("d1",),
-        "DELETE",
-        f"{_A}/v1/datasets/d1",
-        None,
-        None,
-        30.0,
-    ),
-]
-
-
-@pytest.mark.parametrize(
-    ("fn", "args", "method", "url", "body", "params", "timeout"), _PRODUCT_CALLS
-)
-def test_product_endpoints(
-    monkeypatch: pytest.MonkeyPatch,
-    fn: Callable[..., Any],
-    args: tuple[Any, ...],
-    method: str,
-    url: str,
-    body: Any,
-    params: Any,
-    timeout: float,
-) -> None:
-    captured: dict[str, Any] = {}
-
-    def fake_request(m: str, u: str, **kwargs: Any) -> httpx.Response:
-        captured.update(method=m, url=u, **kwargs)
-        return _response(m, u, payload={"ok": True})
-
-    monkeypatch.setattr(rest_client.httpx, "request", fake_request)
-
-    assert fn(*args, api_key="tf_test") == {"ok": True}
-    assert (captured["method"], captured["url"]) == (method, url)
-    assert captured["json"] == body
-    assert captured["params"] == params
-    assert captured["timeout"] == timeout
-
-
 @pytest.mark.parametrize("status", [402, 503])
 def test_refusals_keep_code_details_and_retry_after(
     monkeypatch: pytest.MonkeyPatch, status: int
@@ -747,7 +566,7 @@ def test_refusals_keep_code_details_and_retry_after(
     monkeypatch.setattr(rest_client.httpx, "request", fake_request)
 
     with pytest.raises(rest_client.TinyFishRestError) as info:
-        rest_client.create_dataset({"prompt": "p"}, api_key="tf_test")
+        rest_client.agent_request("POST", "/v1/datasets", api_key="tf_test")
     assert info.value.status == status
     assert info.value.code == "SERVICE_BUSY"
     assert info.value.details == {"dataset_id": "d1"}
@@ -765,11 +584,11 @@ def test_post_timeout_warns_the_request_may_have_landed(
     monkeypatch.setattr(rest_client.httpx, "request", fake_request)
 
     with pytest.raises(rest_client.TinyFishRestError, match="may have gone through"):
-        rest_client.create_dataset({"prompt": "p"}, api_key="tf_test")
+        rest_client.agent_request("POST", "/v1/datasets", api_key="tf_test")
     with pytest.raises(rest_client.TinyFishRestError, match="may have gone through"):
-        rest_client.delete_monitor("m1", api_key="tf_test")
+        rest_client.agent_request("DELETE", "/v1/monitors/m1", api_key="tf_test")
     with pytest.raises(rest_client.TinyFishRestError, match="Could not reach"):
-        rest_client.list_datasets({}, api_key="tf_test")
+        rest_client.agent_request("GET", "/v1/datasets", api_key="tf_test")
 
 
 def test_402_keeps_the_server_message(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -784,7 +603,9 @@ def test_402_keeps_the_server_message(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(rest_client.httpx, "request", fake_request)
 
     with pytest.raises(rest_client.TinyFishRestError) as info:
-        rest_client.start_research({"query": "q"}, api_key="tf_test")
+        rest_client.agent_request(
+            "POST", "/v1/research-run", api_key="tf_test", service="TinyFish Research"
+        )
     assert str(info.value).endswith("credits or billing may be required. Add funds")
     assert info.value.code == "INSUFFICIENT_CREDITS"
     assert info.value.service == "TinyFish Research"

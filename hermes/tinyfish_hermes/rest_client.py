@@ -331,7 +331,7 @@ def wallet(*, api_key: str, timeout: float = 30.0) -> dict[str, Any]:
         raise TinyFishRestError("TinyFish Wallet returned invalid JSON") from exc
 
 
-def _agent_request(
+def agent_request(
     method: str,
     path: str,
     *,
@@ -397,7 +397,7 @@ def start_run(
         body["use_profile"] = True
     if profile_id:
         body["profile_id"] = profile_id
-    return _agent_request(
+    return agent_request(
         "POST", "/v1/automation/run-async", api_key=api_key, json_body=body
     )
 
@@ -433,11 +433,11 @@ def report_setup(outcome: str, *, key_source: str, api_key: str = "") -> None:
 
 
 def get_run(run_id: str, *, api_key: str) -> dict[str, Any]:
-    return _agent_request("GET", f"/v1/runs/{run_id}", api_key=api_key)
+    return agent_request("GET", f"/v1/runs/{run_id}", api_key=api_key)
 
 
 def cancel_run(run_id: str, *, api_key: str) -> dict[str, Any]:
-    return _agent_request("POST", f"/v1/runs/{run_id}/cancel", api_key=api_key)
+    return agent_request("POST", f"/v1/runs/{run_id}/cancel", api_key=api_key)
 
 
 def _profile_request(
@@ -448,7 +448,7 @@ def _profile_request(
     json_body: dict[str, Any] | None = None,
     timeout: float = 30.0,
 ) -> dict[str, Any]:
-    return _agent_request(
+    return agent_request(
         method,
         f"/v1/profiles{path}",
         api_key=api_key,
@@ -459,7 +459,7 @@ def _profile_request(
 
 
 def _profile_path(profile_id: str) -> str:
-    return "/" + quote(profile_id, safe="")
+    return "/" + quote_id(profile_id)
 
 
 def list_profiles(*, api_key: str) -> dict[str, Any]:
@@ -490,180 +490,5 @@ def delete_profile(profile_id: str, *, api_key: str) -> dict[str, Any]:
     return _profile_request("DELETE", _profile_path(profile_id), api_key=api_key)
 
 
-def _id(value: str) -> str:
+def quote_id(value: str) -> str:
     return quote(value, safe="")
-
-
-_MONITORS = "TinyFish Monitors"
-_RESEARCH = "TinyFish Research"
-_DATASETS = "TinyFish Datasets"
-
-
-def create_monitor(fields: dict[str, Any], *, api_key: str) -> dict[str, Any]:
-    # The baseline check runs inside the request.
-    return _agent_request(
-        "POST",
-        "/v1/monitors",
-        api_key=api_key,
-        json_body=fields,
-        timeout=60.0,
-        service=_MONITORS,
-    )
-
-
-def list_monitors(*, api_key: str) -> dict[str, Any]:
-    return _agent_request("GET", "/v1/monitors", api_key=api_key, service=_MONITORS)
-
-
-def get_monitor(
-    monitor_id: str, *, api_key: str, timeout: float = 30.0
-) -> dict[str, Any]:
-    return _agent_request(
-        "GET",
-        f"/v1/monitors/{_id(monitor_id)}",
-        api_key=api_key,
-        timeout=timeout,
-        service=_MONITORS,
-    )
-
-
-def update_monitor(
-    monitor_id: str, fields: dict[str, Any], *, api_key: str
-) -> dict[str, Any]:
-    return _agent_request(
-        "PATCH",
-        f"/v1/monitors/{_id(monitor_id)}",
-        api_key=api_key,
-        json_body=fields,
-        service=_MONITORS,
-    )
-
-
-def delete_monitor(monitor_id: str, *, api_key: str) -> dict[str, Any]:
-    return _agent_request(
-        "DELETE", f"/v1/monitors/{_id(monitor_id)}", api_key=api_key, service=_MONITORS
-    )
-
-
-def run_monitor(monitor_id: str, *, api_key: str) -> dict[str, Any]:
-    return _agent_request(
-        "POST",
-        f"/v1/monitors/{_id(monitor_id)}/runs",
-        api_key=api_key,
-        timeout=60.0,
-        service=_MONITORS,
-    )
-
-
-def start_research(fields: dict[str, Any], *, api_key: str) -> dict[str, Any]:
-    return _agent_request(
-        "POST",
-        "/v1/automation/run-research-async",
-        api_key=api_key,
-        json_body=fields,
-        service=_RESEARCH,
-    )
-
-
-def list_research(params: dict[str, Any], *, api_key: str) -> dict[str, Any]:
-    return _agent_request(
-        "GET", "/v1/research-run", api_key=api_key, params=params, service=_RESEARCH
-    )
-
-
-def get_research(research_run_id: str, *, api_key: str) -> dict[str, Any]:
-    return _agent_request(
-        "GET",
-        f"/v1/research-run/{_id(research_run_id)}",
-        api_key=api_key,
-        service=_RESEARCH,
-    )
-
-
-def cancel_research(research_run_id: str, *, api_key: str) -> dict[str, Any]:
-    return _agent_request(
-        "POST",
-        f"/v1/research-run/{_id(research_run_id)}/cancel",
-        api_key=api_key,
-        service=_RESEARCH,
-    )
-
-
-# Plan and prompt-based create run the spec agent in-request (server maxDuration 90s).
-def plan_dataset(prompt: str, *, api_key: str) -> dict[str, Any]:
-    return _agent_request(
-        "POST",
-        "/v1/datasets/plan",
-        api_key=api_key,
-        json_body={"prompt": prompt},
-        timeout=95.0,
-        service=_DATASETS,
-    )
-
-
-def create_dataset(fields: dict[str, Any], *, api_key: str) -> dict[str, Any]:
-    return _agent_request(
-        "POST",
-        "/v1/datasets",
-        api_key=api_key,
-        json_body=fields,
-        timeout=95.0,
-        service=_DATASETS,
-    )
-
-
-def list_datasets(params: dict[str, Any], *, api_key: str) -> dict[str, Any]:
-    return _agent_request(
-        "GET", "/v1/datasets", api_key=api_key, params=params, service=_DATASETS
-    )
-
-
-def get_dataset(
-    dataset_id: str, *, api_key: str, timeout: float = 30.0
-) -> dict[str, Any]:
-    return _agent_request(
-        "GET",
-        f"/v1/datasets/{_id(dataset_id)}",
-        api_key=api_key,
-        timeout=timeout,
-        service=_DATASETS,
-    )
-
-
-def get_dataset_rows(
-    dataset_id: str, params: dict[str, Any], *, api_key: str
-) -> dict[str, Any]:
-    return _agent_request(
-        "GET",
-        f"/v1/datasets/{_id(dataset_id)}/rows",
-        api_key=api_key,
-        params=params,
-        service=_DATASETS,
-    )
-
-
-def populate_dataset(
-    dataset_id: str, fields: dict[str, Any], *, api_key: str
-) -> dict[str, Any]:
-    return _agent_request(
-        "POST",
-        f"/v1/datasets/{_id(dataset_id)}/populate",
-        api_key=api_key,
-        json_body=fields,
-        service=_DATASETS,
-    )
-
-
-def cancel_dataset_run(dataset_id: str, run_id: str, *, api_key: str) -> dict[str, Any]:
-    return _agent_request(
-        "POST",
-        f"/v1/datasets/{_id(dataset_id)}/runs/{_id(run_id)}/cancel",
-        api_key=api_key,
-        service=_DATASETS,
-    )
-
-
-def delete_dataset(dataset_id: str, *, api_key: str) -> dict[str, Any]:
-    return _agent_request(
-        "DELETE", f"/v1/datasets/{_id(dataset_id)}", api_key=api_key, service=_DATASETS
-    )

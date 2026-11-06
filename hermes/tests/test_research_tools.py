@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from tinyfish_hermes import config, research_tools, rest_client
+from tinyfish_hermes import config, research_tools, rest_client, tool_helpers
 from tinyfish_hermes.credit_policy import pre_tool_call_policy
 
 TOOLS = {schema["name"]: handler for schema, handler in research_tools.RESEARCH_TOOLS}
@@ -24,8 +24,8 @@ def clock(monkeypatch: pytest.MonkeyPatch) -> list[float]:
     def sleep(seconds: float) -> None:
         now[0] += seconds
 
-    monkeypatch.setattr(research_tools.time, "monotonic", lambda: now[0])
-    monkeypatch.setattr(research_tools.time, "sleep", sleep)
+    monkeypatch.setattr(tool_helpers.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(tool_helpers.time, "sleep", sleep)
     return now
 
 

@@ -2,19 +2,15 @@
 
 from __future__ import annotations
 
-import json
-import time
 from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Any, TypeVar
-from urllib.parse import quote
+from functools import partial
+from typing import Any
 
 from . import rest_client
-from .profile_tools import _given, _required, _schema, _with_key, plain_error
-from .provider import _is_interrupted
+from .tool_helpers import error_payload, given, required, schema, wait_until, with_key
 
-T = TypeVar("T")
-
+_request = partial(rest_client.agent_request, service="TinyFish Research")
 ACTIVE_STATUSES = frozenset({"QUEUED", "RUNNING"})
 _LISTED_QUERY_CHARS = 200
 _POLL_AGAIN = (
@@ -24,26 +20,8 @@ _POLL_AGAIN = (
 )
 
 
-def wait_until(
-    read: Callable[[], T],
-    done: Callable[[T], bool],
-    budget_s: float = 25.0,
-    interval_s: float = 3.0,
-) -> T:
-    """Re-read until ``done`` or the budget runs out; returns the last read."""
-
-    deadline = time.monotonic() + budget_s
-    current = read()
-    while not done(current) and time.monotonic() + interval_s < deadline:
-        if _is_interrupted():
-            break
-        time.sleep(interval_s)
-        current = read()
-    return current
-
-
 def report_url(research_run_id: str) -> str:
-    return f"{rest_client.AGENT_URL}/research/{quote(research_run_id, safe='')}"
+    return f"{rest_client.AGENT_URL}/research/{rest_client.quote_id(research_run_id)}"
 
 
 _CONCURRENCY = (
@@ -64,7 +42,7 @@ _RUN_ID = {
     }
 }
 
-START_SCHEMA = _schema(
+START_SCHEMA = schema(
     "tinyfish_start_deep_research",
     "Slow (several minutes) and billed per run. Only use when the user explicitly "
     "asks for deep research, or a cited report, literature review, survey, or "
@@ -124,7 +102,7 @@ START_SCHEMA = _schema(
     },
     ["query"],
 )
-GET_SCHEMA = _schema(
+GET_SCHEMA = schema(
     "tinyfish_get_deep_research",
     "Waits up to about 25 seconds for a run started by "
     "tinyfish_start_deep_research, then returns its status. When output_ready is "
@@ -136,7 +114,7 @@ GET_SCHEMA = _schema(
     _RUN_ID,
     ["research_run_id"],
 )
-LIST_SCHEMA = _schema(
+LIST_SCHEMA = schema(
     "tinyfish_list_deep_research",
     "Lists the user's deep research runs, newest first, with status and "
     "report_url. Filter by status, query text or created_after/created_before; "
@@ -189,7 +167,7 @@ LIST_SCHEMA = _schema(
     },
     [],
 )
-CANCEL_SCHEMA = _schema(
+CANCEL_SCHEMA = schema(
     "tinyfish_cancel_deep_research",
     "Only use when the user explicitly asks to stop a deep research run. Never "
     "cancel because research is slow or tinyfish_get_deep_research returned "
@@ -200,8 +178,8 @@ CANCEL_SCHEMA = _schema(
 )
 
 
-def research_error_json(exc: rest_client.TinyFishRestError) -> str:
-    payload = plain_error(exc)
+def research_error(exc: rest_client.TinyFishRestError) -> dict[str, Any]:
+    payload = error_payload(exc)
     active = (exc.details or {}).get("active_research_run_ids")
     if isinstance(active, list) and active:
         payload["next_action"] = (
@@ -209,15 +187,22 @@ def research_error_json(exc: rest_client.TinyFishRestError) -> str:
             "tinyfish_get_deep_research on these, then start this question once one "
             "finishes. Do not retry it right away."
         )
-    return json.dumps(payload)
+    return payload
+
+
+def _run_path(args: dict[str, Any]) -> str:
+    run_id = required(args, "research_run_id")
+    return f"/v1/research-run/{rest_client.quote_id(run_id)}"
 
 
 def _start(args: dict[str, Any], api_key: str) -> dict[str, Any]:
     fields = {
-        "query": _required(args, "query"),
-        **_given(args, ("mode", "prior_run_id", "session_id", "domain_filter")),
+        "query": required(args, "query"),
+        **given(args, ("mode", "prior_run_id", "session_id", "domain_filter")),
     }
-    started = rest_client.start_research(fields, api_key=api_key)
+    started = _request(
+        "POST", "/v1/automation/run-research-async", api_key=api_key, json_body=fields
+    )
     run_id = str(started.get("research_run_id") or "")
     if not run_id:
         raise rest_client.TinyFishRestError(
@@ -295,17 +280,17 @@ def research_status(run: dict[str, Any]) -> dict[str, Any]:
 
 
 def _get(args: dict[str, Any], api_key: str) -> dict[str, Any]:
-    run_id = _required(args, "research_run_id")
+    path = _run_path(args)
     # ponytail: full-run polls log ~9 fetch events/call; use a status endpoint later.
     run = wait_until(
-        lambda: rest_client.get_research(run_id, api_key=api_key),
+        lambda: _request("GET", path, api_key=api_key),
         lambda r: r.get("status") not in ACTIVE_STATUSES,
     )
     return research_status(run)
 
 
 def _list(args: dict[str, Any], api_key: str) -> dict[str, Any]:
-    params = _given(
+    params = given(
         args,
         (
             "status",
@@ -317,7 +302,7 @@ def _list(args: dict[str, Any], api_key: str) -> dict[str, Any]:
             "limit",
         ),
     )
-    page = rest_client.list_research(params, api_key=api_key)
+    page = _request("GET", "/v1/research-run", api_key=api_key, params=params)
     runs = [r for r in page.get("data") or [] if isinstance(r, dict)]
     return {
         "data": [
@@ -340,14 +325,12 @@ def _list(args: dict[str, Any], api_key: str) -> dict[str, Any]:
 
 
 def _cancel(args: dict[str, Any], api_key: str) -> dict[str, Any]:
-    return rest_client.cancel_research(
-        _required(args, "research_run_id"), api_key=api_key
-    )
+    return _request("POST", f"{_run_path(args)}/cancel", api_key=api_key)
 
 
 RESEARCH_TOOLS: tuple[tuple[dict[str, Any], Callable[..., str]], ...] = (
-    (START_SCHEMA, _with_key(_start, research_error_json)),
-    (GET_SCHEMA, _with_key(_get, research_error_json)),
-    (LIST_SCHEMA, _with_key(_list, research_error_json)),
-    (CANCEL_SCHEMA, _with_key(_cancel, research_error_json)),
+    (START_SCHEMA, with_key(_start, research_error)),
+    (GET_SCHEMA, with_key(_get, research_error)),
+    (LIST_SCHEMA, with_key(_list, research_error)),
+    (CANCEL_SCHEMA, with_key(_cancel, research_error)),
 )

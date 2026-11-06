@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Callable
+from functools import partial
 from typing import Any
 
 from . import rest_client
-from .profile_tools import _given, _required, _schema, _with_key, plain_error
-from .research_tools import wait_until
+from .tool_helpers import error_payload, given, required, schema, wait_until, with_key
+
+_request = partial(rest_client.agent_request, service="TinyFish Datasets")
+# Plan and prompt-based create run the spec agent in-request (server maxDuration 90s).
+_SPEC_AGENT_TIMEOUT = 95.0
 
 PREVIEW_ROWS = 50
 ROWS_LIMIT_DEFAULT = 100
@@ -85,7 +88,7 @@ _SPEC = {
 }
 _CURSOR = {"type": "string", "description": "The previous page's next_cursor."}
 
-CREATE_SCHEMA = _schema(
+CREATE_SCHEMA = schema(
     "tinyfish_create_dataset",
     "Slow (minutes) and billed per row. Only use when the user asks for a dataset, "
     "table, or list of many entities with the same fields (companies, products, "
@@ -114,7 +117,7 @@ CREATE_SCHEMA = _schema(
     },
     [],
 )
-PLAN_SCHEMA = _schema(
+PLAN_SCHEMA = schema(
     "tinyfish_plan_dataset",
     "Designs the columns for a dataset prompt without creating anything. Use when "
     "the user wants to see or edit the columns first; pass the returned spec to "
@@ -129,7 +132,7 @@ _STILL_FILLING = (
 )
 
 
-GET_SCHEMA = _schema(
+GET_SCHEMA = schema(
     "tinyfish_get_dataset",
     "Waits up to about 25 seconds for a dataset started by tinyfish_create_dataset "
     "or tinyfish_populate_dataset, then returns its status, row count and the "
@@ -148,7 +151,7 @@ GET_SCHEMA = _schema(
     },
     ["dataset_id"],
 )
-ROWS_SCHEMA = _schema(
+ROWS_SCHEMA = schema(
     "tinyfish_get_dataset_rows",
     "One page of rows from a dataset, in column order. Use after "
     "tinyfish_get_dataset reports output_ready, or to read past the first rows; "
@@ -165,7 +168,7 @@ ROWS_SCHEMA = _schema(
     },
     ["dataset_id"],
 )
-LIST_SCHEMA = _schema(
+LIST_SCHEMA = schema(
     "tinyfish_list_datasets",
     "The caller's datasets, newest first, with status and row counts. Use to find "
     "a dataset_id the user refers to by name.",
@@ -180,7 +183,7 @@ LIST_SCHEMA = _schema(
     },
     [],
 )
-POPULATE_SCHEMA = _schema(
+POPULATE_SCHEMA = schema(
     "tinyfish_populate_dataset",
     "Fills an existing dataset again, to add rows up to a new target_rows or to "
     "rebuild it with reset. Refused while a run is live. Returns run_id; then call "
@@ -195,7 +198,7 @@ POPULATE_SCHEMA = _schema(
     },
     ["dataset_id"],
 )
-CANCEL_SCHEMA = _schema(
+CANCEL_SCHEMA = schema(
     "tinyfish_cancel_dataset_run",
     "Only use when the user explicitly asks to stop a dataset run. Never cancel "
     "because filling is slow or tinyfish_get_dataset returned without "
@@ -206,7 +209,7 @@ CANCEL_SCHEMA = _schema(
     },
     ["dataset_id", "run_id"],
 )
-DELETE_SCHEMA = _schema(
+DELETE_SCHEMA = schema(
     "tinyfish_delete_dataset",
     "Permanently deletes a dataset and its rows. Only when the user explicitly "
     "asks. Refused while a run is live: cancel it first.",
@@ -222,8 +225,8 @@ def _poll_again(dataset_id: str) -> str:
     )
 
 
-def dataset_error_json(exc: rest_client.TinyFishRestError) -> str:
-    payload = plain_error(exc)
+def dataset_error(exc: rest_client.TinyFishRestError) -> dict[str, Any]:
+    payload = error_payload(exc)
     dataset_id = (exc.details or {}).get("dataset_id")
     named = isinstance(dataset_id, str)
     if named:
@@ -254,7 +257,7 @@ def dataset_error_json(exc: rest_client.TinyFishRestError) -> str:
             "tinyfish_populate_dataset with that id to start filling it; do not call "
             "tinyfish_create_dataset again."
         )
-    return json.dumps(payload)
+    return payload
 
 
 def summary(dataset: dict[str, Any]) -> dict[str, Any]:
@@ -293,6 +296,10 @@ def _started(dataset: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _path(dataset_id: str) -> str:
+    return f"/v1/datasets/{rest_client.quote_id(dataset_id)}"
+
+
 def _create(args: dict[str, Any], api_key: str) -> dict[str, Any]:
     prompt = str(args.get("prompt") or "").strip()
     spec = args.get("spec")
@@ -301,11 +308,24 @@ def _create(args: dict[str, Any], api_key: str) -> dict[str, Any]:
     fields: dict[str, Any] = {"prompt": prompt} if prompt else {"spec": spec}
     if args.get("target_rows") is not None:
         fields["target_rows"] = args["target_rows"]
-    return _started(rest_client.create_dataset(fields, api_key=api_key))
+    created = _request(
+        "POST",
+        "/v1/datasets",
+        api_key=api_key,
+        json_body=fields,
+        timeout=_SPEC_AGENT_TIMEOUT,
+    )
+    return _started(created)
 
 
 def _plan(args: dict[str, Any], api_key: str) -> dict[str, Any]:
-    return rest_client.plan_dataset(_required(args, "prompt"), api_key=api_key)
+    return _request(
+        "POST",
+        "/v1/datasets/plan",
+        api_key=api_key,
+        json_body={"prompt": required(args, "prompt")},
+        timeout=_SPEC_AGENT_TIMEOUT,
+    )
 
 
 def _landed(dataset: dict[str, Any]) -> str:
@@ -321,8 +341,12 @@ def _outcome(dataset: dict[str, Any], api_key: str) -> dict[str, Any]:
     dataset_id = str(dataset.get("id") or "")
     status = dataset.get("status")
     if status == "ready":
-        preview = rest_client.get_dataset_rows(
-            dataset_id, {"limit": PREVIEW_ROWS}, api_key=api_key
+        # ponytail: /rows logs a rows-fetched event per poll; needs a no-track read.
+        preview = _request(
+            "GET",
+            f"{_path(dataset_id)}/rows",
+            api_key=api_key,
+            params={"limit": PREVIEW_ROWS},
         )
         return {
             "output_ready": True,
@@ -361,10 +385,10 @@ def _outcome(dataset: dict[str, Any], api_key: str) -> dict[str, Any]:
 
 
 def _get(args: dict[str, Any], api_key: str) -> dict[str, Any]:
-    dataset_id = _required(args, "dataset_id")
+    path = _path(required(args, "dataset_id"))
 
     def read() -> dict[str, Any]:
-        return rest_client.get_dataset(dataset_id, api_key=api_key)
+        return _request("GET", path, api_key=api_key)
 
     if args.get("wait", True) is False:
         dataset = read()
@@ -374,16 +398,16 @@ def _get(args: dict[str, Any], api_key: str) -> dict[str, Any]:
 
 
 def _rows(args: dict[str, Any], api_key: str) -> dict[str, Any]:
-    dataset_id = _required(args, "dataset_id")
+    path = _path(required(args, "dataset_id"))
     limit = int(args.get("limit") or ROWS_LIMIT_DEFAULT)
     # Every row lands in the model's context, so pages stay smaller than the API's.
-    params = {"limit": max(1, min(limit, ROWS_LIMIT_MAX)), **_given(args, ("after",))}
-    return rest_client.get_dataset_rows(dataset_id, params, api_key=api_key)
+    params = {"limit": max(1, min(limit, ROWS_LIMIT_MAX)), **given(args, ("after",))}
+    return _request("GET", f"{path}/rows", api_key=api_key, params=params)
 
 
 def _list(args: dict[str, Any], api_key: str) -> dict[str, Any]:
-    params = _given(args, ("limit", "cursor"))
-    page = rest_client.list_datasets(params, api_key=api_key)
+    params = given(args, ("limit", "cursor"))
+    page = _request("GET", "/v1/datasets", api_key=api_key, params=params)
     pagination = page.get("pagination") or {}
     return {
         "datasets": [summary(d) for d in page.get("data") or [] if isinstance(d, dict)],
@@ -397,29 +421,33 @@ def _populate(args: dict[str, Any], api_key: str) -> dict[str, Any]:
     if args.get("target_rows") is not None:
         fields["target_rows"] = args["target_rows"]
     return _started(
-        rest_client.populate_dataset(
-            _required(args, "dataset_id"), fields, api_key=api_key
+        _request(
+            "POST",
+            f"{_path(required(args, 'dataset_id'))}/populate",
+            api_key=api_key,
+            json_body=fields,
         )
     )
 
 
 def _cancel(args: dict[str, Any], api_key: str) -> dict[str, Any]:
-    dataset_id = _required(args, "dataset_id")
-    result = rest_client.cancel_dataset_run(
-        dataset_id, _required(args, "run_id"), api_key=api_key
+    dataset_id = required(args, "dataset_id")
+    run_id = rest_client.quote_id(required(args, "run_id"))
+    result = _request(
+        "POST", f"{_path(dataset_id)}/runs/{run_id}/cancel", api_key=api_key
     )
     return {"dataset_id": dataset_id, **result}
 
 
 def _delete(args: dict[str, Any], api_key: str) -> dict[str, Any]:
-    dataset_id = _required(args, "dataset_id")
-    rest_client.delete_dataset(dataset_id, api_key=api_key)
+    dataset_id = required(args, "dataset_id")
+    _request("DELETE", _path(dataset_id), api_key=api_key)
     return {"dataset_id": dataset_id, "deleted": True}
 
 
 DATASET_TOOLS: tuple[tuple[dict[str, Any], Callable[..., str]], ...] = tuple(
-    (schema, _with_key(handler, dataset_error_json))
-    for schema, handler in (
+    (tool, with_key(handler, dataset_error))
+    for tool, handler in (
         (CREATE_SCHEMA, _create),
         (PLAN_SCHEMA, _plan),
         (GET_SCHEMA, _get),

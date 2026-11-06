@@ -6,7 +6,7 @@ from typing import Any
 import httpx
 import pytest
 
-from tinyfish_hermes import profile_tools, rest_client
+from tinyfish_hermes import profile_tools, rest_client, tool_helpers
 from tinyfish_hermes.credit_policy import pre_tool_call_policy
 
 TOOLS = {schema["name"]: handler for schema, handler in profile_tools.PROFILE_TOOLS}
@@ -244,7 +244,7 @@ def test_delete_approval_falls_back_to_the_id(http: Any) -> None:
         (403, "FORBIDDEN", "Research API is not available", "Research"),
     ],
 )
-def test_plain_error_json_flags_a_product_that_is_off(
+def test_error_payload_flags_a_product_that_is_off(
     status: int, code: str, message: str, product: str
 ) -> None:
     exc = rest_client.TinyFishRestError(
@@ -254,13 +254,13 @@ def test_plain_error_json_flags_a_product_that_is_off(
         service=f"TinyFish {product}",
     )
 
-    out = json.loads(profile_tools.plain_error_json(exc))
+    out = tool_helpers.error_payload(exc)
 
     assert out["code"] == code
     assert out["next_action"].startswith(f"{product} isn't enabled")
 
 
-def test_plain_error_json_keeps_the_org_key_refusal_as_is() -> None:
+def test_error_payload_keeps_the_org_key_refusal_as_is() -> None:
     message = (
         "Research is not available on organization API keys yet. Use a personal key."
     )
@@ -271,13 +271,13 @@ def test_plain_error_json_keeps_the_org_key_refusal_as_is() -> None:
         service="TinyFish Research",
     )
 
-    out = json.loads(profile_tools.plain_error_json(exc))
+    out = tool_helpers.error_payload(exc)
 
     assert "next_action" not in out
     assert "Use a personal key" in out["error"]
 
 
-def test_plain_error_json_leaves_other_errors_bare() -> None:
+def test_error_payload_leaves_other_errors_bare() -> None:
     exc = rest_client.TinyFishRestError("TinyFish Datasets returned HTTP 404", 404)
 
-    assert json.loads(profile_tools.plain_error_json(exc)) == {"error": str(exc)}
+    assert tool_helpers.error_payload(exc) == {"error": str(exc)}

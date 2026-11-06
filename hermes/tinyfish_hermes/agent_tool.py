@@ -7,7 +7,7 @@ import time
 from typing import Any
 
 from . import rest_client
-from .profile_tools import PROFILE_TERM, error_json
+from .profile_tools import PROFILE_TERM, profile_error
 from .provider import MISSING_KEY_ERROR, _api_key, _is_interrupted
 
 TERMINAL_STATUSES = frozenset({"COMPLETED", "FAILED", "CANCELLED"})
@@ -122,7 +122,7 @@ def tinyfish_agent(args: dict[str, Any], **_: Any) -> str:
             profile_id=str(args.get("profile_id") or "").strip() or None,
         )
     except rest_client.TinyFishRestError as exc:
-        return error_json(exc)
+        return json.dumps(profile_error(exc))
     run_id = str(started.get("run_id") or "")
     if not run_id:
         return json.dumps({"error": "TinyFish Agent did not return a run_id."})

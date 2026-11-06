@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlparse
 
@@ -118,18 +117,22 @@ def _directive_for_feature(
     return None
 
 
-def _label(getter: Callable[..., dict[str, Any]], item_id: str) -> str:
+def _fetch_label(collection: str, item_id: str) -> str:
+    from . import rest_client
     from .provider import _api_key
 
     # The approver needs the real name, not the agent's claim; the id alone still works.
     try:
-        name = getter(item_id, api_key=_api_key(), timeout=5.0).get("name")
+        path = f"/v1/{collection}/{rest_client.quote_id(item_id)}"
+        name = rest_client.agent_request(
+            "GET", path, api_key=_api_key(), timeout=5.0
+        ).get("name")
     except Exception:
         return item_id
     return f"'{name}' ({item_id})" if name else item_id
 
 
-_BILLED_TOOLS: dict[str, CreditFeature] = {
+_CREDIT_FEATURE_BY_TOOL: dict[str, CreditFeature] = {
     "tinyfish_agent": "agent",
     "tinyfish_create_monitor": "monitor",
     "tinyfish_run_monitor": "monitor",
@@ -160,13 +163,12 @@ def _charge_scope(tool_name: str, params: dict[str, Any]) -> str:
     return ""
 
 
-def _confirm_delete(
-    kind: str, getter: Callable[..., dict[str, Any]], item_id: str
-) -> dict[str, str]:
+def _delete_approval(kind: str, collection: str, item_id: str) -> dict[str, str]:
     # Keyed per item so one approval never covers deleting a different one.
+    label = _fetch_label(collection, item_id)
     return {
         "action": "approve",
-        "message": f"Permanently delete TinyFish {kind} {_label(getter, item_id)}?",
+        "message": f"Permanently delete TinyFish {kind} {label}?",
         "rule_key": f"tinyfish:{kind}_delete:{item_id}",
     }
 
@@ -179,17 +181,16 @@ def pre_tool_call_policy(
     params = args or {}
     target = str(params.get("url") or params.get("target") or "")
 
-    from . import rest_client
-
-    if tool_name in _BILLED_TOOLS:
-        directive = _directive_for_feature(_BILLED_TOOLS[tool_name], tool_name, target)
+    if tool_name in _CREDIT_FEATURE_BY_TOOL:
+        feature = _CREDIT_FEATURE_BY_TOOL[tool_name]
+        directive = _directive_for_feature(feature, tool_name, target)
         if directive and directive["action"] == "approve":
             directive["message"] += _charge_scope(tool_name, params)
         if tool_name == "tinyfish_populate_dataset" and params.get("reset"):
             if directive and directive["action"] == "block":
                 return directive
             dataset_id = str(params.get("dataset_id") or "")
-            label = _label(rest_client.get_dataset, dataset_id)
+            label = _fetch_label("datasets", dataset_id)
             # Reset deletes rows, so it asks even under `allow`, once per dataset.
             return {
                 "action": "approve",
@@ -209,13 +210,13 @@ def pre_tool_call_policy(
         return directive
     if tool_name == "tinyfish_delete_profile":
         profile_id = str(params.get("profile_id") or "")
-        return _confirm_delete("profile", rest_client.get_profile, profile_id)
+        return _delete_approval("profile", "profiles", profile_id)
     if tool_name == "tinyfish_cancel_monitor":
         monitor_id = str(params.get("monitor_id") or "")
-        return _confirm_delete("monitor", rest_client.get_monitor, monitor_id)
+        return _delete_approval("monitor", "monitors", monitor_id)
     if tool_name == "tinyfish_delete_dataset":
         dataset_id = str(params.get("dataset_id") or "")
-        return _confirm_delete("dataset", rest_client.get_dataset, dataset_id)
+        return _delete_approval("dataset", "datasets", dataset_id)
     if not tool_name.startswith("browser_"):
         return None
     config = load_config()
