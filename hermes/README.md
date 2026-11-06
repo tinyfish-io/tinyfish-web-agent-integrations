@@ -8,6 +8,11 @@
 | Browser (credits) | `tinyfish` cloud browser provider behind Hermes' browser tools |
 | Agent (credits) | `tinyfish_agent` tool: goal-based automation on a real site |
 | Profiles (free) | `tinyfish_*_profile(s)` tools: saved website sign-ins that `tinyfish_agent` runs with |
+| Monitors (credits) | `tinyfish_*_monitor(s)` tools: re-check a page or search topic on a schedule |
+| Deep Research (credits) | `tinyfish_*_deep_research` tools: cited multi-source reports |
+| Datasets (credits) | `tinyfish_*_dataset(s)` tools: tables of many web entities with the same columns |
+
+It also bundles three skills, `tinyfish:tinyfish-websearch`, `tinyfish:tinyfish-monitor` and `tinyfish:tinyfish-datasets`, that teach Hermes when and how to use them.
 
 ## Install
 
@@ -42,7 +47,7 @@ The plugin registers a `hermes tinyfish` command and an in-session `/tinyfish-st
 | `setup [--yes] [--api-key KEY] [--no-web-backend] [--live]` | Route web tools to TinyFish and save the API key |
 | `status [--json]` | Non-secret configuration status |
 | `doctor [--json] [--live] [--live-paid]` | Diagnostics; `--live` runs one real search+fetch, `--live-paid` a browser session per credit policy |
-| `credits {status,set,reset}` | Inspect or change `tinyfish.credit_policy.{browser,agent}` |
+| `credits {status,set,reset}` | Inspect or change `tinyfish.credit_policy.{browser,agent,monitor,research,dataset}` |
 | `browser {enable,disable,status}` | Toggle `browser.cloud_provider: tinyfish` |
 | `usage [--json]` | Wallet balance, auto-reload, and billing rates |
 
@@ -69,11 +74,11 @@ tinyfish:
 
 ## Browser sessions
 
-Setting `browser.cloud_provider: tinyfish` routes Hermes' browser tools — the default Browser Use `browser_exec`, or the built-in `browser_*` tools with `browser.backend: off` — through TinyFish remote browser sessions. Sessions consume TinyFish credits, so they are policy-gated via `tinyfish.credit_policy.browser`; `tinyfish_agent` runs use `tinyfish.credit_policy.agent`:
+Setting `browser.cloud_provider: tinyfish` routes Hermes' browser tools — the default Browser Use `browser_exec`, or the built-in `browser_*` tools with `browser.backend: off` — through TinyFish remote browser sessions. Sessions consume TinyFish credits, so they are policy-gated via `tinyfish.credit_policy.browser`. The other billed tools have their own policy with the same values: `agent` for `tinyfish_agent`, `monitor` for creating, running or resuming a monitor, `research` for starting deep research, and `dataset` for creating or populating a dataset:
 
 | Policy | Behavior |
 | ------ | -------- |
-| `request` (default) | Opening a session (or starting an agent run) goes through Hermes' approval gate; answer `[s]ession` to approve the rest of the session |
+| `request` (default) | Opening a session (or any other billed call) goes through Hermes' approval gate; answer `[s]ession` to approve the rest of the session |
 | `allow` | No approval prompt |
 | `deny` | Blocked |
 
@@ -103,9 +108,48 @@ A Browser Context Profile is a saved website sign-in. It is unrelated to Hermes 
 
 `tinyfish_agent` runs signed in with `profile_id` (or `use_profile: true` for the default profile). A profile's proxy country (set on create or update) is used for both sign-in and runs, and overrides the run's `proxy_country_code`. If a site blocks the sign-in page, set one and reopen the same link. `setup_url` asks the user to sign in to TinyFish first if that browser isn't already. Nothing bills until the user opens it; runs bill under `tinyfish.credit_policy.agent`.
 
+## Monitors
+
+A Monitor re-checks a public page (`fetch`) or a search topic (`search`) on a cron schedule. Each completed check, including the baseline taken at creation, is billed $0.005 plus its one Search or Fetch; failed checks are free. Availability may depend on your account. The `monitor` credit policy gates the tool calls, not the scheduled checks: a monitor keeps billing on its schedule until you pause or cancel it, even after you set the policy to `deny`.
+
+| Tool | Does |
+| ---- | ---- |
+| `tinyfish_create_monitor` | Creates a monitor and returns its baseline result |
+| `tinyfish_list_monitors`, `tinyfish_get_monitor` | Lists monitors, or reads one |
+| `tinyfish_update_monitor` | Changes the schedule, name, webhook or purpose (`""` clears webhook or purpose) |
+| `tinyfish_pause_monitor`, `tinyfish_resume_monitor` | Stops or restarts the schedule |
+| `tinyfish_run_monitor` | Runs one check now |
+| `tinyfish_cancel_monitor` | Deletes the monitor; always asks for approval first |
+
+## Deep Research
+
+A deep research run searches, reads and synthesizes many sources into a cited report. It takes several minutes and is billed per run; at most 5 run at once by default. Availability may depend on your account.
+
+| Tool | Does |
+| ---- | ---- |
+| `tinyfish_start_deep_research` | Starts a run and returns `research_run_id` and `report_url` |
+| `tinyfish_get_deep_research` | Waits up to about 25 s, then returns the status, or the report once `output_ready` |
+| `tinyfish_list_deep_research` | Lists earlier runs with their report links |
+| `tinyfish_cancel_deep_research` | Stops a run |
+
+## Datasets
+
+A dataset is a table filled from the web, one row per entity. Filling takes minutes and costs $0.10 per complete row added; incomplete, skipped and failed rows are free. Availability may depend on your account.
+
+| Tool | Does |
+| ---- | ---- |
+| `tinyfish_plan_dataset` | Designs the columns for a prompt without creating anything |
+| `tinyfish_create_dataset` | Creates a dataset from a prompt or a spec and starts filling it |
+| `tinyfish_get_dataset` | Waits up to about 25 s, then returns the status and, once ready, the first 50 rows |
+| `tinyfish_get_dataset_rows` | Pages through rows, up to 500 per call |
+| `tinyfish_list_datasets` | Lists datasets |
+| `tinyfish_populate_dataset` | Fills an existing dataset again |
+| `tinyfish_cancel_dataset_run` | Stops a run; landed rows stay |
+| `tinyfish_delete_dataset` | Deletes the dataset; always asks for approval first |
+
 ## Tool-routing guidance
 
-When the `tinyfish` MCP server is also configured in Hermes (`mcp_servers.tinyfish.url: https://agent.tinyfish.ai/mcp`), the plugin injects once-per-context guidance steering the model between the generic web tools and the native MCP tools. Disable with `tinyfish.routing_context: false`.
+When the `tinyfish` MCP server is also configured in Hermes (`mcp_servers.tinyfish.url: https://agent.tinyfish.ai/mcp`), the plugin injects once-per-context guidance steering the model between the generic web tools and the native MCP tools, and to the plugin's own monitor, research and dataset tools over the server's copies. Disable with `tinyfish.routing_context: false`.
 
 ## Telemetry
 

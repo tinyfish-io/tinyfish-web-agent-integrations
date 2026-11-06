@@ -34,7 +34,7 @@ jobs:
 
       # plugin.yaml is authoritative for X-TF-Client-Version on directory installs,
       # so pyproject.toml drifting past it ships a stale version header silently.
-      - name: plugin.yaml version matches pyproject.toml
+      - name: plugin.yaml and npm/package.json versions match pyproject.toml
         run: |
           set -euo pipefail
           manifest=$(sed -n 's/^version:[[:space:]]*//p' plugin.yaml | head -1 | tr -d "\"' ")
@@ -48,6 +48,11 @@ jobs:
           fi
           if [ "$manifest" != "$project" ]; then
             echo "::error file=hermes/plugin.yaml::plugin.yaml is $manifest but pyproject.toml is $project"
+            exit 1
+          fi
+          npm_version=$(jq -r .version npm/package.json)
+          if [ "$npm_version" != "$project" ]; then
+            echo "::error file=hermes/npm/package.json::npm/package.json is $npm_version but pyproject.toml is $project"
             exit 1
           fi
 

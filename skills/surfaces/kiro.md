@@ -120,3 +120,5 @@ Do not fall back to built-in web search without saying so. Kiro saves it for lat
 signing in fixes nothing — `TINYFISH_API_KEY` is unset in the environment Kiro was started from,
 missing from Kiro's **Mcp Approved Env Vars** setting, or revoked; tell the user to fix that and
 restart Kiro. Never ask for an API key in chat. On a wallet-balance or rate-limit error, say so plainly.
+
+<!-- slot: host-tools -->

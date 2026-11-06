@@ -105,3 +105,5 @@ On an auth error, check which setup this is. Plugin: tell the user to re-authent
 shell Grok was started from, or revoked; tell the user to re-run `npx -y @tiny-fish/cli@latest connect
 grok --api-key <key>` and start Grok from a new terminal. On a wallet-balance or rate-limit error, say so
 plainly.
+
+<!-- slot: host-tools -->

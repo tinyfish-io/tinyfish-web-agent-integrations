@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Callable
 from http import HTTPStatus
 from typing import Any
-from urllib.parse import quote, urlencode, urlparse
+from urllib.parse import urlencode, urlparse
 
 from . import rest_client
-from .provider import MISSING_KEY_ERROR, _api_key
+from .tool_helpers import required, schema, with_key
 
 PROFILE_TERM = (
     "A TinyFish Browser Context Profile is a saved website sign-in "
@@ -37,21 +36,7 @@ _PROXY = {
 _NO_PROXY = frozenset({"none", "off", "direct"})
 
 
-def _schema(
-    name: str, description: str, properties: dict[str, Any], required: list[str]
-) -> dict[str, Any]:
-    return {
-        "name": name,
-        "description": description,
-        "parameters": {
-            "type": "object",
-            "properties": properties,
-            "required": required,
-        },
-    }
-
-
-LIST_SCHEMA = _schema(
+LIST_SCHEMA = schema(
     "tinyfish_list_profiles",
     f"List the user's TinyFish Browser Context Profiles. {PROFILE_TERM} For a site "
     "that needs sign-in, pass the profile_id whose signed_in_sites covers it (an "
@@ -60,7 +45,7 @@ LIST_SCHEMA = _schema(
     {},
     [],
 )
-CREATE_SCHEMA = _schema(
+CREATE_SCHEMA = schema(
     "tinyfish_create_profile",
     "Create a TinyFish Browser Context Profile and get the link where the user "
     f"signs in. {PROFILE_TERM} Name one per account, e.g. 'Amazon Personal'. Free "
@@ -76,7 +61,7 @@ CREATE_SCHEMA = _schema(
     },
     ["name"],
 )
-SIGN_IN_SCHEMA = _schema(
+SIGN_IN_SCHEMA = schema(
     "tinyfish_profile_sign_in",
     "Get a link where the user signs in to a site on an existing TinyFish Browser "
     "Context Profile, to add a site or refresh an expired sign-in. Free until the "
@@ -84,7 +69,7 @@ SIGN_IN_SCHEMA = _schema(
     {"profile_id": _PROFILE_ID, "site": _SITE},
     ["profile_id"],
 )
-UPDATE_SCHEMA = _schema(
+UPDATE_SCHEMA = schema(
     "tinyfish_update_profile",
     "Rename a TinyFish Browser Context Profile, make it the default, or change "
     "its proxy country (e.g. when a site blocks the sign-in link).",
@@ -99,7 +84,7 @@ UPDATE_SCHEMA = _schema(
     },
     ["profile_id"],
 )
-DELETE_SCHEMA = _schema(
+DELETE_SCHEMA = schema(
     "tinyfish_delete_profile",
     "Permanently delete a TinyFish Browser Context Profile and its saved sign-ins. "
     "Only when the user asks; name the profile to them first. It cannot be undone. "
@@ -113,7 +98,7 @@ DELETE_SCHEMA = _schema(
 def setup_url(profile_id: str, site: str = "") -> str:
     query = {"domain": site} if site else {}
     query["source"] = "hermes"
-    path = f"/profiles/{quote(profile_id, safe='')}/setup"
+    path = f"/profiles/{rest_client.quote_id(profile_id)}/setup"
     return f"{rest_client.AGENT_URL}{path}?{urlencode(query)}"
 
 
@@ -154,12 +139,12 @@ def error_next_step(exc: rest_client.TinyFishRestError) -> str | None:
     return None
 
 
-def error_json(exc: rest_client.TinyFishRestError) -> str:
+def profile_error(exc: rest_client.TinyFishRestError) -> dict[str, Any]:
     payload = {"error": str(exc)}
     next_step = error_next_step(exc)
     if next_step:
         payload["next_step"] = next_step
-    return json.dumps(payload)
+    return payload
 
 
 def _summary(profile: dict[str, Any]) -> dict[str, Any]:
@@ -168,30 +153,6 @@ def _summary(profile: dict[str, Any]) -> dict[str, Any]:
     if isinstance(sites, list):
         out["signed_in_sites"] = [s.get("site") for s in sites if isinstance(s, dict)]
     return out
-
-
-def _with_key(
-    handler: Callable[[dict[str, Any], str], dict[str, Any]],
-) -> Callable[..., str]:
-    def run(args: dict[str, Any], **_: Any) -> str:
-        api_key = _api_key()
-        if not api_key:
-            return json.dumps({"error": MISSING_KEY_ERROR})
-        try:
-            return json.dumps(handler(args or {}, api_key), ensure_ascii=False)
-        except ValueError as exc:
-            return json.dumps({"error": str(exc)})
-        except rest_client.TinyFishRestError as exc:
-            return error_json(exc)
-
-    return run
-
-
-def _required(args: dict[str, Any], key: str) -> str:
-    value = str(args.get(key) or "").strip()
-    if not value:
-        raise ValueError(f"{key} is required.")
-    return value
 
 
 def _list(args: dict[str, Any], api_key: str) -> dict[str, Any]:
@@ -213,7 +174,7 @@ def _proxy_fields(args: dict[str, Any]) -> dict[str, Any]:
 
 
 def _create(args: dict[str, Any], api_key: str) -> dict[str, Any]:
-    fields: dict[str, Any] = {"name": _required(args, "name")}
+    fields: dict[str, Any] = {"name": required(args, "name")}
     site = site_host(str(args.get("site") or ""))
     if args.get("set_as_default") is not None:
         fields["set_as_default"] = bool(args["set_as_default"])
@@ -232,7 +193,7 @@ def _create(args: dict[str, Any], api_key: str) -> dict[str, Any]:
 
 
 def _sign_in(args: dict[str, Any], api_key: str) -> dict[str, Any]:
-    profile_id = _required(args, "profile_id")
+    profile_id = required(args, "profile_id")
     site = site_host(str(args.get("site") or ""))
     return {
         "profile_id": profile_id,
@@ -242,7 +203,7 @@ def _sign_in(args: dict[str, Any], api_key: str) -> dict[str, Any]:
 
 
 def _update(args: dict[str, Any], api_key: str) -> dict[str, Any]:
-    profile_id = _required(args, "profile_id")
+    profile_id = required(args, "profile_id")
     fields: dict[str, Any] = {}
     name = str(args.get("name") or "").strip()
     if name:
@@ -258,15 +219,15 @@ def _update(args: dict[str, Any], api_key: str) -> dict[str, Any]:
 
 
 def _delete(args: dict[str, Any], api_key: str) -> dict[str, Any]:
-    profile_id = _required(args, "profile_id")
+    profile_id = required(args, "profile_id")
     rest_client.delete_profile(profile_id, api_key=api_key)
     return {"profile_id": profile_id, "deleted": True}
 
 
 PROFILE_TOOLS: tuple[tuple[dict[str, Any], Callable[..., str]], ...] = (
-    (LIST_SCHEMA, _with_key(_list)),
-    (CREATE_SCHEMA, _with_key(_create)),
-    (SIGN_IN_SCHEMA, _with_key(_sign_in)),
-    (UPDATE_SCHEMA, _with_key(_update)),
-    (DELETE_SCHEMA, _with_key(_delete)),
+    (LIST_SCHEMA, with_key(_list, profile_error)),
+    (CREATE_SCHEMA, with_key(_create, profile_error)),
+    (SIGN_IN_SCHEMA, with_key(_sign_in, profile_error)),
+    (UPDATE_SCHEMA, with_key(_update, profile_error)),
+    (DELETE_SCHEMA, with_key(_delete, profile_error)),
 )

@@ -105,3 +105,5 @@ an OAuth connect it has none.
 
 On an auth error, tell the user to run `npx -y @tiny-fish/cli@latest connect`, pick this harness,
 follow what it prints, and restart the harness. Never ask for an API key in chat. On a wallet-balance or rate-limit error, say so plainly.
+
+<!-- slot: host-tools -->

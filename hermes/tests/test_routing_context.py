@@ -33,6 +33,8 @@ def test_routing_context_injected_when_tinyfish_mcp_configured(
     assert "`search` or `fetch_content`" in result["context"]
     assert "plain language" in result["context"]
     assert "silently dropping" in result["context"]
+    assert 'version="2"' in result["context"]
+    assert "use the plugin's `tinyfish_*` tools" in result["context"]
 
 
 @pytest.mark.parametrize(

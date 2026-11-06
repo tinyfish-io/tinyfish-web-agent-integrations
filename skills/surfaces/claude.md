@@ -126,3 +126,5 @@ plugin's **Connectors** tab and clicks **Install** on `tinyfish`. **Call the MCP
 
 On an auth error, tell the user to run `/tinyfish:doctor`. Never ask for an API key in chat. On a
 wallet-balance or rate-limit error, say so plainly.
+
+<!-- slot: host-tools -->

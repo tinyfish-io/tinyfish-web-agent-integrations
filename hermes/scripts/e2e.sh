@@ -67,3 +67,24 @@ page = extract["results"][0]
 assert not page.get("error") and "Example Domain" in page["title"], page
 print("search + extract OK")
 PY
+
+step "monitor, research and dataset tools + bundled skills"
+"$HERMES_PYTHON" - <<'PY'
+import json
+
+from hermes_cli.plugins import discover_plugins
+from tools.registry import registry
+from tools.skills_tool import skills_list
+
+discover_plugins()
+monitors = json.loads(registry.dispatch("tinyfish_list_monitors", {}))
+assert "error" not in monitors, monitors
+# Datasets and Research are flag-gated per account; a clean refusal also passes.
+for tool in ("tinyfish_list_datasets", "tinyfish_list_deep_research"):
+    out = json.loads(registry.dispatch(tool, {}))
+    assert "error" not in out or "isn't enabled" in out.get("next_action", ""), (tool, out)
+names = {s["name"] for s in json.loads(skills_list())["skills"]}
+for skill in ("tinyfish-monitor", "tinyfish-datasets", "tinyfish-websearch"):
+    assert f"tinyfish:{skill}" in names, (skill, sorted(names))
+print("product tools + skills OK")
+PY

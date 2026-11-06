@@ -165,3 +165,5 @@ The CLI authenticates with an API key. On an auth error, run `tinyfish auth stat
 is active and where it came from, then give the user the fix: `tinyfish auth login`, or `export
 TINYFISH_API_KEY=sk-tinyfish-...`. Keys come from https://agent.tinyfish.ai/api-keys. Never ask for
 the key in chat. On a wallet-balance or rate-limit error, say so plainly.
+
+<!-- slot: host-tools -->

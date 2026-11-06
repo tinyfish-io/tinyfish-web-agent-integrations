@@ -17,6 +17,9 @@ from .config import (
 FEATURE_LABELS: dict[CreditFeature, str] = {
     "browser": "TinyFish Browser",
     "agent": "TinyFish Agent",
+    "monitor": "TinyFish Monitors",
+    "research": "TinyFish Deep Research",
+    "dataset": "TinyFish Datasets",
 }
 
 
@@ -40,7 +43,7 @@ def policy_message(
     normalized = normalize_feature(str(feature))
     resolved = policy or credit_policy(normalized)
     return (
-        f"{FEATURE_LABELS[normalized]} sessions consume TinyFish credits. "
+        f"{FEATURE_LABELS[normalized]} consumes TinyFish credits. "
         f"Current policy is '{resolved}'."
     )
 
@@ -50,8 +53,7 @@ def block_message(feature: CreditFeature | str) -> str:
     return (
         f"BLOCKED: {policy_message(normalized, 'deny')} "
         f"Set `tinyfish.credit_policy.{normalized}` to `request` (per-session "
-        "approval) or `allow` in Hermes config; `hermes tinyfish browser` "
-        "manages this setting."
+        f"approval) or `allow` with `hermes tinyfish credits set {normalized}`."
     )
 
 
@@ -115,18 +117,60 @@ def _directive_for_feature(
     return None
 
 
-def _profile_label(profile_id: str) -> str:
+def _fetch_label(collection: str, item_id: str) -> str:
     from . import rest_client
     from .provider import _api_key
 
     # The approver needs the real name, not the agent's claim; the id alone still works.
     try:
-        name = rest_client.get_profile(profile_id, api_key=_api_key(), timeout=5.0).get(
-            "name"
-        )
+        path = f"/v1/{collection}/{rest_client.quote_id(item_id)}"
+        name = rest_client.agent_request(
+            "GET", path, api_key=_api_key(), timeout=5.0
+        ).get("name")
     except Exception:
-        return profile_id
-    return f"'{name}' ({profile_id})" if name else profile_id
+        return item_id
+    return f"'{name}' ({item_id})" if name else item_id
+
+
+_CREDIT_FEATURE_BY_TOOL: dict[str, CreditFeature] = {
+    "tinyfish_agent": "agent",
+    "tinyfish_create_monitor": "monitor",
+    "tinyfish_run_monitor": "monitor",
+    "tinyfish_resume_monitor": "monitor",
+    "tinyfish_start_deep_research": "research",
+    "tinyfish_create_dataset": "dataset",
+    "tinyfish_populate_dataset": "dataset",
+}
+
+
+def _charge_scope(tool_name: str, params: dict[str, Any]) -> str:
+    rows = params.get("target_rows")
+    if tool_name == "tinyfish_create_monitor":
+        config = params.get("config")
+        config = config if isinstance(config, dict) else {}
+        watched = str(config.get("url") or config.get("query") or "?")[:120]
+        cron = params.get("schedule_cron")
+        return (
+            f" Watches {watched} on schedule '{cron}', billing every check until "
+            "paused or cancelled."
+        )
+    if tool_name == "tinyfish_resume_monitor":
+        return " Its scheduled checks bill again until paused or cancelled."
+    if tool_name == "tinyfish_create_dataset":
+        return f" Fills up to {rows or 100} rows, $0.10 per complete row."
+    if tool_name == "tinyfish_populate_dataset" and rows:
+        return f" Fills up to {rows} rows, $0.10 per complete row."
+    return ""
+
+
+def _delete_approval(kind: str, collection: str, item_id: str) -> dict[str, str]:
+    # Keyed per item so one approval never covers deleting a different one.
+    label = _fetch_label(collection, item_id)
+    return {
+        "action": "approve",
+        "message": f"Permanently delete TinyFish {kind} {label}?",
+        "rule_key": f"tinyfish:{kind}_delete:{item_id}",
+    }
 
 
 def pre_tool_call_policy(
@@ -137,17 +181,42 @@ def pre_tool_call_policy(
     params = args or {}
     target = str(params.get("url") or params.get("target") or "")
 
-    if tool_name == "tinyfish_agent":
-        return _directive_for_feature("agent", tool_name, target)
+    if tool_name in _CREDIT_FEATURE_BY_TOOL:
+        feature = _CREDIT_FEATURE_BY_TOOL[tool_name]
+        directive = _directive_for_feature(feature, tool_name, target)
+        if directive and directive["action"] == "approve":
+            directive["message"] += _charge_scope(tool_name, params)
+        if tool_name == "tinyfish_populate_dataset" and params.get("reset"):
+            if directive and directive["action"] == "block":
+                return directive
+            dataset_id = str(params.get("dataset_id") or "")
+            label = _fetch_label("datasets", dataset_id)
+            # Reset deletes rows, so it asks even under `allow`, once per dataset.
+            return {
+                "action": "approve",
+                "message": f"Empty TinyFish dataset {label} and refill it? Its current "
+                "rows are deleted, and refilling consumes TinyFish credits.",
+                "rule_key": f"tinyfish:dataset_reset:{dataset_id}",
+            }
+        return directive
+    if tool_name == "tinyfish_update_monitor" and params.get("schedule_cron"):
+        # A new schedule is a new spend decision; fetch monitors have no floor.
+        directive = _directive_for_feature("monitor", tool_name, target)
+        if directive and directive["action"] == "approve":
+            directive["message"] += (
+                f" Changes the schedule to '{params['schedule_cron']}'; every check "
+                "bills until paused or cancelled."
+            )
+        return directive
     if tool_name == "tinyfish_delete_profile":
         profile_id = str(params.get("profile_id") or "")
-        label = _profile_label(profile_id)
-        # Keyed per profile so one approval never covers deleting a different profile.
-        return {
-            "action": "approve",
-            "message": f"Permanently delete TinyFish profile {label}?",
-            "rule_key": f"tinyfish:profile_delete:{profile_id}",
-        }
+        return _delete_approval("profile", "profiles", profile_id)
+    if tool_name == "tinyfish_cancel_monitor":
+        monitor_id = str(params.get("monitor_id") or "")
+        return _delete_approval("monitor", "monitors", monitor_id)
+    if tool_name == "tinyfish_delete_dataset":
+        dataset_id = str(params.get("dataset_id") or "")
+        return _delete_approval("dataset", "datasets", dataset_id)
     if not tool_name.startswith("browser_"):
         return None
     config = load_config()

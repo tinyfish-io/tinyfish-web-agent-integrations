@@ -12,7 +12,7 @@ _AUTH_HEADERS = {
     "X-API-Key": "tf_test",
     "Accept": "application/json",
     "X-TF-Client-Name": "hermes",
-    "X-TF-Client-Version": "0.2.5",
+    "X-TF-Client-Version": "0.3.0",
 }
 
 
@@ -542,3 +542,70 @@ def test_report_setup_swallows_failures(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setattr(rest_client.httpx, "post", boom)
 
     rest_client.report_setup("completed", key_source="env", api_key="tf_test")
+
+
+@pytest.mark.parametrize("status", [402, 503])
+def test_refusals_keep_code_details_and_retry_after(
+    monkeypatch: pytest.MonkeyPatch, status: int
+) -> None:
+    def fake_request(m: str, u: str, **kwargs: Any) -> httpx.Response:
+        return _response(
+            m,
+            u,
+            status=status,
+            payload={
+                "error": {
+                    "code": "SERVICE_BUSY",
+                    "message": "busy",
+                    "details": {"dataset_id": "d1"},
+                }
+            },
+            headers={"Retry-After": "30"},
+        )
+
+    monkeypatch.setattr(rest_client.httpx, "request", fake_request)
+
+    with pytest.raises(rest_client.TinyFishRestError) as info:
+        rest_client.agent_request("POST", "/v1/datasets", api_key="tf_test")
+    assert info.value.status == status
+    assert info.value.code == "SERVICE_BUSY"
+    assert info.value.details == {"dataset_id": "d1"}
+    assert info.value.retry_after == "30"
+    # Only 4xx text is echoed; a 5xx body never is.
+    assert ("busy" in str(info.value)) == (status == 402)
+
+
+def test_post_timeout_warns_the_request_may_have_landed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_request(m: str, u: str, **kwargs: Any) -> httpx.Response:
+        raise httpx.ReadTimeout("timed out")
+
+    monkeypatch.setattr(rest_client.httpx, "request", fake_request)
+
+    with pytest.raises(rest_client.TinyFishRestError, match="may have gone through"):
+        rest_client.agent_request("POST", "/v1/datasets", api_key="tf_test")
+    with pytest.raises(rest_client.TinyFishRestError, match="may have gone through"):
+        rest_client.agent_request("DELETE", "/v1/monitors/m1", api_key="tf_test")
+    with pytest.raises(rest_client.TinyFishRestError, match="Could not reach"):
+        rest_client.agent_request("GET", "/v1/datasets", api_key="tf_test")
+
+
+def test_402_keeps_the_server_message(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_request(m: str, u: str, **kwargs: Any) -> httpx.Response:
+        return _response(
+            m,
+            u,
+            status=402,
+            payload={"error": {"code": "INSUFFICIENT_CREDITS", "message": "Add funds"}},
+        )
+
+    monkeypatch.setattr(rest_client.httpx, "request", fake_request)
+
+    with pytest.raises(rest_client.TinyFishRestError) as info:
+        rest_client.agent_request(
+            "POST", "/v1/research-run", api_key="tf_test", service="TinyFish Research"
+        )
+    assert str(info.value).endswith("credits or billing may be required. Add funds")
+    assert info.value.code == "INSUFFICIENT_CREDITS"
+    assert info.value.service == "TinyFish Research"
