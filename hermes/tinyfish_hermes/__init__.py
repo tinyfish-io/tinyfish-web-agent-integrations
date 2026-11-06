@@ -51,6 +51,7 @@ def register(ctx: Any) -> None:
     from .monitor_tools import MONITOR_TOOLS
     from .profile_tools import PROFILE_TOOLS
     from .provider import TinyFishWebSearchProvider, _api_key
+    from .research_tools import RESEARCH_TOOLS
     from .routing_context import routing_context_hook
     from .setup_cli import (
         dispatch_tinyfish_cli,
@@ -73,6 +74,7 @@ def register(ctx: Any) -> None:
             (TINYFISH_AGENT_SCHEMA, tinyfish_agent),
             *PROFILE_TOOLS,
             *MONITOR_TOOLS,
+            *RESEARCH_TOOLS,
         ):
             ctx.register_tool(
                 name=schema["name"],

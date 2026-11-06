@@ -26,6 +26,10 @@ provides_tools:
   - tinyfish_resume_monitor
   - tinyfish_run_monitor
   - tinyfish_cancel_monitor
+  - tinyfish_start_deep_research
+  - tinyfish_get_deep_research
+  - tinyfish_list_deep_research
+  - tinyfish_cancel_deep_research
 provides_hooks:
   - pre_tool_call
   - pre_llm_call

@@ -169,15 +169,19 @@ def _feature_off(exc: rest_client.TinyFishRestError) -> bool:
     )
 
 
-def plain_error_json(exc: rest_client.TinyFishRestError) -> str:
-    payload = {"error": str(exc)}
+def plain_error(exc: rest_client.TinyFishRestError) -> dict[str, Any]:
+    payload: dict[str, Any] = {"error": str(exc)}
     if _feature_off(exc):
         product = str(exc).rsplit(": ", 1)[-1].split(" API", 1)[0] or "This product"
         payload["next_action"] = (
             f"{product} isn't enabled for this TinyFish account yet; tell the user, "
             "don't retry."
         )
-    return json.dumps(payload)
+    return payload
+
+
+def plain_error_json(exc: rest_client.TinyFishRestError) -> str:
+    return json.dumps(plain_error(exc))
 
 
 def _summary(profile: dict[str, Any]) -> dict[str, Any]:

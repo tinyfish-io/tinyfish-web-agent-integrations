@@ -134,6 +134,7 @@ _BILLED_TOOLS: dict[str, CreditFeature] = {
     "tinyfish_create_monitor": "monitor",
     "tinyfish_run_monitor": "monitor",
     "tinyfish_resume_monitor": "monitor",
+    "tinyfish_start_deep_research": "research",
 }
 
 
