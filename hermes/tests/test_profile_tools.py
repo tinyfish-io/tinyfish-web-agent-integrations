@@ -252,3 +252,28 @@ def test_delete_approval_falls_back_to_the_id(http: Any) -> None:
     assert directive and directive["message"] == (
         "Permanently delete TinyFish profile prof_1?"
     )
+
+
+@pytest.mark.parametrize(
+    ("status", "code", "message", "product"),
+    [
+        (403, "FEATURE_NOT_AVAILABLE", "Datasets API is not available", "Datasets"),
+        (403, "FORBIDDEN", "Research API is not available", "Research"),
+    ],
+)
+def test_plain_error_json_flags_a_product_that_is_off(
+    status: int, code: str, message: str, product: str
+) -> None:
+    exc = rest_client.TinyFishRestError(
+        f"TinyFish {product} returned HTTP {status}: {message}", status, code=code
+    )
+
+    out = json.loads(profile_tools.plain_error_json(exc))
+
+    assert out["next_action"].startswith(f"{product} isn't enabled")
+
+
+def test_plain_error_json_leaves_other_errors_bare() -> None:
+    exc = rest_client.TinyFishRestError("TinyFish Datasets returned HTTP 404", 404)
+
+    assert json.loads(profile_tools.plain_error_json(exc)) == {"error": str(exc)}

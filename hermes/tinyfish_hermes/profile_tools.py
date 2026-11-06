@@ -162,6 +162,24 @@ def error_json(exc: rest_client.TinyFishRestError) -> str:
     return json.dumps(payload)
 
 
+def _feature_off(exc: rest_client.TinyFishRestError) -> bool:
+    # Research start refuses with a bare 403 FORBIDDEN, so its message is the signal.
+    return exc.code == "FEATURE_NOT_AVAILABLE" or (
+        exc.status == HTTPStatus.FORBIDDEN and "is not available" in str(exc)
+    )
+
+
+def plain_error_json(exc: rest_client.TinyFishRestError) -> str:
+    payload = {"error": str(exc)}
+    if _feature_off(exc):
+        product = str(exc).rsplit(": ", 1)[-1].split(" API", 1)[0] or "This product"
+        payload["next_action"] = (
+            f"{product} isn't enabled for this TinyFish account yet; tell the user, "
+            "don't retry."
+        )
+    return json.dumps(payload)
+
+
 def _summary(profile: dict[str, Any]) -> dict[str, Any]:
     out = {key: profile.get(key) for key in _SUMMARY_KEYS}
     sites = profile.get("signed_in_sites")
@@ -172,6 +190,7 @@ def _summary(profile: dict[str, Any]) -> dict[str, Any]:
 
 def _with_key(
     handler: Callable[[dict[str, Any], str], dict[str, Any]],
+    on_error: Callable[[rest_client.TinyFishRestError], str] = error_json,
 ) -> Callable[..., str]:
     def run(args: dict[str, Any], **_: Any) -> str:
         api_key = _api_key()
@@ -182,7 +201,7 @@ def _with_key(
         except ValueError as exc:
             return json.dumps({"error": str(exc)})
         except rest_client.TinyFishRestError as exc:
-            return error_json(exc)
+            return on_error(exc)
 
     return run
 
