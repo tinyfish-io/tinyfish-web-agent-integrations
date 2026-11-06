@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 import types
 from pathlib import Path
@@ -23,6 +24,18 @@ web_provider_mod = types.ModuleType("agent.web_search_provider")
 web_provider_mod.WebSearchProvider = WebSearchProvider  # type: ignore[attr-defined]
 sys.modules.setdefault("agent", agent_pkg)
 sys.modules["agent.web_search_provider"] = web_provider_mod
+
+
+def _parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
+    # Hermes parses YAML; rendered descriptions are JSON-style quoted strings.
+    head, _, body = content.removeprefix("---\n").partition("\n---\n")
+    pairs = (line.split(": ", 1) for line in head.splitlines() if ": " in line)
+    return {k: json.loads(v) if v.startswith('"') else v for k, v in pairs}, body
+
+
+skill_utils_mod = types.ModuleType("agent.skill_utils")
+skill_utils_mod.parse_frontmatter = _parse_frontmatter  # type: ignore[attr-defined]
+sys.modules["agent.skill_utils"] = skill_utils_mod
 
 tools_pkg = types.ModuleType("tools")
 interrupt_mod = types.ModuleType("tools.interrupt")

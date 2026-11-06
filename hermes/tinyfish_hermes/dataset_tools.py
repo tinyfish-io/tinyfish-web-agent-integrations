@@ -7,7 +7,7 @@ from collections.abc import Callable
 from typing import Any
 
 from . import rest_client
-from .profile_tools import _required, _schema, _with_key, plain_error
+from .profile_tools import _given, _required, _schema, _with_key, plain_error
 from .research_tools import wait_until
 
 PREVIEW_ROWS = 50
@@ -123,14 +123,19 @@ PLAN_SCHEMA = _schema(
     {"prompt": _PROMPT},
     ["prompt"],
 )
+_STILL_FILLING = (
+    "filling usually takes a few minutes. Do not create another dataset or cancel "
+    "because it is slow."
+)
+
+
 GET_SCHEMA = _schema(
     "tinyfish_get_dataset",
     "Waits up to about 25 seconds for a dataset started by tinyfish_create_dataset "
     "or tinyfish_populate_dataset, then returns its status, row count and the "
     "first rows. When output_ready is true the rows stand; call "
     "tinyfish_get_dataset_rows for more pages. While status is populating, call "
-    "tinyfish_get_dataset again with the same dataset_id; filling usually takes a "
-    "few minutes. Do not create another dataset or cancel because it is slow.",
+    f"tinyfish_get_dataset again with the same dataset_id; {_STILL_FILLING}",
     {
         "dataset_id": _DATASET_ID,
         "wait": {
@@ -212,9 +217,8 @@ DELETE_SCHEMA = _schema(
 
 def _poll_again(dataset_id: str) -> str:
     return (
-        f"Call tinyfish_get_dataset again with dataset_id={dataset_id}; filling "
-        "usually takes a few minutes. Do not create another dataset or cancel "
-        "because it is slow."
+        f"Call tinyfish_get_dataset again with dataset_id={dataset_id}; "
+        + _STILL_FILLING
     )
 
 
@@ -250,8 +254,6 @@ def dataset_error_json(exc: rest_client.TinyFishRestError) -> str:
             "tinyfish_populate_dataset with that id to start filling it; do not call "
             "tinyfish_create_dataset again."
         )
-    if exc.retry_after:
-        payload["retry_after_seconds"] = exc.retry_after
     return json.dumps(payload)
 
 
@@ -375,14 +377,12 @@ def _rows(args: dict[str, Any], api_key: str) -> dict[str, Any]:
     dataset_id = _required(args, "dataset_id")
     limit = int(args.get("limit") or ROWS_LIMIT_DEFAULT)
     # Every row lands in the model's context, so pages stay smaller than the API's.
-    params: dict[str, Any] = {"limit": max(1, min(limit, ROWS_LIMIT_MAX))}
-    if args.get("after"):
-        params["after"] = args["after"]
+    params = {"limit": max(1, min(limit, ROWS_LIMIT_MAX)), **_given(args, ("after",))}
     return rest_client.get_dataset_rows(dataset_id, params, api_key=api_key)
 
 
 def _list(args: dict[str, Any], api_key: str) -> dict[str, Any]:
-    params = {k: args[k] for k in ("limit", "cursor") if args.get(k) not in (None, "")}
+    params = _given(args, ("limit", "cursor"))
     page = rest_client.list_datasets(params, api_key=api_key)
     pagination = page.get("pagination") or {}
     return {

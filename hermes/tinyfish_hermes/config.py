@@ -2,18 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, cast
+from typing import Any, Literal, cast, get_args
 
-CreditFeature = Literal["browser", "agent", "monitor", "research", "datasets"]
+CreditFeature = Literal["browser", "agent", "monitor", "research", "dataset"]
 CreditPolicy = Literal["deny", "request", "allow"]
 
-CREDIT_FEATURES: tuple[CreditFeature, ...] = (
-    "browser",
-    "agent",
-    "monitor",
-    "research",
-    "datasets",
-)
+CREDIT_FEATURES: tuple[CreditFeature, ...] = get_args(CreditFeature)
 CREDIT_POLICIES: tuple[CreditPolicy, ...] = ("deny", "request", "allow")
 # 'request' is inert until browser.cloud_provider is tinyfish, and still
 # routes each session through Hermes approval once it is.

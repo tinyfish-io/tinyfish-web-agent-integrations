@@ -47,7 +47,7 @@ The plugin registers a `hermes tinyfish` command and an in-session `/tinyfish-st
 | `setup [--yes] [--api-key KEY] [--no-web-backend] [--live]` | Route web tools to TinyFish and save the API key |
 | `status [--json]` | Non-secret configuration status |
 | `doctor [--json] [--live] [--live-paid]` | Diagnostics; `--live` runs one real search+fetch, `--live-paid` a browser session per credit policy |
-| `credits {status,set,reset}` | Inspect or change `tinyfish.credit_policy.{browser,agent,monitor,research,datasets}` |
+| `credits {status,set,reset}` | Inspect or change `tinyfish.credit_policy.{browser,agent,monitor,research,dataset}` |
 | `browser {enable,disable,status}` | Toggle `browser.cloud_provider: tinyfish` |
 | `usage [--json]` | Wallet balance, auto-reload, and billing rates |
 
@@ -74,7 +74,7 @@ tinyfish:
 
 ## Browser sessions
 
-Setting `browser.cloud_provider: tinyfish` routes Hermes' browser tools — the default Browser Use `browser_exec`, or the built-in `browser_*` tools with `browser.backend: off` — through TinyFish remote browser sessions. Sessions consume TinyFish credits, so they are policy-gated via `tinyfish.credit_policy.browser`. The other billed tools have their own policy with the same values: `agent` for `tinyfish_agent`, `monitor` for creating, running or resuming a monitor, `research` for starting deep research, and `datasets` for creating or populating a dataset:
+Setting `browser.cloud_provider: tinyfish` routes Hermes' browser tools — the default Browser Use `browser_exec`, or the built-in `browser_*` tools with `browser.backend: off` — through TinyFish remote browser sessions. Sessions consume TinyFish credits, so they are policy-gated via `tinyfish.credit_policy.browser`. The other billed tools have their own policy with the same values: `agent` for `tinyfish_agent`, `monitor` for creating, running or resuming a monitor, `research` for starting deep research, and `dataset` for creating or populating a dataset:
 
 | Policy | Behavior |
 | ------ | -------- |

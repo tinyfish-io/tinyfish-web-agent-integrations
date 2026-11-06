@@ -55,11 +55,14 @@ def test_start_refusal_points_at_running_reports(http: Any) -> None:
                 "details": {"active_research_run_ids": ["r1", "r2"]},
             }
         },
+        **{"Retry-After": "30"},
     )
 
     out = call("tinyfish_start_deep_research", {"query": "q"})
 
     assert "5 research runs" in out["error"]
+    assert out["retry_after_seconds"] == 30
+    assert out["details"] == {"active_research_run_ids": ["r1", "r2"]}
     assert out["next_action"].startswith("Running now: r1, r2.")
 
 

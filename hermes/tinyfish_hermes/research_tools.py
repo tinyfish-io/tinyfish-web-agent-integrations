@@ -10,7 +10,7 @@ from typing import Any, TypeVar
 from urllib.parse import quote
 
 from . import rest_client
-from .profile_tools import _required, _schema, _with_key, plain_error
+from .profile_tools import _given, _required, _schema, _with_key, plain_error
 from .provider import _is_interrupted
 
 T = TypeVar("T")
@@ -128,10 +128,8 @@ GET_SCHEMA = _schema(
     "tinyfish_get_deep_research",
     "Waits up to about 25 seconds for a run started by "
     "tinyfish_start_deep_research, then returns its status. When output_ready is "
-    "true, the result has the cited report. While the run is still going, call "
-    "tinyfish_get_deep_research again with the same research_run_id; research "
-    "usually takes several minutes. Do not start a new run or cancel because it is "
-    "slow. If the user asks about an earlier report, call "
+    "true, the result has the cited report. While the run is still going: "
+    f"{_POLL_AGAIN} If the user asks about an earlier report, call "
     "tinyfish_list_deep_research. Completed reports may include freshness_report "
     "and termination_reason; synthesis_failed means the report contains interim "
     "findings.",
@@ -215,10 +213,10 @@ def research_error_json(exc: rest_client.TinyFishRestError) -> str:
 
 
 def _start(args: dict[str, Any], api_key: str) -> dict[str, Any]:
-    fields: dict[str, Any] = {"query": _required(args, "query")}
-    for key in ("mode", "prior_run_id", "session_id", "domain_filter"):
-        if args.get(key) not in (None, ""):
-            fields[key] = args[key]
+    fields = {
+        "query": _required(args, "query"),
+        **_given(args, ("mode", "prior_run_id", "session_id", "domain_filter")),
+    }
     started = rest_client.start_research(fields, api_key=api_key)
     run_id = str(started.get("research_run_id") or "")
     if not run_id:
@@ -307,9 +305,9 @@ def _get(args: dict[str, Any], api_key: str) -> dict[str, Any]:
 
 
 def _list(args: dict[str, Any], api_key: str) -> dict[str, Any]:
-    params = {
-        key: args[key]
-        for key in (
+    params = _given(
+        args,
+        (
             "status",
             "query",
             "created_after",
@@ -317,9 +315,8 @@ def _list(args: dict[str, Any], api_key: str) -> dict[str, Any]:
             "sort_direction",
             "cursor",
             "limit",
-        )
-        if args.get(key) not in (None, "")
-    }
+        ),
+    )
     page = rest_client.list_research(params, api_key=api_key)
     runs = [r for r in page.get("data") or [] if isinstance(r, dict)]
     return {

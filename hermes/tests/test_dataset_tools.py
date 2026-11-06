@@ -122,7 +122,7 @@ def test_run_limit_says_wait_then_populate(http: Any) -> None:
 
     assert out["next_action"].startswith("Run limit reached")
     assert "tinyfish_populate_dataset with dataset_id=d1" in out["next_action"]
-    assert out["retry_after_seconds"] == "60"
+    assert out["retry_after_seconds"] == 60
 
 
 def test_flag_off_says_not_enabled(http: Any) -> None:
@@ -235,15 +235,15 @@ def test_delete_returns_the_id(http: Any) -> None:
 @pytest.mark.parametrize(
     "tool", ["tinyfish_create_dataset", "tinyfish_populate_dataset"]
 )
-def test_billed_dataset_tools_follow_the_datasets_policy(
+def test_billed_dataset_tools_follow_the_dataset_policy(
     monkeypatch: pytest.MonkeyPatch, tool: str
 ) -> None:
-    policy = {"tinyfish": {"credit_policy": {"datasets": "deny"}}}
+    policy = {"tinyfish": {"credit_policy": {"dataset": "deny"}}}
     monkeypatch.setattr(config, "load_config", lambda: policy)
 
     assert pre_tool_call_policy(tool, {})["action"] == "block"  # type: ignore[index]
-    policy["tinyfish"]["credit_policy"]["datasets"] = "request"
-    assert pre_tool_call_policy(tool, {})["rule_key"] == "tinyfish:datasets"  # type: ignore[index]
+    policy["tinyfish"]["credit_policy"]["dataset"] = "request"
+    assert pre_tool_call_policy(tool, {})["rule_key"] == "tinyfish:dataset"  # type: ignore[index]
 
 
 def test_delete_always_asks_and_names_the_dataset(http: Any) -> None:
@@ -261,7 +261,7 @@ def test_delete_always_asks_and_names_the_dataset(http: Any) -> None:
 def test_reset_always_asks_and_names_the_dataset(
     http: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    policy = {"tinyfish": {"credit_policy": {"datasets": "allow"}}}
+    policy = {"tinyfish": {"credit_policy": {"dataset": "allow"}}}
     monkeypatch.setattr(config, "load_config", lambda: policy)
     http.reply(200, dataset("ready"))
     args = {"dataset_id": "d1", "reset": True}
@@ -274,7 +274,7 @@ def test_reset_always_asks_and_names_the_dataset(
     assert (
         pre_tool_call_policy("tinyfish_populate_dataset", {"dataset_id": "d1"}) is None
     )
-    policy["tinyfish"]["credit_policy"]["datasets"] = "deny"
+    policy["tinyfish"]["credit_policy"]["dataset"] = "deny"
     assert pre_tool_call_policy("tinyfish_populate_dataset", args)["action"] == "block"  # type: ignore[index]
 
 

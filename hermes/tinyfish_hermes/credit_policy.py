@@ -20,7 +20,7 @@ FEATURE_LABELS: dict[CreditFeature, str] = {
     "agent": "TinyFish Agent",
     "monitor": "TinyFish Monitors",
     "research": "TinyFish Deep Research",
-    "datasets": "TinyFish Datasets",
+    "dataset": "TinyFish Datasets",
 }
 
 
@@ -135,8 +135,8 @@ _BILLED_TOOLS: dict[str, CreditFeature] = {
     "tinyfish_run_monitor": "monitor",
     "tinyfish_resume_monitor": "monitor",
     "tinyfish_start_deep_research": "research",
-    "tinyfish_create_dataset": "datasets",
-    "tinyfish_populate_dataset": "datasets",
+    "tinyfish_create_dataset": "dataset",
+    "tinyfish_populate_dataset": "dataset",
 }
 
 

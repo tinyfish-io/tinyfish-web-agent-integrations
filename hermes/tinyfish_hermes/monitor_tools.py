@@ -6,7 +6,7 @@ from collections.abc import Callable
 from typing import Any
 
 from . import rest_client
-from .profile_tools import _required, _schema, _with_key, plain_error_json
+from .profile_tools import _given, _required, _schema, _with_key, plain_error_json
 
 _MONITOR_ID = {
     "type": "string",
@@ -158,10 +158,8 @@ def _create(args: dict[str, Any], api_key: str) -> dict[str, Any]:
     fields: dict[str, Any] = {
         "type": _required(args, "type"),
         "config": {k: v for k, v in config.items() if v is not None},
+        **_given(args, _CREATE_FIELDS),
     }
-    for key in _CREATE_FIELDS:
-        if args.get(key) not in (None, ""):
-            fields[key] = args[key]
     return rest_client.create_monitor(fields, api_key=api_key)
 
 

@@ -173,6 +173,12 @@ def plain_error(exc: rest_client.TinyFishRestError) -> dict[str, Any]:
     payload: dict[str, Any] = {"error": str(exc)}
     if exc.code:
         payload["code"] = exc.code
+    if exc.retry_after:
+        # Retry-After may be an HTTP date; only a seconds count becomes a number.
+        r = exc.retry_after.strip()
+        payload["retry_after_seconds"] = int(r) if r.isdigit() else r
+    if exc.details:
+        payload["details"] = exc.details
     if _feature_off(exc):
         product = (exc.service or "").removeprefix("TinyFish ") or "This product"
         payload["next_action"] = (
@@ -210,6 +216,10 @@ def _with_key(
             return on_error(exc)
 
     return run
+
+
+def _given(args: dict[str, Any], keys: tuple[str, ...]) -> dict[str, Any]:
+    return {k: args[k] for k in keys if args.get(k) not in (None, "")}
 
 
 def _required(args: dict[str, Any], key: str) -> str:

@@ -227,7 +227,7 @@ def test_status_reports_non_secret_fields(
         "agent": "request",
         "monitor": "request",
         "research": "request",
-        "datasets": "request",
+        "dataset": "request",
     }
     assert payload["routing_context_enabled"] is True
     assert payload["mcp_configured"] is False
@@ -461,7 +461,7 @@ def test_credits_status_json(
             "agent": "request",
             "monitor": "request",
             "research": "request",
-            "datasets": "request",
+            "dataset": "request",
         }
     }
 
@@ -478,7 +478,7 @@ def test_credits_set_saves_policy(
     assert "Set TinyFish browser credit policy to allow." in capsys.readouterr().out
 
 
-@pytest.mark.parametrize("feature", ["monitor", "research", "datasets"])
+@pytest.mark.parametrize("feature", ["monitor", "research", "dataset"])
 def test_credits_set_accepts_new_features(
     env: dict[str, Any], capsys: pytest.CaptureFixture[str], feature: str
 ) -> None:
@@ -502,7 +502,7 @@ def test_credits_reset_restores_request_default(
         "agent": "request",
         "monitor": "request",
         "research": "request",
-        "datasets": "request",
+        "dataset": "request",
     }
     out = capsys.readouterr().out
     assert "request" in out

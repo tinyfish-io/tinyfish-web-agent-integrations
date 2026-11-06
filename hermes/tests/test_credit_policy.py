@@ -18,7 +18,7 @@ from tinyfish_hermes.credit_policy import pre_tool_call_policy, request_credit_a
 
 
 def test_credit_features_default_to_request() -> None:
-    assert CREDIT_FEATURES == ("browser", "agent", "monitor", "research", "datasets")
+    assert CREDIT_FEATURES == ("browser", "agent", "monitor", "research", "dataset")
     assert credit_policy("browser", {}) == "request"
     assert credit_policy_summary({}) == dict.fromkeys(CREDIT_FEATURES, "request")
 
