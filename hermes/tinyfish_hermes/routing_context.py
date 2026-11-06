@@ -9,11 +9,12 @@ from urllib.parse import urlparse
 from .config import browser_cloud_provider, load_config, routing_context_enabled
 from .provider import API_KEY_URL, _api_key
 
-ROUTING_CONTEXT_MARKER = '<tinyfish-routing-context version="1">'
+ROUTING_CONTEXT_MARKER = '<tinyfish-routing-context version="2">'
 ROUTING_GUIDANCE = f"""{ROUTING_CONTEXT_MARKER}
 TinyFish tool-routing guidance:
 - For ordinary web discovery or reading a page, use Hermes `web_search` or `web_extract`; the `tinyfish` provider serves both directly over the TinyFish REST APIs.
 - When the request needs TinyFish-specific controls the generic schemas cannot express—domain/date/language/location/purpose/pagination filters, output formats, link or image extraction, cache TTL, or per-URL timeouts—use the native `search` or `fetch_content` tool registered by the `tinyfish` MCP server, commonly exposed as `mcp__tinyfish__search` and `mcp__tinyfish__fetch_content`.
+- For monitors, deep research and datasets, use the plugin's `tinyfish_*` tools, not the MCP server's copies.
 - Infer the choice from the user's plain language. Do not ask them to choose MCP versus the provider, and do not persist per-request controls as configuration. If a required native tool is unavailable, use the generic provider only when it can preserve the requested constraints; otherwise explain which control is unavailable rather than silently dropping it."""
 
 
