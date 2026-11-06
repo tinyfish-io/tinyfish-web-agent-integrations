@@ -64,3 +64,5 @@ URLs that appeared in more than one pass.
 | Moderate | A focused question with one clear angle | One pass: 3–5 searches, fetch the best hits, compile. |
 | Deep | A clear topic with a few independent angles | 3–4 passes, one per angle, compiling after each. |
 | Exhaustive | Cross-referencing entity types, multi-hop chains, "find everything", explicit counts | Repeated rounds of the above, compiling between rounds and re-scoping from what you found. |
+
+<!-- slot: host-tools -->

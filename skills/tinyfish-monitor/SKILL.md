@@ -9,6 +9,8 @@ A monitor re-checks a public page (`fetch`) or a search topic (`search`) on a cr
 completed check, including the baseline taken at creation, is billed $0.005 to the TinyFish wallet;
 failed checks are free.**
 
+{{host-tools}}
+
 ## Is a monitor the right tool?
 
 | The user wants to... | Use |
