@@ -24,6 +24,17 @@ PyPI versions are immutable. If a version has already been published, bump to a 
 
 The publish workflows use the repository `PYPI_API_TOKEN` Actions secret provisioned through `github-control`; never commit token values or package credentials.
 
+## npm integration releases
+
+npm publish workflows follow the same rule as the Python ones: no automatic version bumps. Each workflow reads the name and version from the package's `package.json`, checks npm for that exact version, and publishes only when it does not exist yet. Publishing uses npm Trusted Publisher (OIDC), so there is no token secret. A new package needs one manual first publish before a trusted publisher can be configured; the steps are in the header of its publish workflow.
+
+| Integration | Package | Version files |
+| --- | --- | --- |
+| Convex | `@tiny-fish/convex` | `convex/package.json` and `convex/src/component/version.ts` |
+| Pi | `@tiny-fish/pi` | `pi/package.json` |
+
+For Convex, bump both version files together: `version.ts` is what the component sends as `X-TF-Client-Version`, and a test fails if the two differ. After changing anything under `convex/src/component`, run `npm run build:codegen` in `convex/` and commit the regenerated `_generated` files; CI builds from the committed copies and has no Convex deployment.
+
 ## Kiro power
 
 `kiro/tinyfish/plugin.json`'s `description` names the TinyFish MCP tools and their required arguments on purpose. Kiro cuts a power's activation output at 30,000 characters and shows the agent only the first and last 500, and the hosted server's tool list is about 38,000, so without those names the agent guesses tool names such as `fetch`. Kiro always shows the `description` in full. When a tool used there is renamed or gains a required argument on the server, update the description and bump `version` in `kiro/tinyfish/plugin.json` and `X-TF-Client-Version` in `kiro/tinyfish/mcp.json` together; CI checks that the two versions match. The power lives in `kiro/tinyfish/`, not `kiro/`, because the Kiro IDE names an imported power after its folder (`kiro` would name the server `power-kiro-tinyfish`); Kiro CLI uses `plugin.json`'s `name`.
