@@ -227,6 +227,22 @@ describe("fetch", () => {
     expect(response.results[1].truncated).toBeUndefined();
   });
 
+  test("never cuts through the middle of an emoji", async () => {
+    const t = initConvexTest();
+    mockFetch([
+      { body: { results: [fetched("https://a.com", "ab😀cd")], errors: [] } },
+    ]);
+
+    // "😀" is two UTF-16 code units, at indexes 2 and 3.
+    const response = await t.action(api.lib.fetch, {
+      urls: ["https://a.com"],
+      options: { maxCharacters: 3 },
+    });
+
+    expect(response.results[0].text).toBe("ab");
+    expect(response.results[0].truncated).toBe(true);
+  });
+
   test("rejects more than 10 URLs and points at startFetch", async () => {
     const t = initConvexTest();
     const calls = mockFetch([]);

@@ -1,4 +1,4 @@
-import { v, type Infer } from "convex/values";
+import { ConvexError, v, type Infer } from "convex/values";
 import { paginationOptsValidator, type FunctionHandle } from "convex/server";
 import { paginator } from "convex-helpers/server/pagination";
 import {
@@ -616,9 +616,27 @@ function isFatal(status: number): boolean {
   );
 }
 
+/**
+ * The component's own errors that no retry can fix: a missing API key, or
+ * arguments that are invalid before any request is made.
+ */
+function configError(error: unknown): string | null {
+  if (!(error instanceof ConvexError)) return null;
+  const data = error.data as { code?: unknown; message?: unknown } | undefined;
+  if (
+    data?.code !== "tinyfish_missing_api_key" &&
+    data?.code !== "tinyfish_invalid_argument"
+  ) {
+    return null;
+  }
+  return typeof data.message === "string" ? data.message : String(data.code);
+}
+
 function errorMessage(error: unknown): string {
   const failure = requestFailure(error);
   if (failure) return failure.message;
+  const config = configError(error);
+  if (config) return config;
   return error instanceof Error ? error.message : String(error);
 }
 
@@ -680,7 +698,9 @@ export const run = internalAction({
         ...args,
         error: errorMessage(error).slice(0, 1_000),
         status: failure?.status,
-        fatal: failure ? isFatal(failure.status) : false,
+        fatal: failure
+          ? isFatal(failure.status)
+          : configError(error) !== null,
       });
     }
     return null;

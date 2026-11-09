@@ -21,7 +21,9 @@ on:
 # so the first release is manual and one-time:
 #   1. cd convex && npm ci && npm run verify && npm publish --access public
 #   2. npmjs.com → @tiny-fish/convex → Settings → Trusted Publisher → GitHub Actions,
-#      repo tinyfish-io/tinyfish-web-agent-integrations, workflow convex-publish.yml
+#      repo tinyfish-io/tinyfish-web-agent-integrations, workflow convex-publish.yml.
+#      If the form asks which publish methods to allow, allow `npm publish`: this
+#      workflow publishes directly rather than through staged publishing.
 #   3. every release after that is this workflow, on a version bump
 #      (bump package.json and src/component/version.ts together; a test checks they match)
 

@@ -335,6 +335,20 @@ describe("recovery", () => {
     expect(job?.error).toMatch(/401.*Invalid API key/);
   });
 
+  test("stops at once when the API key is missing", async () => {
+    const t = initConvexTest();
+    delete process.env.TINYFISH_API_KEY;
+    const calls = mockFetch([]);
+
+    const jobId = await t.mutation(api.jobs.startFetch, { urls: urlsOf(25) });
+    await finish(t);
+
+    expect(calls).toHaveLength(0);
+    const job = await t.query(api.jobs.get, { jobId });
+    expect(job).toMatchObject({ status: "failed", completed: 0, failed: 0 });
+    expect(job?.error).toMatch(/TINYFISH_API_KEY is not set/);
+  });
+
   test("the watchdog re-runs a step whose action never reported back", async () => {
     const t = initConvexTest();
     const calls = mockFetch([

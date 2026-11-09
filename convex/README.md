@@ -107,6 +107,7 @@ const tinyfish = new TinyFish(components.tinyfish);
 export const searchWeb = action({
   args: { query: v.string() },
   handler: async (ctx, args) => {
+    await requireUser(ctx); // your own auth check; see Security below
     const { results } = await tinyfish.search(ctx, args.query, {
       domain_type: "news",
       recency_minutes: 60 * 24 * 7,
@@ -119,6 +120,7 @@ export const searchWeb = action({
 export const readPages = action({
   args: { urls: v.array(v.string()) },
   handler: async (ctx, args) => {
+    await requireUser(ctx);
     const { results, errors } = await tinyfish.fetch(ctx, args.urls, {
       format: "markdown",
       maxCharacters: 20_000, // cap each page to fit a model's context
@@ -127,6 +129,11 @@ export const readPages = action({
   },
 });
 ```
+
+Exported Convex functions are public, so each wrapper should check the caller
+before it spends your TinyFish allowance. `requireUser` here stands for your
+auth provider's check; the example app has a
+[minimal version](example/convex/auth.ts).
 
 Options use the same names as the TinyFish REST API, so the
 [Search reference](https://docs.tinyfish.ai/search-api/reference) and
@@ -165,25 +172,35 @@ const tinyfish = new TinyFish(components.tinyfish);
 export const start = mutation({
   args: { query: v.string() },
   handler: async (ctx, args) => {
-    return await tinyfish.startSearchAndFetch(ctx, {
+    const userId = await requireUser(ctx);
+    const jobId = await tinyfish.startSearchAndFetch(ctx, {
       query: args.query,
       maxResults: 5,
       fetchOptions: { maxCharacters: 20_000 },
       onComplete: internal.research.done,
       context: { query: args.query },
     });
+    // Record who owns the job, in the same transaction that starts it.
+    await ctx.db.insert("jobOwners", { jobId, userId });
+    return jobId;
   },
 });
 
 // Reactive: the UI re-renders as the job moves and pages land.
 export const job = query({
   args: { jobId: v.string() },
-  handler: (ctx, args) => tinyfish.getJob(ctx, args.jobId),
+  handler: async (ctx, args) => {
+    await requireOwnedJob(ctx, args.jobId); // job ids are not secrets
+    return await tinyfish.getJob(ctx, args.jobId);
+  },
 });
 
 export const pages = query({
   args: { jobId: v.string(), paginationOpts: paginationOptsValidator },
-  handler: (ctx, args) => tinyfish.listPages(ctx, args),
+  handler: async (ctx, args) => {
+    await requireOwnedJob(ctx, args.jobId);
+    return await tinyfish.listPages(ctx, args);
+  },
 });
 
 // Runs once, when the job reaches a terminal state.
@@ -194,6 +211,10 @@ export const done = internalMutation({
   },
 });
 ```
+
+`requireOwnedJob` looks the job up in your own `jobOwners` table and rejects
+anyone but its owner; the example app's
+[version](example/convex/example.ts) is a dozen lines.
 
 `startFetch` works the same way for URLs you already have:
 

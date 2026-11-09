@@ -92,6 +92,10 @@ export const readMany = mutation({
 export const saveBrief = internalMutation({
   args: jobCompleteArgs,
   handler: async (ctx, args) => {
+    // `context` is whatever the job was started with; don't assume its shape.
+    if (!args.context?.userId) return null;
+    // One read is enough here: `research` asks for 5 results and a search job
+    // fetches at most 10. Paginate if you reuse this for larger `startFetch` jobs.
     const { page } = await tinyfish.listPages(ctx, {
       jobId: args.jobId,
       paginationOpts: { numItems: 10, cursor: null },

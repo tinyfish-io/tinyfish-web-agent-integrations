@@ -46,11 +46,11 @@ export function capText<T extends Record<string, any>>(
   ) {
     return result;
   }
-  return {
-    ...result,
-    text: result.text.slice(0, Math.max(0, maxCharacters)),
-    truncated: true,
-  };
+  let end = Math.max(0, Math.floor(maxCharacters));
+  // Don't leave half of a surrogate pair (an emoji, say) at the cut.
+  const last = result.text.charCodeAt(end - 1);
+  if (end > 0 && last >= 0xd800 && last <= 0xdbff) end--;
+  return { ...result, text: result.text.slice(0, end), truncated: true };
 }
 
 /**
