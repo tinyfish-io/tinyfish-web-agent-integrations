@@ -164,3 +164,34 @@ test("a job is only visible to the user who started it", async () => {
       .mutation(api.example.cancel, { jobId }),
   ).toBe(true);
 });
+
+test("removing a job removes its brief, and a running job leaves none behind", async () => {
+  const t = initConvexTest();
+  const asUser = t.withIdentity({ subject: "user-1" });
+  const hop = () => vi.advanceTimersByTime(10_000);
+  const search = {
+    query: "acme",
+    results: [{ position: 1, title: "Acme", snippet: "", url: "https://a.com" }],
+  };
+  const fetch = {
+    results: [{ url: "https://a.com", final_url: "https://a.com", text: "# A" }],
+    errors: [],
+  };
+  mockTinyFish([search, fetch]);
+  const countBriefs = () =>
+    t.run(async (ctx) => (await ctx.db.query("briefs").collect()).length);
+
+  // A finished job: its brief goes when the job does.
+  const finished = await asUser.mutation(api.example.research, { query: "acme" });
+  await t.finishAllScheduledFunctions(hop);
+  expect(await countBriefs()).toBe(1);
+  await asUser.mutation(api.example.remove, { jobId: finished });
+  await t.finishAllScheduledFunctions(hop);
+  expect(await countBriefs()).toBe(0);
+
+  // A job removed before it ran: its completion callback saves nothing.
+  const running = await asUser.mutation(api.example.research, { query: "acme" });
+  await asUser.mutation(api.example.remove, { jobId: running });
+  await t.finishAllScheduledFunctions(hop);
+  expect(await countBriefs()).toBe(0);
+});

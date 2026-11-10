@@ -94,6 +94,13 @@ export const saveBrief = internalMutation({
   handler: async (ctx, args) => {
     // `context` is whatever the job was started with; don't assume its shape.
     if (!args.context?.userId) return null;
+    // The job may have been removed while it ran (removing cancels it, and a
+    // cancelled job still completes). Don't save a brief nobody can read.
+    const owner = await ctx.db
+      .query("jobOwners")
+      .withIndex("jobId", (q) => q.eq("jobId", args.jobId))
+      .first();
+    if (!owner) return null;
     // One read is enough here: `research` asks for 5 results and a search job
     // fetches at most 10. Paginate if you reuse this for larger `startFetch` jobs.
     const { page } = await tinyfish.listPages(ctx, {
@@ -166,6 +173,12 @@ export const remove = mutation({
       .withIndex("jobId", (q) => q.eq("jobId", args.jobId))
       .first();
     if (owner) await ctx.db.delete(owner._id);
+    // Remove what the app saved about the job too, not just the job itself.
+    const briefs = await ctx.db
+      .query("briefs")
+      .withIndex("jobId", (q) => q.eq("jobId", args.jobId))
+      .collect();
+    for (const saved of briefs) await ctx.db.delete(saved._id);
     return await tinyfish.deleteJob(ctx, args.jobId);
   },
 });
