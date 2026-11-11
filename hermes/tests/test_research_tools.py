@@ -120,10 +120,23 @@ def test_get_stops_at_budget_and_says_poll_again(http: Any, clock: list[float]) 
 
     assert clock[0] < 25.0
     assert len(http.sent) == 9
-    timeouts = [sent["timeout"] for sent in http.sent]
-    assert timeouts[0] == 25.0 and timeouts == sorted(timeouts, reverse=True)
+    # Reads land at t = 0, 3, ... 24 on the fake clock.
+    expected = [max(1.0, 25.0 - 3 * i) for i in range(9)]
+    assert [sent["timeout"] for sent in http.sent] == expected
     assert out["output_ready"] is False
     assert out["progress"] == "Reading sources (2 so far)"
+    assert "tinyfish_get_deep_research again" in out["next_action"]
+
+
+def test_get_keeps_the_last_status_when_a_late_read_fails(
+    http: Any, clock: list[float]
+) -> None:
+    http.reply(200, {"research_run_id": RUN_ID, "status": "RUNNING"})
+    http.reply(504, {"error": {"message": "slow"}})
+
+    out = call("tinyfish_get_deep_research", {"research_run_id": RUN_ID})
+
+    assert out["status"] == "RUNNING"
     assert "tinyfish_get_deep_research again" in out["next_action"]
 
 

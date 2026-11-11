@@ -211,13 +211,16 @@ def _billed_directive(
 def _schedule_change_directive(
     params: dict[str, Any], target: str
 ) -> dict[str, str] | None:
-    # A new schedule is a new spend decision; fetch monitors have no floor.
     directive = _directive_for_feature("monitor", "tinyfish_update_monitor", target)
     if directive and directive["action"] == "approve":
+        cron = params["schedule_cron"]
         directive["message"] += (
-            f" Changes the schedule to '{params['schedule_cron']}'; every check "
-            "bills until paused or cancelled."
+            f" Changes the schedule to '{cron}'; every check bills until paused or "
+            "cancelled."
         )
+        # Fetch monitors have no interval floor; a session approval mustn't cover this.
+        monitor_id = params.get("monitor_id") or ""
+        directive["rule_key"] = f"tinyfish:monitor_schedule:{monitor_id}:{cron}"
     return directive
 
 

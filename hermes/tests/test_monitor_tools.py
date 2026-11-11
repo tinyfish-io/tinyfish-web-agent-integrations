@@ -161,4 +161,7 @@ def test_schedule_change_follows_the_monitor_policy(
     policy["tinyfish"]["credit_policy"]["monitor"] = "request"
     directive = pre_tool_call_policy("tinyfish_update_monitor", args)
     assert directive is not None and "'* * * * *'" in directive["message"]
+    assert directive["rule_key"] == "tinyfish:monitor_schedule:m1:* * * * *"
+    run = pre_tool_call_policy("tinyfish_run_monitor", {"monitor_id": "m1"})
+    assert run is not None and run["rule_key"] != directive["rule_key"]
     assert pre_tool_call_policy("tinyfish_update_monitor", {"name": "x"}) is None

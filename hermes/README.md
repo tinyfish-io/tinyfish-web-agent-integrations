@@ -110,7 +110,7 @@ A Browser Context Profile is a saved website sign-in. It is unrelated to Hermes 
 
 ## Monitors
 
-A Monitor re-checks a public page (`fetch`) or a search topic (`search`) on a cron schedule. Each completed check, including the baseline taken at creation, is billed $0.005 plus its one Search or Fetch; failed checks are free. Availability may depend on your account. The `monitor` credit policy gates the tool calls, not the scheduled checks: a monitor keeps billing on its schedule until you pause or cancel it, even after you set the policy to `deny`.
+A Monitor re-checks a public page (`fetch`) or a search topic (`search`) on a cron schedule. Each completed check, including the baseline taken at creation, is billed $0.005 plus its one Search or Fetch; failed checks are free. Availability may depend on your account. The `monitor` credit policy gates the tool calls, not the scheduled checks: a monitor keeps billing on its schedule until you pause or cancel it, even after you set the policy to `deny`. Under `request`, each new schedule for a monitor asks on its own, even after a session approval.
 
 | Tool | Does |
 | ---- | ---- |

@@ -104,5 +104,9 @@ def wait_until(
         if _is_interrupted():
             break
         time.sleep(interval_s)
-        current = read(remaining())
+        try:
+            current = read(remaining())
+        except rest_client.TinyFishRestError:
+            # A late read that times out still leaves a usable status to report.
+            break
     return current
