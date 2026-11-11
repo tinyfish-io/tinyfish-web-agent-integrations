@@ -1,6 +1,6 @@
 name: tinyfish
-version: 0.2.5
-description: "TinyFish: the web, built into Hermes. Free Search and Fetch power Hermes's own web_search and web_extract, and when a site needs clicks, forms or a login, a remote browser and the tinyfish_agent web agent handle it, signed in through saved profiles when needed."
+version: 0.3.0
+description: "TinyFish: the web, built into Hermes. Free Search and Fetch power Hermes's own web_search and web_extract; a remote browser and the tinyfish_agent web agent handle clicks, forms and logins, signed in through saved profiles; and Monitors, Deep Research and Datasets watch pages, write cited reports and build tables from the web."
 author: TinyFish
 kind: backend
 # 0.19 added the pre_tool_call approve directive; older Hermes would skip credit approval.
@@ -18,6 +18,26 @@ provides_tools:
   - tinyfish_profile_sign_in
   - tinyfish_update_profile
   - tinyfish_delete_profile
+  - tinyfish_create_monitor
+  - tinyfish_list_monitors
+  - tinyfish_get_monitor
+  - tinyfish_update_monitor
+  - tinyfish_pause_monitor
+  - tinyfish_resume_monitor
+  - tinyfish_run_monitor
+  - tinyfish_cancel_monitor
+  - tinyfish_start_deep_research
+  - tinyfish_get_deep_research
+  - tinyfish_list_deep_research
+  - tinyfish_cancel_deep_research
+  - tinyfish_create_dataset
+  - tinyfish_plan_dataset
+  - tinyfish_get_dataset
+  - tinyfish_get_dataset_rows
+  - tinyfish_list_datasets
+  - tinyfish_populate_dataset
+  - tinyfish_cancel_dataset_run
+  - tinyfish_delete_dataset
 provides_hooks:
   - pre_tool_call
   - pre_llm_call

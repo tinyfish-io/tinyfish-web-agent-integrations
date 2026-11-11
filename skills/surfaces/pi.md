@@ -211,3 +211,5 @@ API key" regardless of its wording.
 Whenever auth is the problem, give the user both fixes: `export TINYFISH_API_KEY=sk-tinyfish-...`
 then restart pi, or run `npx -y @tiny-fish/cli@latest connect pi --api-key <key>`. Keys come from
 https://agent.tinyfish.ai/api-keys. On a wallet-balance or rate-limit error, say so plainly.
+
+<!-- slot: host-tools -->

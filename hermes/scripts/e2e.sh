@@ -8,7 +8,11 @@ PLUGIN_DIR=$(cd "$(dirname "$0")/.." && pwd)
 REPO_ROOT=$(git -C "$PLUGIN_DIR" rev-parse --show-toplevel)
 HERMES_HOME=$(mktemp -d)
 # Git Bash: native Windows Python needs C:/ paths, and file:// URLs need a leading slash before the drive.
-if command -v cygpath >/dev/null; then HERMES_HOME=$(cygpath -m "$HERMES_HOME"); fi
+CHECKS="$PLUGIN_DIR/scripts/e2e_checks.py"
+if command -v cygpath >/dev/null; then
+  HERMES_HOME=$(cygpath -m "$HERMES_HOME")
+  CHECKS=$(cygpath -m "$CHECKS")
+fi
 [[ $REPO_ROOT == /* ]] || REPO_ROOT=/$REPO_ROOT
 export HERMES_HOME
 # CI setups would otherwise count as real plugin installs.
@@ -52,18 +56,7 @@ step "setup + live doctor"
 "$HERMES" tinyfish doctor --live
 
 step "search + extract through Hermes' own web tools"
-"$HERMES_PYTHON" - <<'PY'
-import asyncio
-import json
+"$HERMES_PYTHON" "$CHECKS" web
 
-from hermes_cli.plugins import discover_plugins
-from tools.web_tools import web_extract_tool, web_search_tool
-
-discover_plugins()
-search = json.loads(web_search_tool("TinyFish web agent", limit=2))
-assert search["success"] and search["data"]["web"], search
-extract = json.loads(asyncio.run(web_extract_tool(["https://example.com"], "markdown")))
-page = extract["results"][0]
-assert not page.get("error") and "Example Domain" in page["title"], page
-print("search + extract OK")
-PY
+step "monitor, research and dataset tools + bundled skills"
+"$HERMES_PYTHON" "$CHECKS" products

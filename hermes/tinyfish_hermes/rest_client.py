@@ -33,9 +33,22 @@ _BROWSER_CLOSE_RETRY_BASE_SECONDS = 0.25
 class TinyFishRestError(RuntimeError):
     """Raised for TinyFish REST transport or HTTP failures."""
 
-    def __init__(self, message: str, status: int | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        status: int | None = None,
+        *,
+        code: str | None = None,
+        details: dict[str, Any] | None = None,
+        retry_after: str | None = None,
+        service: str | None = None,
+    ) -> None:
         super().__init__(message)
         self.status = status
+        self.code = code
+        self.details = details
+        self.retry_after = retry_after
+        self.service = service
 
 
 class TinyFishWalletNotFound(TinyFishRestError):
@@ -58,28 +71,44 @@ def _json_headers(api_key: str) -> dict[str, str]:
     return headers
 
 
-def _server_message(response: httpx.Response) -> str:
+def _server_error(response: httpx.Response) -> dict[str, Any]:
     try:
         error = response.json().get("error")
     except Exception:
-        return ""
-    message = error.get("message") if isinstance(error, dict) else None
+        return {}
+    return error if isinstance(error, dict) else {}
+
+
+def _server_message(response: httpx.Response) -> str:
+    message = _server_error(response).get("message")
     return message[:500] if isinstance(message, str) else ""
 
 
 def _raise_http_error(service: str, exc: httpx.HTTPStatusError) -> NoReturn:
     status = exc.response.status_code
-    if status == 402:
-        raise TinyFishRestError(
-            f"{service} returned HTTP 402. "
-            "TinyFish credits or billing may be required.",
-            status,
-        ) from exc
+    error = _server_error(exc.response)
+    code, details = error.get("code"), error.get("details")
+    # Datasets names an already-created dataset in details on any refusal status.
+    extra: dict[str, Any] = {
+        "code": code if isinstance(code, str) else None,
+        "details": details if isinstance(details, dict) else None,
+        "retry_after": exc.response.headers.get("Retry-After"),
+        "service": service,
+    }
     # 4xx text is TinyFish's own validation message and tells the agent what to fix.
     detail = _server_message(exc.response) if 400 <= status < 500 else ""
+    if status == 402:
+        # The server text carries the fix, e.g. the wallet link or allowance reset.
+        raise TinyFishRestError(
+            f"{service} returned HTTP 402. "
+            "TinyFish credits or billing may be required."
+            + (f" {detail}" if detail else ""),
+            status,
+            **extra,
+        ) from exc
     suffix = f": {detail}" if detail else ""
     raise TinyFishRestError(
-        f"{service} returned HTTP {status}{suffix}", status
+        f"{service} returned HTTP {status}{suffix}", status, **extra
     ) from exc
 
 
@@ -302,12 +331,13 @@ def wallet(*, api_key: str, timeout: float = 30.0) -> dict[str, Any]:
         raise TinyFishRestError("TinyFish Wallet returned invalid JSON") from exc
 
 
-def _agent_request(
+def agent_request(
     method: str,
     path: str,
     *,
     api_key: str,
     json_body: dict[str, Any] | None = None,
+    params: dict[str, Any] | None = None,
     timeout: float = 30.0,
     service: str = "TinyFish Agent",
 ) -> dict[str, Any]:
@@ -316,6 +346,7 @@ def _agent_request(
             method,
             f"{AGENT_URL}{path}",
             json=json_body,
+            params=params,
             headers=_json_headers(api_key),
             timeout=timeout,
         )
@@ -323,6 +354,15 @@ def _agent_request(
         data = response.json()
     except httpx.HTTPStatusError as exc:
         _raise_http_error(service, exc)
+    except httpx.ReadTimeout as exc:
+        # An unanswered write may still have landed; a blind retry repeats it.
+        if method != "GET":
+            raise TinyFishRestError(
+                f"{service} did not answer in time, so the request may have gone "
+                "through. Check the item's current state before retrying, and ask "
+                "the user if you can't tell."
+            ) from exc
+        raise TinyFishRestError(f"Could not reach {service}: {exc}") from exc
     except httpx.RequestError as exc:
         raise TinyFishRestError(f"Could not reach {service}: {exc}") from exc
     except ValueError as exc:
@@ -357,7 +397,7 @@ def start_run(
         body["use_profile"] = True
     if profile_id:
         body["profile_id"] = profile_id
-    return _agent_request(
+    return agent_request(
         "POST", "/v1/automation/run-async", api_key=api_key, json_body=body
     )
 
@@ -393,11 +433,11 @@ def report_setup(outcome: str, *, key_source: str, api_key: str = "") -> None:
 
 
 def get_run(run_id: str, *, api_key: str) -> dict[str, Any]:
-    return _agent_request("GET", f"/v1/runs/{run_id}", api_key=api_key)
+    return agent_request("GET", f"/v1/runs/{run_id}", api_key=api_key)
 
 
 def cancel_run(run_id: str, *, api_key: str) -> dict[str, Any]:
-    return _agent_request("POST", f"/v1/runs/{run_id}/cancel", api_key=api_key)
+    return agent_request("POST", f"/v1/runs/{run_id}/cancel", api_key=api_key)
 
 
 def _profile_request(
@@ -408,7 +448,7 @@ def _profile_request(
     json_body: dict[str, Any] | None = None,
     timeout: float = 30.0,
 ) -> dict[str, Any]:
-    return _agent_request(
+    return agent_request(
         method,
         f"/v1/profiles{path}",
         api_key=api_key,
@@ -419,7 +459,7 @@ def _profile_request(
 
 
 def _profile_path(profile_id: str) -> str:
-    return "/" + quote(profile_id, safe="")
+    return "/" + quote_id(profile_id)
 
 
 def list_profiles(*, api_key: str) -> dict[str, Any]:
@@ -448,3 +488,7 @@ def update_profile(
 
 def delete_profile(profile_id: str, *, api_key: str) -> dict[str, Any]:
     return _profile_request("DELETE", _profile_path(profile_id), api_key=api_key)
+
+
+def quote_id(value: str) -> str:
+    return quote(value, safe="")

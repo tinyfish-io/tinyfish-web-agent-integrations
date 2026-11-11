@@ -232,7 +232,7 @@ def test_start_run_body_carries_profile_fields(monkeypatch: pytest.MonkeyPatch) 
     bodies: list[dict[str, Any]] = []
     monkeypatch.setattr(
         rest_client,
-        "_agent_request",
+        "agent_request",
         lambda *a, json_body=None, **k: bodies.append(json_body) or {},
     )
 

@@ -10,6 +10,8 @@ fills one row per entity. **Filling takes minutes and costs $0.10 per complete r
 the TinyFish wallet; incomplete, skipped and failed rows are free. An account can have up to 3 runs
 going at once.
 
+{{host-tools}}
+
 ## Is a dataset the right tool?
 
 | The user wants to... | Use |

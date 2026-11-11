@@ -41,6 +41,19 @@ def _resolve_version() -> str:
 
 __version__ = _resolve_version()
 
+_SKILLS_DIR = Path(__file__).resolve().parent / "skills"
+
+
+def _register_skills(ctx: Any) -> None:
+    from agent.skill_utils import parse_frontmatter
+
+    for path in sorted(_SKILLS_DIR.glob("tinyfish-*/SKILL.md")):
+        frontmatter, _ = parse_frontmatter(path.read_text(encoding="utf-8"))
+        # No frontmatter= kwarg: hosts older than it raise TypeError.
+        ctx.register_skill(
+            path.parent.name, path, description=str(frontmatter.get("description", ""))
+        )
+
 
 def register(ctx: Any) -> None:
     """Register TinyFish providers, lifecycle hooks, and CLI commands with Hermes."""
@@ -48,8 +61,11 @@ def register(ctx: Any) -> None:
     from .agent_tool import TINYFISH_AGENT_SCHEMA, tinyfish_agent
     from .browser_provider import TinyFishBrowserProvider, shutdown_cleanup
     from .credit_policy import pre_tool_call_policy
+    from .dataset_tools import DATASET_TOOLS
+    from .monitor_tools import MONITOR_TOOLS
     from .profile_tools import PROFILE_TOOLS
     from .provider import TinyFishWebSearchProvider, _api_key
+    from .research_tools import RESEARCH_TOOLS
     from .routing_context import routing_context_hook
     from .setup_cli import (
         dispatch_tinyfish_cli,
@@ -66,11 +82,14 @@ def register(ctx: Any) -> None:
         ctx.register_hook("pre_tool_call", pre_tool_call_policy)
         ctx.register_hook("pre_llm_call", routing_context_hook)
         ctx.register_hook("on_session_finalize", shutdown_cleanup)
-    # Agent credits and profile delete approval both rely on the pre_tool_call gate.
+    # Billed tools and delete approvals all rely on the pre_tool_call gate.
     if hasattr(ctx, "register_hook") and hasattr(ctx, "register_tool"):
         for schema, handler in (
             (TINYFISH_AGENT_SCHEMA, tinyfish_agent),
             *PROFILE_TOOLS,
+            *MONITOR_TOOLS,
+            *RESEARCH_TOOLS,
+            *DATASET_TOOLS,
         ):
             ctx.register_tool(
                 name=schema["name"],
@@ -80,6 +99,9 @@ def register(ctx: Any) -> None:
                 check_fn=lambda: bool(_api_key()),
                 emoji="🐟",
             )
+
+    if hasattr(ctx, "register_skill"):
+        _register_skills(ctx)
 
     if hasattr(ctx, "register_cli_command"):
 
