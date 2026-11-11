@@ -192,12 +192,16 @@ export function searchResultForStorage(result: unknown): Record<string, unknown>
     ["site_name", 200],
     ["title", 500],
     ["snippet", 2_000],
-    ["url", MAX_URL_LENGTH],
     ["date", 100],
   ] as const) {
     if (typeof source[key] === "string") {
       core[key] = truncateToBytes(source[key], maxBytes);
     }
+  }
+  // A URL is kept whole or not at all: a shortened one would be fetched as a
+  // different address. One over the limit is left out, so the job skips it.
+  if (typeof source.url === "string" && source.url.length <= MAX_URL_LENGTH) {
+    core.url = source.url;
   }
   return core;
 }

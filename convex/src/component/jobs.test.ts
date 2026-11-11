@@ -751,6 +751,14 @@ describe("shaping pages", () => {
       url: "https://a.com",
     });
     expect(searchResultForStorage("not an object")).toEqual({});
+
+    // An over-long URL is dropped, never shortened into a different address.
+    const longUrl = `https://a.com/${"p".repeat(9_000)}`;
+    expect(searchResultForStorage({ ...small, url: longUrl })).toEqual({
+      position: 1,
+      title: "A",
+      snippet: "s",
+    });
   });
 
   test("keeps retry hints on a failed page", () => {
