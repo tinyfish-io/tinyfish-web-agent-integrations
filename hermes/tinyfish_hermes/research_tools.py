@@ -283,7 +283,7 @@ def _get(args: dict[str, Any], api_key: str) -> dict[str, Any]:
     path = _run_path(args)
     # ponytail: full-run polls log ~9 fetch events/call; use a status endpoint later.
     run = wait_until(
-        lambda: _request("GET", path, api_key=api_key),
+        lambda timeout: _request("GET", path, api_key=api_key, timeout=timeout),
         lambda r: r.get("status") not in ACTIVE_STATUSES,
     )
     return research_status(run)

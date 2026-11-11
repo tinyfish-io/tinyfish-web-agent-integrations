@@ -86,7 +86,7 @@ def with_key(
 
 
 def wait_until(
-    read: Callable[[], T],
+    read: Callable[[float], T],
     done: Callable[[T], bool],
     budget_s: float = 25.0,
     interval_s: float = 3.0,
@@ -94,10 +94,15 @@ def wait_until(
     """Re-read until ``done`` or the budget runs out; returns the last read."""
 
     deadline = time.monotonic() + budget_s
-    current = read()
+
+    def remaining() -> float:
+        # Each read's timeout is what's left, so a slow read can't overrun the budget.
+        return max(1.0, deadline - time.monotonic())
+
+    current = read(remaining())
     while not done(current) and time.monotonic() + interval_s < deadline:
         if _is_interrupted():
             break
         time.sleep(interval_s)
-        current = read()
+        current = read(remaining())
     return current

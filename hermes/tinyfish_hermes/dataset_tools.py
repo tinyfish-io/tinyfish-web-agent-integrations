@@ -387,8 +387,8 @@ def _outcome(dataset: dict[str, Any], api_key: str) -> dict[str, Any]:
 def _get(args: dict[str, Any], api_key: str) -> dict[str, Any]:
     path = _path(required(args, "dataset_id"))
 
-    def read() -> dict[str, Any]:
-        return _request("GET", path, api_key=api_key)
+    def read(timeout: float = 30.0) -> dict[str, Any]:
+        return _request("GET", path, api_key=api_key, timeout=timeout)
 
     if args.get("wait", True) is False:
         dataset = read()

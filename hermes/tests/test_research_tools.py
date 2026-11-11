@@ -120,6 +120,8 @@ def test_get_stops_at_budget_and_says_poll_again(http: Any, clock: list[float]) 
 
     assert clock[0] < 25.0
     assert len(http.sent) == 9
+    timeouts = [sent["timeout"] for sent in http.sent]
+    assert timeouts[0] == 25.0 and timeouts == sorted(timeouts, reverse=True)
     assert out["output_ready"] is False
     assert out["progress"] == "Reading sources (2 so far)"
     assert "tinyfish_get_deep_research again" in out["next_action"]
