@@ -1,0 +1,72 @@
+name: Convex CI
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/convex-ci.yml"
+      - "convex/**"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/convex-ci.yml"
+      - "convex/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: convex
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: convex/package-lock.json
+
+      - run: npm ci
+
+      # Generated bindings are committed, so no Convex deployment is needed here.
+      - name: Build, test, and typecheck
+        run: npm run verify
+
+      # A dropped `files` or `exports` entry still publishes and installs; it
+      # only breaks in the consuming app. Catch it on the PR that causes it.
+      - name: Tarball carries every entry point
+        run: |
+          npm pack --dry-run --json > /tmp/pack.json
+          node -e "
+            const [pack] = require('/tmp/pack.json');
+            const paths = new Set(pack.files.map((f) => f.path));
+            const required = [
+              'README.md',
+              'LICENSE',
+              'dist/client/index.js',
+              'dist/client/index.d.ts',
+              'dist/component/convex.config.js',
+              'dist/component/convex.config.d.ts',
+              'dist/component/_generated/component.d.ts',
+              'src/test.ts',
+              'src/component/schema.ts',
+            ];
+            const missing = required.filter((p) => !paths.has(p));
+            if (missing.length) {
+              console.error('Missing from tarball:\n  ' + missing.join('\n  '));
+              process.exit(1);
+            }
+            console.log('Tarball OK: ' + pack.files.length + ' files');
+          "

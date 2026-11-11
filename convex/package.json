@@ -1,0 +1,94 @@
+{
+  "name": "@tiny-fish/convex",
+  "version": "0.1.0",
+  "description": "TinyFish component for Convex: search the web, read pages as clean Markdown, and run durable fetch jobs with reactive status.",
+  "keywords": [
+    "convex",
+    "component",
+    "convex-component",
+    "tinyfish",
+    "web-search",
+    "web-fetch",
+    "ai-agent",
+    "scraping",
+    "rag",
+    "agents"
+  ],
+  "homepage": "https://docs.tinyfish.ai",
+  "bugs": {
+    "url": "https://github.com/tinyfish-io/tinyfish-web-agent-integrations/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tinyfish-io/tinyfish-web-agent-integrations.git",
+    "directory": "convex"
+  },
+  "author": {
+    "name": "TinyFish",
+    "email": "support@tinyfish.io",
+    "url": "https://tinyfish.ai"
+  },
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
+    },
+    "./test": "./src/test.ts",
+    "./_generated/component.js": {
+      "types": "./dist/component/_generated/component.d.ts"
+    },
+    "./_generated/component": {
+      "types": "./dist/component/_generated/component.d.ts"
+    },
+    "./convex.config.js": {
+      "types": "./dist/component/convex.config.d.ts",
+      "default": "./dist/component/convex.config.js"
+    },
+    "./convex.config": {
+      "types": "./dist/component/convex.config.d.ts",
+      "default": "./dist/component/convex.config.js"
+    }
+  },
+  "types": "./dist/client/index.d.ts",
+  "module": "./dist/client/index.js",
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dev": "convex dev",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "build": "tsc --project ./tsconfig.build.json",
+    "build:codegen": "convex codegen --component-dir ./src/component && npm run build",
+    "build:clean": "npm run clean && npm run build:codegen",
+    "typecheck": "tsc --noEmit && tsc -p example && tsc -p example/convex",
+    "test": "vitest run --typecheck",
+    "test:watch": "vitest --typecheck --clearScreen false",
+    "verify": "npm run build && npm run test && npm run typecheck",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "convex-helpers": "^0.1.134"
+  },
+  "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
+    "@types/node": "^24.12.2",
+    "convex": "1.49.0",
+    "convex-test": "0.0.68",
+    "typescript": "6.0.3",
+    "vitest": "4.1.4"
+  },
+  "peerDependencies": {
+    "convex": "^1.46.0"
+  }
+}

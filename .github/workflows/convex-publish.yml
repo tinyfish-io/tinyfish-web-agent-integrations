@@ -1,0 +1,97 @@
+name: Convex CD - Publish to npm
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/convex-publish.yml"
+      - "convex/**"
+  workflow_dispatch:
+
+# Publishes when convex/package.json names a version npm does not have yet; a no-op
+# otherwise. Auth is npm Trusted Publisher (OIDC), as in pi-publish.yml. The one-time
+# first publish of a new package is manual: see .github/MAINTAINERS.md.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify-package:
+    name: Verify package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+      should-publish: ${{ steps.check.outputs.should-publish }}
+    defaults:
+      run:
+        working-directory: convex
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - run: npm ci
+
+      - name: Build, test, and typecheck
+        run: npm run verify
+
+      - name: Check npm version availability
+        id: check
+        run: |
+          set -euo pipefail
+          PACKAGE=$(jq -re '.name' package.json)
+          VERSION=$(jq -re '.version' package.json)
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          STATUS=$(curl -sS -o /dev/null -w '%{http_code}' \
+            "https://registry.npmjs.org/${PACKAGE}/${VERSION}")
+          case "$STATUS" in
+            404)
+              echo "should-publish=true" >> "$GITHUB_OUTPUT"
+              echo "${PACKAGE} ${VERSION} is available; will publish."
+              ;;
+            200)
+              echo "should-publish=false" >> "$GITHUB_OUTPUT"
+              echo "${PACKAGE} ${VERSION} already published; nothing to do."
+              ;;
+            *)
+              # Unknown is not "already published" — never silently skip a release on it.
+              echo "::error::npm returned HTTP ${STATUS} while checking ${PACKAGE} ${VERSION}"
+              exit 1
+              ;;
+          esac
+
+  publish:
+    name: Publish to npm (@latest)
+    needs: verify-package
+    if: needs.verify-package.outputs.should-publish == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: convex
+
+    permissions:
+      id-token: write # npm Trusted Publisher (OIDC)
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # npm >= 11.5.1 is required for trusted publishing; Node 24 ships it.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - run: npm ci
+
+      # `prepublishOnly` rebuilds dist/ from the committed sources.
+      - name: Publish
+        run: |
+          echo "Publishing @tiny-fish/convex@${{ needs.verify-package.outputs.version }} as @latest (public)..."
+          npm publish --access public --tag latest
+          echo "✓ Published @tiny-fish/convex@${{ needs.verify-package.outputs.version }}"

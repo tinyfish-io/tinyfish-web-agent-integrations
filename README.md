@@ -27,6 +27,12 @@ Choose your platform below, or follow the [API quick start](https://docs.tinyfis
 | [LangChain](./langchain) | `langchain-tinyfish`: Search, Fetch, Web Agent, and Browser tools, with async support and progress streaming inside LangGraph. |
 | [Google ADK](./google-adk) | `tinyfish-adk`: seven function tools for search, extraction, browser sessions, automation, and run management. |
 
+### Backend platforms
+
+| Integration | What it adds |
+|---|---|
+| [Convex](./convex) | `@tiny-fish/convex`: a Convex component for Search and Fetch, plus durable fetch jobs with reactive status and pages stored in your Convex database. |
+
 ### Workflow platforms
 
 | Integration | What it adds |
