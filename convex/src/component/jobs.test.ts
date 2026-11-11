@@ -457,6 +457,45 @@ describe("storing results", () => {
     ).toMatchObject({ status: "failed", error: "timeout" });
   });
 
+  test("large search results never change which URLs get fetched", async () => {
+    const t = initConvexTest();
+    const bigSnippet = "x".repeat(120_000);
+    const overLimit = `https://a.com/${"p".repeat(9_000)}`;
+    const multibyte = `https://a.com/${"日本語".repeat(300)}`;
+    const calls = mockFetch([
+      {
+        body: {
+          results: [
+            { position: 1, title: "Too long", snippet: bigSnippet, url: overLimit },
+            { position: 2, title: "Multibyte", snippet: bigSnippet, url: multibyte },
+          ],
+        },
+      },
+      { body: { results: [fetched(multibyte)], errors: [] } },
+    ]);
+
+    const jobId = await t.mutation(api.jobs.startSearchAndFetch, {
+      query: "acme",
+    });
+    await finish(t);
+
+    // The over-limit URL is skipped, not shortened; the multibyte one is
+    // within the character limit and is fetched exactly as returned.
+    const job = await t.query(api.jobs.get, { jobId });
+    expect(job?.urls).toEqual([multibyte]);
+    expect(calls[1].body.urls).toEqual([multibyte]);
+    expect(job).toMatchObject({ status: "completed", total: 1, completed: 1 });
+    expect(job?.searchResults).toEqual([
+      { position: 1, title: "Too long", snippet: "x".repeat(2_000) },
+      {
+        position: 2,
+        title: "Multibyte",
+        snippet: "x".repeat(2_000),
+        url: multibyte,
+      },
+    ]);
+  });
+
   test("a search result Convex rejects keeps its plain fields", async () => {
     const t = initConvexTest();
     mockFetch([
