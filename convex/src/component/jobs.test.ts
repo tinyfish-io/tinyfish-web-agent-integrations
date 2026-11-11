@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api.js";
 import { fetched, initConvexTest, mockFetch } from "./setup.test.js";
-import { toFailedPage, toPage, truncateToBytes } from "./jobs.js";
+import { storable, toFailedPage, toPage, truncateToBytes } from "./jobs.js";
 
 const firstPage = { numItems: 100, cursor: null };
 
@@ -392,6 +392,96 @@ describe("recovery", () => {
   });
 });
 
+describe("storing results", () => {
+  test("a page with fields Convex rejects is stored, not re-fetched", async () => {
+    const t = initConvexTest();
+    const calls = mockFetch([
+      {
+        body: {
+          results: [
+            { ...fetched("https://a.com"), schema_org: { $ref: "x" } },
+            fetched("https://b.com"),
+          ],
+          errors: [],
+        },
+      },
+    ]);
+
+    const jobId = await t.mutation(api.jobs.startFetch, {
+      urls: ["https://a.com", "https://b.com"],
+    });
+    await finish(t);
+
+    expect(calls).toHaveLength(1);
+    expect(await t.query(api.jobs.get, { jobId })).toMatchObject({
+      status: "completed",
+      completed: 2,
+      failed: 0,
+    });
+  });
+
+  test("matches a result whose URL came back in normalized form", async () => {
+    const t = initConvexTest();
+    mockFetch([
+      {
+        body: {
+          // Requested without the trailing slash and with an uppercase host.
+          results: [fetched("https://a.com/")],
+          errors: [{ url: "https://b.com/", error: "timeout" }],
+        },
+      },
+    ]);
+
+    const jobId = await t.mutation(api.jobs.startFetch, {
+      urls: ["https://A.com", "https://b.com"],
+    });
+    await finish(t);
+
+    expect(await t.query(api.jobs.get, { jobId })).toMatchObject({
+      completed: 1,
+      failed: 1,
+    });
+    // Pages are stored under the URL the app asked for.
+    expect(
+      await t.query(api.jobs.getPage, { jobId, url: "https://A.com" }),
+    ).toMatchObject({ status: "completed", final_url: "https://a.com/" });
+    expect(
+      await t.query(api.jobs.getPage, { jobId, url: "https://b.com" }),
+    ).toMatchObject({ status: "failed", error: "timeout" });
+  });
+
+  test("a search result Convex rejects keeps its plain fields", async () => {
+    const t = initConvexTest();
+    mockFetch([
+      {
+        body: {
+          results: [
+            {
+              position: 1,
+              title: "A",
+              snippet: "s",
+              url: "https://a.com",
+              $meta: { x: 1 },
+            },
+          ],
+        },
+      },
+      { body: { results: [fetched("https://a.com")], errors: [] } },
+    ]);
+
+    const jobId = await t.mutation(api.jobs.startSearchAndFetch, {
+      query: "acme",
+    });
+    await finish(t);
+
+    const job = await t.query(api.jobs.get, { jobId });
+    expect(job).toMatchObject({ status: "completed", completed: 1 });
+    expect(job?.searchResults).toEqual([
+      { position: 1, title: "A", snippet: "s", url: "https://a.com" },
+    ]);
+  });
+});
+
 describe("startSearchAndFetch", () => {
   test("searches, fetches the top results, and keeps the sources", async () => {
     const t = initConvexTest();
@@ -594,6 +684,30 @@ describe("shaping pages", () => {
     );
     expect(page.extra).toEqual({ etag: '"abc"' });
     expect(page.links).toEqual(["https://a.com/x"]);
+  });
+
+  test("leaves out free-form fields Convex would reject", () => {
+    const bad = { $ref: "#/definitions/x" };
+    expect(storable(bad)).toBe(false);
+
+    const page = toPage(
+      {
+        ...fetched("https://a.com"),
+        text: { children: [bad] },
+        format: "json",
+        highlights: [{ text: "ok", rank: 1, meta: bad }],
+        schema_org: bad,
+      },
+      { storeContent: true },
+    );
+
+    expect(page.text).toBeUndefined();
+    expect(page.truncated).toBe(true);
+    expect(page.highlights).toBeUndefined();
+    expect(page.extra).toBeUndefined();
+    expect(storable(page)).toBe(true);
+    // The rest of the page survives.
+    expect(page).toMatchObject({ status: "completed", title: "Title of https://a.com" });
   });
 
   test("keeps retry hints on a failed page", () => {

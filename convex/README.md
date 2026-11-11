@@ -268,6 +268,14 @@ metadata, pass `storeContent: false`.
 
 When you list pages with content, keep `numItems` small.
 
+### Retention
+
+Jobs and their pages are kept until you call `deleteJob`; nothing expires by
+itself. A page can be close to 1MB, so plan cleanup: delete a job once you
+have copied what you need from it, for example at the end of `onComplete`, or
+from a [cron](https://docs.convex.dev/scheduling/cron-jobs) that removes jobs
+older than you care about.
+
 ## API
 
 ```ts

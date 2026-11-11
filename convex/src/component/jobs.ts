@@ -1,4 +1,4 @@
-import { ConvexError, v, type Infer } from "convex/values";
+import { ConvexError, convexToJson, v, type Infer } from "convex/values";
 import { paginationOptsValidator, type FunctionHandle } from "convex/server";
 import { paginator } from "convex-helpers/server/pagination";
 import {
@@ -139,6 +139,38 @@ function byteLength(value: unknown): number {
   ).length;
 }
 
+/**
+ * Whether Convex will accept a value TinyFish sent. Free-form values (a JSON
+ * document tree, highlights, unmodelled fields) can carry object keys Convex
+ * rejects, such as ones starting with `$`. Checking here means a page is
+ * stored without the offending field instead of failing the whole batch.
+ */
+export function storable(value: unknown): boolean {
+  try {
+    convexToJson(value as any);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** The plainly named scalar fields of an object, which Convex always accepts. */
+function plainFields(value: unknown): Record<string, string | number | boolean> {
+  const plain: Record<string, string | number | boolean> = {};
+  if (!value || typeof value !== "object") return plain;
+  for (const [key, field] of Object.entries(value)) {
+    if (
+      /^[A-Za-z][A-Za-z0-9_]*$/.test(key) &&
+      (typeof field === "string" ||
+        typeof field === "boolean" ||
+        (typeof field === "number" && Number.isFinite(field)))
+    ) {
+      plain[key] = field;
+    }
+  }
+  return plain;
+}
+
 /** Cut a string to at most `maxBytes` of UTF-8 without splitting a character. */
 export function truncateToBytes(text: string, maxBytes: number): string {
   // A UTF-16 code unit is at most 3 bytes of UTF-8.
@@ -223,10 +255,14 @@ export function toPage(
       const text = truncateToBytes(capped.text, MAX_TEXT_BYTES);
       if (text.length < capped.text.length) page.truncated = true;
       page.text = text;
-    } else if (byteLength(capped.text) <= MAX_TEXT_BYTES) {
+    } else if (
+      storable(capped.text) &&
+      byteLength(capped.text) <= MAX_TEXT_BYTES
+    ) {
       page.text = capped.text;
     } else {
-      // A document tree can't be cut cleanly, so it is dropped whole.
+      // A document tree can't be cut cleanly, so one that is too large or
+      // that Convex can't hold is dropped whole.
       page.truncated = true;
     }
   }
@@ -235,7 +271,10 @@ export function toPage(
   set("image_links", clampList(result.image_links, page));
   set("iframe_links", clampList(result.iframe_links, page));
   if (Array.isArray(result.highlights)) {
-    if (byteLength(result.highlights) <= MAX_LIST_BYTES) {
+    if (
+      storable(result.highlights) &&
+      byteLength(result.highlights) <= MAX_LIST_BYTES
+    ) {
       page.highlights = result.highlights;
     } else {
       page.truncated = true;
@@ -246,7 +285,11 @@ export function toPage(
   for (const [key, value] of Object.entries(result)) {
     if (!KNOWN_RESULT_FIELDS.has(key) && value !== null) extra[key] = value;
   }
-  if (Object.keys(extra).length > 0 && byteLength(extra) <= MAX_EXTRA_BYTES) {
+  if (
+    Object.keys(extra).length > 0 &&
+    storable(extra) &&
+    byteLength(extra) <= MAX_EXTRA_BYTES
+  ) {
     page.extra = extra;
   }
   return page;
@@ -269,7 +312,11 @@ export function toFailedPage(
   const snippet = str(meta.snippet);
   if (snippet !== undefined) page.snippet = snippet;
   const { url: _url, error: _error, status: _status, ...rest } = error;
-  if (Object.keys(rest).length > 0 && byteLength(rest) <= MAX_EXTRA_BYTES) {
+  if (
+    Object.keys(rest).length > 0 &&
+    storable(rest) &&
+    byteLength(rest) <= MAX_EXTRA_BYTES
+  ) {
     page.extra = rest;
   }
   return page;
@@ -640,6 +687,35 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/**
+ * Match Fetch results back to the URLs that were requested. Fetch documents
+ * `results[].url` and `errors[].url` as the URL exactly as requested, so an
+ * exact match is the normal case. The normalized form (default port dropped,
+ * host lowercased, bare origin given its slash) is a fallback, so a page that
+ * was fetched is never recorded as missing over a spelling difference.
+ */
+function byRequestedUrl(
+  entries: unknown,
+): (url: string) => Record<string, any> | undefined {
+  const exact = new Map<string, Record<string, any>>();
+  const normalized = new Map<string, Record<string, any>>();
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    if (typeof entry?.url !== "string") continue;
+    exact.set(entry.url, entry);
+    const key = normalizeUrl(entry.url);
+    if (!normalized.has(key)) normalized.set(key, entry);
+  }
+  return (url) => exact.get(url) ?? normalized.get(normalizeUrl(url));
+}
+
+function normalizeUrl(url: string): string {
+  try {
+    return new URL(url).href;
+  } catch {
+    return url;
+  }
+}
+
 export const run = internalAction({
   args: stepArgs,
   returns: v.null(),
@@ -647,51 +723,49 @@ export const run = internalAction({
     const job = await ctx.runMutation(internal.jobs.begin, args);
     if (!job) return null;
 
+    // 1. Ask TinyFish. A failure here means nothing was returned, so the step
+    //    can be retried.
+    let searchResults: unknown[] | undefined;
+    let pages: PageInput[] | undefined;
     try {
       if (!job.searched) {
         const body = await tinyfishRequest("search", {
           params: searchParams(job.query ?? "", job.searchOptions),
           retries: 1,
         });
-        const results = Array.isArray(body.results) ? body.results : [];
-        await ctx.runMutation(internal.jobs.recordSearch, {
-          ...args,
-          results: results.slice(0, job.maxResults ?? DEFAULT_SEARCH_RESULTS),
+        const results: unknown[] = Array.isArray(body.results)
+          ? body.results
+          : [];
+        searchResults = results
+          .slice(0, job.maxResults ?? DEFAULT_SEARCH_RESULTS)
+          .map((result) => (storable(result) ? result : plainFields(result)));
+      } else {
+        const body = await tinyfishRequest("fetch", {
+          body: fetchBody(job.batch, job.fetchOptions),
+          retries: 1,
         });
-        return null;
-      }
-
-      const body = await tinyfishRequest("fetch", {
-        body: fetchBody(job.batch, job.fetchOptions),
-        retries: 1,
-      });
-      const results = new Map<string, Record<string, any>>();
-      for (const result of Array.isArray(body.results) ? body.results : []) {
-        if (typeof result?.url === "string") results.set(result.url, result);
-      }
-      const errors = new Map<string, Record<string, any>>();
-      for (const error of Array.isArray(body.errors) ? body.errors : []) {
-        if (typeof error?.url === "string") errors.set(error.url, error);
-      }
-      const pages = job.batch.map((url, index) => {
-        const result = results.get(url);
-        if (result) {
-          return toPage(
-            result,
-            {
-              storeContent: job.storeContent,
-              maxCharacters: job.fetchOptions?.maxCharacters,
-            },
+        const resultFor = byRequestedUrl(body.results);
+        const errorFor = byRequestedUrl(body.errors);
+        pages = job.batch.map((url, index) => {
+          const result = resultFor(url);
+          if (result) {
+            return toPage(
+              // Store the page under the URL the app asked for.
+              { ...result, url },
+              {
+                storeContent: job.storeContent,
+                maxCharacters: job.fetchOptions?.maxCharacters,
+              },
+              job.meta[index],
+            );
+          }
+          return toFailedPage(
+            url,
+            errorFor(url) ?? { error: "missing_from_response" },
             job.meta[index],
           );
-        }
-        return toFailedPage(
-          url,
-          errors.get(url) ?? { error: "missing_from_response" },
-          job.meta[index],
-        );
-      });
-      await ctx.runMutation(internal.jobs.recordBatch, { ...args, pages });
+        });
+      }
     } catch (error) {
       const failure = requestFailure(error);
       await ctx.runMutation(internal.jobs.stepFailed, {
@@ -701,6 +775,30 @@ export const run = internalAction({
         fatal: failure
           ? isFatal(failure.status)
           : configError(error) !== null,
+      });
+      return null;
+    }
+
+    // 2. Store what came back. A failure here is not TinyFish's: the request
+    //    succeeded and counted against the allowance, so asking again would
+    //    only bill it twice. Stop the job and say why.
+    try {
+      if (searchResults) {
+        await ctx.runMutation(internal.jobs.recordSearch, {
+          ...args,
+          results: searchResults,
+        });
+      } else if (pages) {
+        await ctx.runMutation(internal.jobs.recordBatch, { ...args, pages });
+      }
+    } catch (error) {
+      await ctx.runMutation(internal.jobs.stepFailed, {
+        ...args,
+        error: `TinyFish responded, but the results could not be stored: ${errorMessage(error)}`.slice(
+          0,
+          1_000,
+        ),
+        fatal: true,
       });
     }
     return null;
