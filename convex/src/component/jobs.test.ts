@@ -2,7 +2,14 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api.js";
 import { fetched, initConvexTest, mockFetch } from "./setup.test.js";
-import { storable, toFailedPage, toPage, truncateToBytes } from "./jobs.js";
+import {
+  matchResponse,
+  searchResultForStorage,
+  storable,
+  toFailedPage,
+  toPage,
+  truncateToBytes,
+} from "./jobs.js";
 
 const firstPage = { numItems: 100, cursor: null };
 
@@ -708,6 +715,42 @@ describe("shaping pages", () => {
     expect(storable(page)).toBe(true);
     // The rest of the page survives.
     expect(page).toMatchObject({ status: "completed", title: "Title of https://a.com" });
+  });
+
+  test("never gives one response entry to two requested URLs", () => {
+    const result = fetched("https://a.com/");
+    const error = { url: "https://A.com", error: "timeout" };
+
+    // Both URLs normalize to the same thing, but each has its own outcome.
+    expect(
+      matchResponse(["https://A.com", "https://a.com/"], {
+        results: [result],
+        errors: [error],
+      }),
+    ).toEqual([{ error }, { result }]);
+
+    // With only one entry to go round, the second URL is left unmatched.
+    expect(
+      matchResponse(["https://A.com", "https://a.com"], { results: [result] }),
+    ).toEqual([{ result }, {}]);
+  });
+
+  test("keeps stored search results small", () => {
+    const small = { position: 1, title: "A", snippet: "s", url: "https://a.com" };
+    expect(searchResultForStorage(small)).toEqual(small);
+
+    const huge = searchResultForStorage({
+      ...small,
+      snippet: "x".repeat(120_000),
+      raw_html: "y".repeat(50_000),
+    });
+    expect(huge).toEqual({
+      position: 1,
+      title: "A",
+      snippet: "x".repeat(2_000),
+      url: "https://a.com",
+    });
+    expect(searchResultForStorage("not an object")).toEqual({});
   });
 
   test("keeps retry hints on a failed page", () => {

@@ -38,6 +38,8 @@ const MAX_URL_LENGTH = 2_000;
 const MAX_TEXT_BYTES = 800_000;
 const MAX_LIST_BYTES = 30_000;
 const MAX_EXTRA_BYTES = 20_000;
+/** Per stored search result; a job keeps at most ten. */
+const MAX_SEARCH_RESULT_BYTES = 8_000;
 
 /**
  * How a step that did not finish is retried. A step is one search or one fetch
@@ -169,6 +171,35 @@ function plainFields(value: unknown): Record<string, string | number | boolean> 
     }
   }
   return plain;
+}
+
+/**
+ * A search result as it is kept on the job. Results are small in practice and
+ * are kept whole. One that Convex can't hold keeps its plain fields, and one
+ * that is unusually large keeps only the fields a citation needs, so ten
+ * results always fit in the job document.
+ */
+export function searchResultForStorage(result: unknown): Record<string, unknown> {
+  const kept: Record<string, unknown> =
+    result && typeof result === "object" && storable(result)
+      ? (result as Record<string, unknown>)
+      : plainFields(result);
+  if (byteLength(kept) <= MAX_SEARCH_RESULT_BYTES) return kept;
+  const source = kept as Record<string, any>;
+  const core: Record<string, unknown> = {};
+  if (typeof source.position === "number") core.position = source.position;
+  for (const [key, maxBytes] of [
+    ["site_name", 200],
+    ["title", 500],
+    ["snippet", 2_000],
+    ["url", MAX_URL_LENGTH],
+    ["date", 100],
+  ] as const) {
+    if (typeof source[key] === "string") {
+      core[key] = truncateToBytes(source[key], maxBytes);
+    }
+  }
+  return core;
 }
 
 /** Cut a string to at most `maxBytes` of UTF-8 without splitting a character. */
@@ -687,25 +718,55 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+type Matched = { result?: Record<string, any>; error?: Record<string, any> };
+
 /**
- * Match Fetch results back to the URLs that were requested. Fetch documents
- * `results[].url` and `errors[].url` as the URL exactly as requested, so an
- * exact match is the normal case. The normalized form (default port dropped,
- * host lowercased, bare origin given its slash) is a fallback, so a page that
- * was fetched is never recorded as missing over a spelling difference.
+ * Match a Fetch response back to the URLs that were requested, one outcome
+ * per URL. Fetch documents `results[].url` and `errors[].url` as the URL
+ * exactly as requested, so exact matches are the normal case and are settled
+ * first. A URL still unmatched may then claim an unclaimed entry whose
+ * normalized form (host lowercased, default port dropped, bare origin given
+ * its slash) is the same, so a fetched page is never recorded as missing over
+ * a spelling difference. Each response entry is given to at most one URL.
  */
-function byRequestedUrl(
-  entries: unknown,
-): (url: string) => Record<string, any> | undefined {
-  const exact = new Map<string, Record<string, any>>();
-  const normalized = new Map<string, Record<string, any>>();
-  for (const entry of Array.isArray(entries) ? entries : []) {
-    if (typeof entry?.url !== "string") continue;
-    exact.set(entry.url, entry);
-    const key = normalizeUrl(entry.url);
-    if (!normalized.has(key)) normalized.set(key, entry);
-  }
-  return (url) => exact.get(url) ?? normalized.get(normalizeUrl(url));
+export function matchResponse(
+  batch: string[],
+  body: { results?: unknown; errors?: unknown },
+): Matched[] {
+  const entriesOf = (value: unknown): Record<string, any>[] =>
+    (Array.isArray(value) ? value : []).filter(
+      (entry) => typeof entry?.url === "string",
+    );
+  const results = entriesOf(body.results);
+  const errors = entriesOf(body.errors);
+  const claimed = new Set<Record<string, any>>();
+  const claim = (
+    entries: Record<string, any>[],
+    matches: (entryUrl: string) => boolean,
+  ) => {
+    const entry = entries.find((e) => !claimed.has(e) && matches(e.url));
+    if (entry) claimed.add(entry);
+    return entry;
+  };
+
+  const matched: Matched[] = batch.map((url) => {
+    const result = claim(results, (entryUrl) => entryUrl === url);
+    if (result) return { result };
+    const error = claim(errors, (entryUrl) => entryUrl === url);
+    return error ? { error } : {};
+  });
+  batch.forEach((url, index) => {
+    if (matched[index].result || matched[index].error) return;
+    const normalized = normalizeUrl(url);
+    const same = (entryUrl: string) => normalizeUrl(entryUrl) === normalized;
+    const result = claim(results, same);
+    if (result) matched[index] = { result };
+    else {
+      const error = claim(errors, same);
+      if (error) matched[index] = { error };
+    }
+  });
+  return matched;
 }
 
 function normalizeUrl(url: string): string {
@@ -738,16 +799,15 @@ export const run = internalAction({
           : [];
         searchResults = results
           .slice(0, job.maxResults ?? DEFAULT_SEARCH_RESULTS)
-          .map((result) => (storable(result) ? result : plainFields(result)));
+          .map(searchResultForStorage);
       } else {
         const body = await tinyfishRequest("fetch", {
           body: fetchBody(job.batch, job.fetchOptions),
           retries: 1,
         });
-        const resultFor = byRequestedUrl(body.results);
-        const errorFor = byRequestedUrl(body.errors);
+        const matched = matchResponse(job.batch, body);
         pages = job.batch.map((url, index) => {
-          const result = resultFor(url);
+          const { result, error } = matched[index];
           if (result) {
             return toPage(
               // Store the page under the URL the app asked for.
@@ -761,7 +821,7 @@ export const run = internalAction({
           }
           return toFailedPage(
             url,
-            errorFor(url) ?? { error: "missing_from_response" },
+            error ?? { error: "missing_from_response" },
             job.meta[index],
           );
         });
