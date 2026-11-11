@@ -1,4 +1,10 @@
-import { ConvexError, convexToJson, v, type Infer } from "convex/values";
+import {
+  ConvexError,
+  convexToJson,
+  v,
+  type Infer,
+  type ObjectType,
+} from "convex/values";
 import { paginationOptsValidator, type FunctionHandle } from "convex/server";
 import { paginator } from "convex-helpers/server/pagination";
 import {
@@ -10,16 +16,18 @@ import {
 } from "./_generated/server.js";
 import { internal } from "./_generated/api.js";
 import type { Doc, Id } from "./_generated/dataModel.js";
-import schema, { jobKind, jobStatus, pageStatus } from "./schema.js";
-import { requestFailure, tinyfishRequest } from "./api.js";
+import schema, { jobStatus, pageStatus } from "./schema.js";
+import { isRetryableStatus, requestFailure, tinyfishRequest } from "./api.js";
 import {
   capText,
   fetchBody,
   invalid,
   MAX_URLS_PER_REQUEST,
   searchParams,
+  validateMaxCharacters,
 } from "./lib.js";
 import {
+  jobCompleteArgs,
   jobFetchOptionsValidator,
   searchOptionsValidator,
 } from "./validators.js";
@@ -69,64 +77,39 @@ const pageDoc = schema.tables.pages.validator.extend({
 });
 
 /**
- * What the app sees. Bookkeeping the app has no use for (the callback handle
- * and the step counters) stays inside.
+ * What the app sees: the job without the bookkeeping it has no use for (the
+ * callback handle, the step counters, and the options it passed in).
  */
-const publicJob = v.object({
-  _id: v.id("jobs"),
-  _creationTime: v.number(),
-  kind: jobKind,
-  status: jobStatus,
-  query: v.optional(v.string()),
-  searchResults: v.optional(v.array(v.any())),
-  urls: v.array(v.string()),
-  storeContent: v.boolean(),
-  total: v.number(),
-  completed: v.number(),
-  failed: v.number(),
-  truncated: v.number(),
-  error: v.optional(v.string()),
-  context: v.optional(v.any()),
-  finalized: v.boolean(),
-  startedAt: v.number(),
-  updatedAt: v.number(),
-  completedAt: v.optional(v.number()),
-});
+const publicJob = schema.tables.jobs.validator
+  .omit(
+    "onComplete",
+    "step",
+    "attempt",
+    "cursor",
+    "searchPending",
+    "searchOptions",
+    "fetchOptions",
+    "maxResults",
+  )
+  .extend({ _id: v.id("jobs"), _creationTime: v.number() });
 
 function toPublicJob(job: Doc<"jobs">): Infer<typeof publicJob> {
-  return {
-    _id: job._id,
-    _creationTime: job._creationTime,
-    kind: job.kind,
-    status: job.status,
-    query: job.query,
-    searchResults: job.searchResults,
-    urls: job.urls,
-    storeContent: job.storeContent,
-    total: job.total,
-    completed: job.completed,
-    failed: job.failed,
-    truncated: job.truncated,
-    error: job.error,
-    context: job.context,
-    finalized: job.finalized,
-    startedAt: job.startedAt,
-    updatedAt: job.updatedAt,
-    completedAt: job.completedAt,
-  };
+  const {
+    onComplete: _onComplete,
+    step: _step,
+    attempt: _attempt,
+    cursor: _cursor,
+    searchPending: _searchPending,
+    searchOptions: _searchOptions,
+    fetchOptions: _fetchOptions,
+    maxResults: _maxResults,
+    ...visible
+  } = job;
+  return visible;
 }
 
 /** Argument shape of the mutation an app passes as `onComplete`. */
-export type JobCompletePayload = {
-  jobId: string;
-  kind: "fetch" | "search_and_fetch";
-  status: "completed" | "failed" | "cancelled";
-  total: number;
-  completed: number;
-  failed: number;
-  error?: string;
-  context?: any;
-};
+export type JobCompletePayload = ObjectType<typeof jobCompleteArgs>;
 
 // ---------------------------------------------------------------------------
 // Shaping pages for storage
@@ -173,6 +156,11 @@ export function storable(value: unknown, level = 1): boolean {
   } catch {
     return false;
   }
+}
+
+/** Whether a free-form value can be stored and is within its byte budget. */
+function fits(value: unknown, maxBytes: number, level = 1): boolean {
+  return storable(value, level) && byteLength(value) <= maxBytes;
 }
 
 /** The plainly named scalar fields of an object, which Convex always accepts. */
@@ -310,10 +298,7 @@ export function toPage(
       const text = truncateToBytes(capped.text, MAX_TEXT_BYTES);
       if (text.length < capped.text.length) page.truncated = true;
       page.text = text;
-    } else if (
-      storable(capped.text) &&
-      byteLength(capped.text) <= MAX_TEXT_BYTES
-    ) {
+    } else if (fits(capped.text, MAX_TEXT_BYTES)) {
       page.text = capped.text;
     } else {
       // A document tree can't be cut cleanly, so one that is too large or
@@ -326,10 +311,7 @@ export function toPage(
   set("image_links", clampList(result.image_links, page));
   set("iframe_links", clampList(result.iframe_links, page));
   if (Array.isArray(result.highlights)) {
-    if (
-      storable(result.highlights) &&
-      byteLength(result.highlights) <= MAX_LIST_BYTES
-    ) {
+    if (fits(result.highlights, MAX_LIST_BYTES)) {
       page.highlights = result.highlights;
     } else {
       page.truncated = true;
@@ -340,11 +322,7 @@ export function toPage(
   for (const [key, value] of Object.entries(result)) {
     if (!KNOWN_RESULT_FIELDS.has(key) && value !== null) extra[key] = value;
   }
-  if (
-    Object.keys(extra).length > 0 &&
-    storable(extra) &&
-    byteLength(extra) <= MAX_EXTRA_BYTES
-  ) {
+  if (Object.keys(extra).length > 0 && fits(extra, MAX_EXTRA_BYTES)) {
     page.extra = extra;
   }
   return page;
@@ -367,11 +345,7 @@ export function toFailedPage(
   const snippet = str(meta.snippet);
   if (snippet !== undefined) page.snippet = snippet;
   const { url: _url, error: _error, status: _status, ...rest } = error;
-  if (
-    Object.keys(rest).length > 0 &&
-    storable(rest) &&
-    byteLength(rest) <= MAX_EXTRA_BYTES
-  ) {
+  if (Object.keys(rest).length > 0 && fits(rest, MAX_EXTRA_BYTES)) {
     page.extra = rest;
   }
   return page;
@@ -381,21 +355,36 @@ export function toFailedPage(
 // Starting jobs
 // ---------------------------------------------------------------------------
 
+/**
+ * A URL in the one form the component stores and sends: `new URL(url).href`,
+ * which lowercases the host, drops a default port, gives a bare origin its
+ * slash, and percent-encodes the path. Null if it isn't a fetchable http(s)
+ * URL of an acceptable length.
+ *
+ * Normalizing on the way in is what lets a Fetch response be matched to its
+ * request by exact string: `https://A.com` and `https://a.com/` are one URL
+ * from the start, not two that would share a single result.
+ */
+export function normalizeUrl(raw: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw.trim());
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+  return parsed.href.length <= MAX_URL_LENGTH ? parsed.href : null;
+}
+
+/** Normalize and deduplicate the URLs an app supplied, rejecting bad ones. */
 function normalizeUrls(urls: string[]): string[] {
   const seen = new Set<string>();
   for (const raw of urls) {
-    const url = raw.trim();
-    if (url.length > MAX_URL_LENGTH) {
-      invalid(`URLs may be at most ${MAX_URL_LENGTH} characters.`);
-    }
-    let parsed: URL;
-    try {
-      parsed = new URL(url);
-    } catch {
-      invalid(`Not a valid URL: ${url.slice(0, 200)}`);
-    }
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      invalid(`URLs must use http or https: ${url.slice(0, 200)}`);
+    const url = normalizeUrl(raw);
+    if (url === null) {
+      invalid(
+        `Not a fetchable URL (http or https, at most ${MAX_URL_LENGTH} characters): ${raw.slice(0, 200)}`,
+      );
     }
     seen.add(url);
   }
@@ -425,6 +414,37 @@ const jobCallbackArgs = {
   context: v.optional(v.any()),
 };
 
+type NewJob = Pick<Doc<"jobs">, "kind" | "urls" | "searchPending"> &
+  Partial<
+    Pick<
+      Doc<"jobs">,
+      "query" | "searchOptions" | "maxResults" | "fetchOptions" | "context"
+    >
+  > & { storeContent?: boolean; onComplete?: string };
+
+/** Insert a job in its starting state and schedule its first step. */
+async function startJob(ctx: MutationCtx, job: NewJob): Promise<Id<"jobs">> {
+  validateMaxCharacters(job.fetchOptions);
+  const now = Date.now();
+  const jobId = await ctx.db.insert("jobs", {
+    ...job,
+    status: "queued",
+    storeContent: job.storeContent ?? true,
+    cursor: 0,
+    total: job.urls.length,
+    completed: 0,
+    failed: 0,
+    truncated: 0,
+    finalized: false,
+    step: 0,
+    attempt: 0,
+    startedAt: now,
+    updatedAt: now,
+  });
+  await scheduleStep(ctx, jobId, 0);
+  return jobId;
+}
+
 /**
  * Fetch a list of URLs as a durable job and return its id right away.
  * Subscribe to `get` for progress and `listPages` for pages as they land.
@@ -442,29 +462,15 @@ export const startFetch = mutation({
     if (urls.length > MAX_URLS) {
       invalid(`A job fetches at most ${MAX_URLS} URLs (got ${urls.length}).`);
     }
-    const now = Date.now();
-    const jobId = await ctx.db.insert("jobs", {
+    return await startJob(ctx, {
       kind: "fetch",
-      status: "queued",
-      searched: true,
       urls,
-      cursor: 0,
+      searchPending: false,
       fetchOptions: args.options,
-      storeContent: args.storeContent ?? true,
-      total: urls.length,
-      completed: 0,
-      failed: 0,
-      truncated: 0,
+      storeContent: args.storeContent,
       onComplete: args.onComplete,
       context: args.context,
-      finalized: false,
-      step: 0,
-      attempt: 0,
-      startedAt: now,
-      updatedAt: now,
     });
-    await scheduleStep(ctx, jobId, 0);
-    return jobId;
   },
 });
 
@@ -495,32 +501,18 @@ export const startSearchAndFetch = mutation({
         `\`maxResults\` must be an integer from 1 to ${MAX_SEARCH_RESULTS}.`,
       );
     }
-    const now = Date.now();
-    const jobId = await ctx.db.insert("jobs", {
+    return await startJob(ctx, {
       kind: "search_and_fetch",
-      status: "queued",
+      urls: [],
+      searchPending: true,
       query: args.query,
       searchOptions: args.searchOptions,
       maxResults,
-      searched: false,
-      urls: [],
-      cursor: 0,
       fetchOptions: args.fetchOptions,
-      storeContent: args.storeContent ?? true,
-      total: 0,
-      completed: 0,
-      failed: 0,
-      truncated: 0,
+      storeContent: args.storeContent,
       onComplete: args.onComplete,
       context: args.context,
-      finalized: false,
-      step: 0,
-      attempt: 0,
-      startedAt: now,
-      updatedAt: now,
     });
-    await scheduleStep(ctx, jobId, 0);
-    return jobId;
   },
 });
 
@@ -584,16 +576,15 @@ export const listPages = query({
   },
 });
 
-/** One page of a job by its requested URL. */
+/** One page of a job by its requested URL, in any spelling of it. */
 export const getPage = query({
   args: { jobId: v.id("jobs"), url: v.string() },
   returns: v.union(pageDoc, v.null()),
   handler: async (ctx, args) => {
+    const url = normalizeUrl(args.url) ?? args.url;
     return await ctx.db
       .query("pages")
-      .withIndex("jobId_url", (q) =>
-        q.eq("jobId", args.jobId).eq("url", args.url),
-      )
+      .withIndex("jobId_url", (q) => q.eq("jobId", args.jobId).eq("url", url))
       .first();
   },
 });
@@ -680,7 +671,9 @@ function batchOf(job: Doc<"jobs">): string[] {
 
 /** Search rank and snippet for a URL, from the job's search step. */
 function searchMeta(job: Doc<"jobs">, url: string): SearchMeta {
-  const result = job.searchResults?.find((entry) => entry?.url === url);
+  const result = job.searchResults?.find(
+    (entry) => typeof entry?.url === "string" && normalizeUrl(entry.url) === url,
+  );
   if (!result) return {};
   return {
     position: typeof result.position === "number" ? result.position : undefined,
@@ -689,7 +682,7 @@ function searchMeta(job: Doc<"jobs">, url: string): SearchMeta {
 }
 
 /** Claim a step: mark the job running and hand the action what it needs. */
-export const begin = internalMutation({
+export const claimStep = internalMutation({
   args: stepArgs,
   handler: async (ctx, args) => {
     const job = await currentJob(ctx, args);
@@ -699,7 +692,7 @@ export const begin = internalMutation({
     }
     const batch = batchOf(job);
     return {
-      searched: job.searched,
+      searchPending: job.searchPending,
       query: job.query,
       searchOptions: job.searchOptions,
       maxResults: job.maxResults,
@@ -714,7 +707,7 @@ export const begin = internalMutation({
 /** Client errors that would repeat on every request, so the job stops. */
 function isFatal(status: number): boolean {
   return (
-    status >= 400 && status < 500 && ![408, 425, 429].includes(status)
+    status >= 400 && status < 500 && !isRetryableStatus(status)
   );
 }
 
@@ -742,70 +735,25 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-type Matched = { result?: Record<string, any>; error?: Record<string, any> };
-
 /**
- * Match a Fetch response back to the URLs that were requested, one outcome
- * per URL. Fetch documents `results[].url` and `errors[].url` as the URL
- * exactly as requested, so exact matches are the normal case and are settled
- * first. A URL still unmatched may then claim an unclaimed entry whose
- * normalized form (host lowercased, default port dropped, bare origin given
- * its slash) is the same, so a fetched page is never recorded as missing over
- * a spelling difference. Each response entry is given to at most one URL.
+ * Index a Fetch response's `results` or `errors` by URL. Fetch returns each
+ * entry's `url` exactly as it was requested, and every URL a job requests is
+ * already normalized and unique, so an exact lookup pairs each entry with its
+ * request.
  */
-export function matchResponse(
-  batch: string[],
-  body: { results?: unknown; errors?: unknown },
-): Matched[] {
-  const entriesOf = (value: unknown): Record<string, any>[] =>
-    (Array.isArray(value) ? value : []).filter(
-      (entry) => typeof entry?.url === "string",
-    );
-  const results = entriesOf(body.results);
-  const errors = entriesOf(body.errors);
-  const claimed = new Set<Record<string, any>>();
-  const claim = (
-    entries: Record<string, any>[],
-    matches: (entryUrl: string) => boolean,
-  ) => {
-    const entry = entries.find((e) => !claimed.has(e) && matches(e.url));
-    if (entry) claimed.add(entry);
-    return entry;
-  };
-
-  const matched: Matched[] = batch.map((url) => {
-    const result = claim(results, (entryUrl) => entryUrl === url);
-    if (result) return { result };
-    const error = claim(errors, (entryUrl) => entryUrl === url);
-    return error ? { error } : {};
-  });
-  batch.forEach((url, index) => {
-    if (matched[index].result || matched[index].error) return;
-    const normalized = normalizeUrl(url);
-    const same = (entryUrl: string) => normalizeUrl(entryUrl) === normalized;
-    const result = claim(results, same);
-    if (result) matched[index] = { result };
-    else {
-      const error = claim(errors, same);
-      if (error) matched[index] = { error };
-    }
-  });
-  return matched;
-}
-
-function normalizeUrl(url: string): string {
-  try {
-    return new URL(url).href;
-  } catch {
-    return url;
+function byUrl(entries: unknown): Map<string, Record<string, any>> {
+  const map = new Map<string, Record<string, any>>();
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    if (typeof entry?.url === "string") map.set(entry.url, entry);
   }
+  return map;
 }
 
 export const run = internalAction({
   args: stepArgs,
   returns: v.null(),
   handler: async (ctx, args) => {
-    const job = await ctx.runMutation(internal.jobs.begin, args);
+    const job = await ctx.runMutation(internal.jobs.claimStep, args);
     if (!job) return null;
 
     // 1. Ask TinyFish. A failure here means nothing was returned, so the step
@@ -813,7 +761,7 @@ export const run = internalAction({
     let searchResults: unknown[] | undefined;
     let pages: PageInput[] | undefined;
     try {
-      if (!job.searched) {
+      if (job.searchPending) {
         const body = await tinyfishRequest("search", {
           params: searchParams(job.query ?? "", job.searchOptions),
           retries: 1,
@@ -829,13 +777,13 @@ export const run = internalAction({
           body: fetchBody(job.batch, job.fetchOptions),
           retries: 1,
         });
-        const matched = matchResponse(job.batch, body);
+        const results = byUrl(body.results);
+        const errors = byUrl(body.errors);
         pages = job.batch.map((url, index) => {
-          const { result, error } = matched[index];
+          const result = results.get(url);
           if (result) {
             return toPage(
-              // Store the page under the URL the app asked for.
-              { ...result, url },
+              result,
               {
                 storeContent: job.storeContent,
                 maxCharacters: job.fetchOptions?.maxCharacters,
@@ -845,7 +793,7 @@ export const run = internalAction({
           }
           return toFailedPage(
             url,
-            error ?? { error: "missing_from_response" },
+            errors.get(url) ?? { error: "missing_from_response" },
             job.meta[index],
           );
         });
@@ -895,20 +843,15 @@ export const recordSearch = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const job = await currentJob(ctx, args);
-    if (!job || job.searched) return null;
+    if (!job || !job.searchPending) return null;
     const urls: string[] = [];
     for (const result of args.results) {
-      const url = result?.url;
-      if (
-        typeof url === "string" &&
-        url.length <= MAX_URL_LENGTH &&
-        !urls.includes(url)
-      ) {
-        urls.push(url);
-      }
+      const url =
+        typeof result?.url === "string" ? normalizeUrl(result.url) : null;
+      if (url !== null && !urls.includes(url)) urls.push(url);
     }
     const next = {
-      searched: true,
+      searchPending: false,
       searchResults: args.results,
       urls,
       total: urls.length,
@@ -982,7 +925,7 @@ export const recordBatch = internalMutation({
  * a search that can't run fails the job, while a batch that can't be fetched
  * is recorded as failed pages so the rest of the job still completes.
  */
-async function recover(
+async function retryOrFailStep(
   ctx: MutationCtx,
   job: Doc<"jobs">,
   reason: { error: string; status?: number },
@@ -1002,7 +945,7 @@ async function recover(
     );
     return;
   }
-  if (!job.searched) {
+  if (job.searchPending) {
     await finalize(ctx, job, "failed", reason.error);
     return;
   }
@@ -1031,7 +974,7 @@ export const stepFailed = internalMutation({
     const job = await currentJob(ctx, args);
     if (!job) return null;
     if (args.fatal) await finalize(ctx, job, "failed", args.error);
-    else await recover(ctx, job, args);
+    else await retryOrFailStep(ctx, job, args);
     return null;
   },
 });
@@ -1043,7 +986,7 @@ export const watchdog = internalMutation({
   handler: async (ctx, args) => {
     const job = await currentJob(ctx, args);
     if (job) {
-      await recover(ctx, job, {
+      await retryOrFailStep(ctx, job, {
         error: "A step did not finish in time and its retries ran out.",
       });
     }

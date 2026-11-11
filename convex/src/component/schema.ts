@@ -31,11 +31,11 @@ export default defineSchema({
     searchOptions: v.optional(searchOptionsValidator),
     /** `search_and_fetch` only: how many top results to fetch. */
     maxResults: v.optional(v.number()),
-    /** True once the search step has run (always true for `fetch` jobs). */
-    searched: v.boolean(),
+    /** True while a `search_and_fetch` job has yet to run its search. */
+    searchPending: v.boolean(),
     /** What the search returned, in rank order. `search_and_fetch` only. */
     searchResults: v.optional(v.array(v.any())),
-    /** Every URL this job fetches, deduplicated, in order. */
+    /** Every URL this job fetches, normalized and deduplicated, in order. */
     urls: v.array(v.string()),
     /** Index into `urls` of the next batch to fetch. */
     cursor: v.number(),
@@ -71,7 +71,7 @@ export default defineSchema({
 
   pages: defineTable({
     jobId: v.id("jobs"),
-    /** The URL as requested. Cite this, or `final_url` after redirects. */
+    /** The requested URL, normalized. Cite this, or `final_url` after redirects. */
     url: v.string(),
     status: pageStatus,
     final_url: v.optional(v.string()),

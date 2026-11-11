@@ -8,8 +8,16 @@ import type {
   PaginationOptions,
   PaginationResult,
 } from "convex/server";
-import { v } from "convex/values";
+import type { Infer, ObjectType } from "convex/values";
 import type { ComponentApi } from "../component/_generated/component.js";
+import {
+  jobCompleteArgs,
+  type fetchFormatValidator,
+  type fetchOptionsValidator,
+  type highlightsValidator,
+  type jobFetchOptionsValidator,
+  type searchOptionsValidator,
+} from "../component/validators.js";
 
 // ---------------------------------------------------------------------------
 // TinyFish API types. Field names match the REST API; see
@@ -17,33 +25,11 @@ import type { ComponentApi } from "../component/_generated/component.js";
 // https://docs.tinyfish.ai/fetch-api/reference.
 // ---------------------------------------------------------------------------
 
-export type SearchOptions = {
-  /** Why you are searching. Improves result quality. Max 2000 characters. */
-  purpose?: string;
-  /** Country code, e.g. "US". */
-  location?: string;
-  /** Language code, e.g. "en". */
-  language?: string;
-  /** Domains to restrict results to. */
-  include_domains?: string | string[];
-  /** Domains to drop from results. */
-  exclude_domains?: string | string[];
-  /** Freshness window in minutes. Not combinable with the date bounds. */
-  recency_minutes?: number;
-  /** YYYY-MM-DD */
-  after_date?: string;
-  /** YYYY-MM-DD */
-  before_date?: string;
-  domain_type?: "web" | "news" | "research_paper";
-  /** `research_paper` only. */
-  pub_year_min?: number;
-  /** `research_paper` only. */
-  pub_year_max?: number;
-  /** Zero-based page, up to 10. */
-  page?: number;
-  /** Escape hatch for API parameters this component version doesn't model yet. */
-  extra?: Record<string, unknown>;
-};
+/**
+ * Option types are derived from the component's argument validators, so the
+ * two can't drift apart. Field docs live with the validators.
+ */
+export type SearchOptions = Infer<typeof searchOptionsValidator>;
 
 export type SearchResult = {
   position: number;
@@ -69,50 +55,15 @@ export type SearchResponse = {
   page: number;
 };
 
-export type FetchFormat = "markdown" | "html" | "json";
+export type FetchFormat = Infer<typeof fetchFormatValidator>;
 
-export type Highlights = {
-  /** The question to answer from each page. Name the entity in it. */
-  query: string;
-  max_snippets?: number;
-  max_characters?: number;
-  include_full_page_text?: boolean;
-};
+export type Highlights = Infer<typeof highlightsValidator>;
 
 /** Fetch options that apply to any number of URLs. */
-export type JobFetchOptions = {
-  /** Why you are fetching. Improves result quality. Max 2000 characters. */
-  purpose?: string;
-  /** Format of each page's `text`. Defaults to "markdown". */
-  format?: FetchFormat;
-  links?: boolean;
-  image_links?: boolean;
-  iframe_links?: boolean;
-  /** Cache tolerance in seconds. 0 forces a live fetch. */
-  ttl?: number;
-  /** 1 to 110000. */
-  per_url_timeout_ms?: number;
-  include_etag_and_last_modified?: boolean;
-  include_selectors?: string[];
-  exclude_selectors?: string[];
-  /** Beta: enabled per account. Requires `format: "markdown"`. */
-  highlights?: Highlights;
-  /**
-   * Cap each page's `text` at this many characters, so results fit a model's
-   * context or your own storage budget. Capped pages have `truncated: true`.
-   * Applied by the component; not sent to TinyFish.
-   */
-  maxCharacters?: number;
-  /** Escape hatch for API fields this component version doesn't model yet. */
-  extra?: Record<string, unknown>;
-};
+export type JobFetchOptions = Infer<typeof jobFetchOptionsValidator>;
 
-export type FetchOptions = JobFetchOptions & {
-  /** Single URL only. */
-  if_none_match?: string;
-  /** Single URL only. */
-  if_modified_since?: string;
-};
+/** Adds the conditional-request options, which take a single URL. */
+export type FetchOptions = Infer<typeof fetchOptionsValidator>;
 
 export type FetchResult = {
   /** The URL as requested. */
@@ -191,7 +142,7 @@ export type Job = {
   query?: string;
   /** What the search returned, in rank order. `search_and_fetch` only. */
   searchResults?: SearchResult[];
-  /** Every URL the job fetches. */
+  /** Every URL the job fetches, normalized (see `JobPage.url`). */
   urls: string[];
   storeContent: boolean;
   /** URLs to fetch in total. */
@@ -214,7 +165,11 @@ export type JobPage = {
   _id: string;
   _creationTime: number;
   jobId: string;
-  /** The URL as requested. Cite this, or `final_url` after redirects. */
+  /**
+   * The requested URL in normalized form (`new URL(url).href`): host
+   * lowercased, a bare origin given its slash. Cite this, or `final_url`
+   * after redirects.
+   */
   url: string;
   status: "completed" | "failed";
   final_url?: string;
@@ -248,18 +203,6 @@ export type JobPage = {
   fetchedAt: number;
 };
 
-/** Argument shape of the mutation you pass as `onComplete`. */
-export type JobCompletePayload = {
-  jobId: string;
-  kind: JobKind;
-  status: "completed" | "failed" | "cancelled";
-  total: number;
-  completed: number;
-  failed: number;
-  error?: string;
-  context?: any;
-};
-
 /**
  * Argument validators for the mutation you pass as `onComplete`:
  *
@@ -270,20 +213,10 @@ export type JobCompletePayload = {
  * });
  * ```
  */
-export const jobCompleteArgs = {
-  jobId: v.string(),
-  kind: v.union(v.literal("fetch"), v.literal("search_and_fetch")),
-  status: v.union(
-    v.literal("completed"),
-    v.literal("failed"),
-    v.literal("cancelled"),
-  ),
-  total: v.number(),
-  completed: v.number(),
-  failed: v.number(),
-  error: v.optional(v.string()),
-  context: v.optional(v.any()),
-};
+export { jobCompleteArgs };
+
+/** Argument shape of the mutation you pass as `onComplete`. */
+export type JobCompletePayload = ObjectType<typeof jobCompleteArgs>;
 
 export type OnCompleteMutation = FunctionReference<
   "mutation",
@@ -302,7 +235,7 @@ type JobArgs = {
 };
 
 export type StartFetchArgs = JobArgs & {
-  /** Up to 500 URLs. Duplicates are fetched once. */
+  /** Up to 500 URLs. Different spellings of one URL are fetched once. */
   urls: string[];
   options?: JobFetchOptions;
 };
@@ -449,7 +382,7 @@ export class TinyFish {
     )) as PaginationResult<JobPage>;
   }
 
-  /** One page of a job by its requested URL. */
+  /** One page of a job by its requested URL, in any spelling of it. */
   async getPage(
     ctx: QueryCtx,
     args: { jobId: string; url: string },

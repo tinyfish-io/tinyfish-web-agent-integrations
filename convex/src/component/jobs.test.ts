@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api.js";
 import { fetched, initConvexTest, mockFetch } from "./setup.test.js";
 import {
-  matchResponse,
+  normalizeUrl,
   searchResultForStorage,
   storable,
   toFailedPage,
@@ -51,7 +51,7 @@ describe("startFetch", () => {
     mockFetch([]);
 
     const jobId = await t.mutation(api.jobs.startFetch, {
-      urls: ["https://a.com"],
+      urls: ["https://a.com/"],
     });
 
     expect(await t.query(api.jobs.get, { jobId })).toMatchObject({
@@ -69,21 +69,21 @@ describe("startFetch", () => {
     const calls = mockFetch([
       {
         body: {
-          results: [fetched("https://a.com"), fetched("https://b.com")],
+          results: [fetched("https://a.com/"), fetched("https://b.com/")],
           errors: [],
         },
       },
     ]);
 
     const jobId = await t.mutation(api.jobs.startFetch, {
-      urls: ["https://a.com", "https://b.com"],
+      urls: ["https://a.com/", "https://b.com/"],
       options: { format: "markdown", ttl: 0 },
     });
     await finish(t);
 
     expect(calls).toHaveLength(1);
     expect(calls[0].body).toEqual({
-      urls: ["https://a.com", "https://b.com"],
+      urls: ["https://a.com/", "https://b.com/"],
       format: "markdown",
       ttl: 0,
     });
@@ -102,14 +102,14 @@ describe("startFetch", () => {
       paginationOpts: firstPage,
     });
     expect(page.map((p: any) => p.url)).toEqual([
-      "https://a.com",
-      "https://b.com",
+      "https://a.com/",
+      "https://b.com/",
     ]);
     expect(page[0]).toMatchObject({
       status: "completed",
-      final_url: "https://a.com",
-      title: "Title of https://a.com",
-      text: "# https://a.com",
+      final_url: "https://a.com/",
+      title: "Title of https://a.com/",
+      text: "# https://a.com/",
       format: "markdown",
       truncated: false,
     });
@@ -122,17 +122,17 @@ describe("startFetch", () => {
     mockFetch([
       {
         body: {
-          results: [fetched("https://a.com")],
+          results: [fetched("https://a.com/")],
           errors: [
-            { url: "https://b.com", error: "bot_blocked" },
-            { url: "https://c.com", error: "target_http_error", status: 500 },
+            { url: "https://b.com/", error: "bot_blocked" },
+            { url: "https://c.com/", error: "target_http_error", status: 500 },
           ],
         },
       },
     ]);
 
     const jobId = await t.mutation(api.jobs.startFetch, {
-      urls: ["https://a.com", "https://b.com", "https://c.com"],
+      urls: ["https://a.com/", "https://b.com/", "https://c.com/"],
     });
     await finish(t);
 
@@ -150,11 +150,11 @@ describe("startFetch", () => {
     expect(
       failed.page.map((p: any) => [p.url, p.error, p.error_status]),
     ).toEqual([
-      ["https://b.com", "bot_blocked", undefined],
-      ["https://c.com", "target_http_error", 500],
+      ["https://b.com/", "bot_blocked", undefined],
+      ["https://c.com/", "target_http_error", 500],
     ]);
     expect(
-      await t.query(api.jobs.getPage, { jobId, url: "https://a.com" }),
+      await t.query(api.jobs.getPage, { jobId, url: "https://a.com/" }),
     ).toMatchObject({ status: "completed" });
   });
 
@@ -164,13 +164,13 @@ describe("startFetch", () => {
       {
         body: {
           results: [],
-          errors: [{ url: "https://a.com", error: "timeout" }],
+          errors: [{ url: "https://a.com/", error: "timeout" }],
         },
       },
     ]);
 
     const jobId = await t.mutation(api.jobs.startFetch, {
-      urls: ["https://a.com"],
+      urls: ["https://a.com/"],
     });
     await finish(t);
 
@@ -202,15 +202,15 @@ describe("startFetch", () => {
   test("fetches a repeated URL once", async () => {
     const t = initConvexTest();
     const calls = mockFetch([
-      { body: { results: [fetched("https://a.com")], errors: [] } },
+      { body: { results: [fetched("https://a.com/")], errors: [] } },
     ]);
 
     const jobId = await t.mutation(api.jobs.startFetch, {
-      urls: ["https://a.com", " https://a.com "],
+      urls: ["https://a.com/", " https://A.com "],
     });
     await finish(t);
 
-    expect(calls[0].body.urls).toEqual(["https://a.com"]);
+    expect(calls[0].body.urls).toEqual(["https://a.com/"]);
     expect(await t.query(api.jobs.get, { jobId })).toMatchObject({ total: 1 });
   });
 
@@ -225,19 +225,19 @@ describe("startFetch", () => {
 
   test("records metadata only when storeContent is false", async () => {
     const t = initConvexTest();
-    mockFetch([{ body: { results: [fetched("https://a.com")], errors: [] } }]);
+    mockFetch([{ body: { results: [fetched("https://a.com/")], errors: [] } }]);
 
     const jobId = await t.mutation(api.jobs.startFetch, {
-      urls: ["https://a.com"],
+      urls: ["https://a.com/"],
       storeContent: false,
     });
     await finish(t);
 
     const page = await t.query(api.jobs.getPage, {
       jobId,
-      url: "https://a.com",
+      url: "https://a.com/",
     });
-    expect(page).toMatchObject({ title: "Title of https://a.com" });
+    expect(page).toMatchObject({ title: "Title of https://a.com/" });
     expect(page).not.toHaveProperty("text");
   });
 
@@ -246,21 +246,21 @@ describe("startFetch", () => {
     mockFetch([
       {
         body: {
-          results: [fetched("https://a.com", "x".repeat(500))],
+          results: [fetched("https://a.com/", "x".repeat(500))],
           errors: [],
         },
       },
     ]);
 
     const jobId = await t.mutation(api.jobs.startFetch, {
-      urls: ["https://a.com"],
+      urls: ["https://a.com/"],
       options: { maxCharacters: 100 },
     });
     await finish(t);
 
     const page = await t.query(api.jobs.getPage, {
       jobId,
-      url: "https://a.com",
+      url: "https://a.com/",
     });
     expect(page?.text).toHaveLength(100);
     expect(page?.truncated).toBe(true);
@@ -278,11 +278,11 @@ describe("recovery", () => {
       { status: 503, text: "unavailable" },
       { status: 503, text: "unavailable" },
       // The step is retried later and succeeds.
-      { body: { results: [fetched("https://a.com")], errors: [] } },
+      { body: { results: [fetched("https://a.com/")], errors: [] } },
     ]);
 
     const jobId = await t.mutation(api.jobs.startFetch, {
-      urls: ["https://a.com"],
+      urls: ["https://a.com/"],
     });
     await finish(t);
 
@@ -359,10 +359,10 @@ describe("recovery", () => {
   test("the watchdog re-runs a step whose action never reported back", async () => {
     const t = initConvexTest();
     const calls = mockFetch([
-      { body: { results: [fetched("https://a.com")], errors: [] } },
+      { body: { results: [fetched("https://a.com/")], errors: [] } },
     ]);
     const jobId = await t.mutation(api.jobs.startFetch, {
-      urls: ["https://a.com"],
+      urls: ["https://a.com/"],
     });
 
     // Simulate the scheduled action being lost: only the watchdog fires.
@@ -379,16 +379,16 @@ describe("recovery", () => {
 
   test("a stale step cannot record its results twice", async () => {
     const t = initConvexTest();
-    mockFetch([{ body: { results: [fetched("https://a.com")], errors: [] } }]);
+    mockFetch([{ body: { results: [fetched("https://a.com/")], errors: [] } }]);
     const jobId = await t.mutation(api.jobs.startFetch, {
-      urls: ["https://a.com"],
+      urls: ["https://a.com/"],
     });
     await finish(t);
 
     await t.mutation(internal.jobs.recordBatch, {
       jobId,
       step: 0,
-      pages: [toPage(fetched("https://a.com"), { storeContent: true })],
+      pages: [toPage(fetched("https://a.com/"), { storeContent: true })],
     });
 
     const { page } = await t.query(api.jobs.listPages, {
@@ -406,8 +406,8 @@ describe("storing results", () => {
       {
         body: {
           results: [
-            { ...fetched("https://a.com"), schema_org: { $ref: "x" } },
-            fetched("https://b.com"),
+            { ...fetched("https://a.com/"), schema_org: { $ref: "x" } },
+            fetched("https://b.com/"),
           ],
           errors: [],
         },
@@ -415,7 +415,7 @@ describe("storing results", () => {
     ]);
 
     const jobId = await t.mutation(api.jobs.startFetch, {
-      urls: ["https://a.com", "https://b.com"],
+      urls: ["https://a.com/", "https://b.com/"],
     });
     await finish(t);
 
@@ -435,8 +435,8 @@ describe("storing results", () => {
       {
         body: {
           results: [
-            { ...fetched("https://a.com"), text: nest(20), format: "json" },
-            { ...fetched("https://b.com"), text: nest(2), format: "json" },
+            { ...fetched("https://a.com/"), text: nest(20), format: "json" },
+            { ...fetched("https://b.com/"), text: nest(2), format: "json" },
           ],
           errors: [],
         },
@@ -444,7 +444,7 @@ describe("storing results", () => {
     ]);
 
     const jobId = await t.mutation(api.jobs.startFetch, {
-      urls: ["https://a.com", "https://b.com"],
+      urls: ["https://a.com/", "https://b.com/"],
       options: { format: "json" },
     });
     await finish(t);
@@ -455,20 +455,19 @@ describe("storing results", () => {
       completed: 2,
       truncated: 1,
     });
-    const deep = await t.query(api.jobs.getPage, { jobId, url: "https://a.com" });
+    const deep = await t.query(api.jobs.getPage, { jobId, url: "https://a.com/" });
     expect(deep).toMatchObject({ status: "completed", truncated: true });
     expect(deep).not.toHaveProperty("text");
     expect(
-      await t.query(api.jobs.getPage, { jobId, url: "https://b.com" }),
+      await t.query(api.jobs.getPage, { jobId, url: "https://b.com/" }),
     ).toMatchObject({ truncated: false, text: nest(2) });
   });
 
-  test("matches a result whose URL came back in normalized form", async () => {
+  test("different spellings of one URL are one page", async () => {
     const t = initConvexTest();
-    mockFetch([
+    const calls = mockFetch([
       {
         body: {
-          // Requested without the trailing slash and with an uppercase host.
           results: [fetched("https://a.com/")],
           errors: [{ url: "https://b.com/", error: "timeout" }],
         },
@@ -476,34 +475,58 @@ describe("storing results", () => {
     ]);
 
     const jobId = await t.mutation(api.jobs.startFetch, {
-      urls: ["https://A.com", "https://b.com"],
+      urls: ["https://A.com", "https://a.com/", "https://b.com"],
     });
     await finish(t);
 
+    // Normalized before anything is sent, so the response matches exactly.
+    expect(calls[0].body.urls).toEqual(["https://a.com/", "https://b.com/"]);
     expect(await t.query(api.jobs.get, { jobId })).toMatchObject({
+      urls: ["https://a.com/", "https://b.com/"],
+      total: 2,
       completed: 1,
       failed: 1,
     });
-    // Pages are stored under the URL the app asked for.
+    // A page can be looked up by any spelling of its URL.
     expect(
       await t.query(api.jobs.getPage, { jobId, url: "https://A.com" }),
-    ).toMatchObject({ status: "completed", final_url: "https://a.com/" });
+    ).toMatchObject({ status: "completed", url: "https://a.com/" });
     expect(
       await t.query(api.jobs.getPage, { jobId, url: "https://b.com" }),
     ).toMatchObject({ status: "failed", error: "timeout" });
+  });
+
+  test("rejects a maxCharacters that would empty every page", async () => {
+    const t = initConvexTest();
+    for (const maxCharacters of [-1, 2.5, Number.NaN]) {
+      await expect(
+        t.mutation(api.jobs.startFetch, {
+          urls: ["https://a.com/"],
+          options: { maxCharacters },
+        }),
+      ).rejects.toThrow(/maxCharacters/);
+      await expect(
+        t.mutation(api.jobs.startSearchAndFetch, {
+          query: "acme",
+          fetchOptions: { maxCharacters },
+        }),
+      ).rejects.toThrow(/maxCharacters/);
+    }
   });
 
   test("large search results never change which URLs get fetched", async () => {
     const t = initConvexTest();
     const bigSnippet = "x".repeat(120_000);
     const overLimit = `https://a.com/${"p".repeat(9_000)}`;
-    const multibyte = `https://a.com/${"日本語".repeat(300)}`;
+    // Sent to Fetch percent-encoded; still well within the length limit.
+    const multibyteRaw = `https://a.com/${"日本語".repeat(40)}`;
+    const multibyte = new URL(multibyteRaw).href;
     const calls = mockFetch([
       {
         body: {
           results: [
             { position: 1, title: "Too long", snippet: bigSnippet, url: overLimit },
-            { position: 2, title: "Multibyte", snippet: bigSnippet, url: multibyte },
+            { position: 2, title: "Multibyte", snippet: bigSnippet, url: multibyteRaw },
           ],
         },
       },
@@ -516,7 +539,7 @@ describe("storing results", () => {
     await finish(t);
 
     // The over-limit URL is skipped, not shortened; the multibyte one is
-    // within the character limit and is fetched exactly as returned.
+    // within the limit and is fetched in its normalized form.
     const job = await t.query(api.jobs.get, { jobId });
     expect(job?.urls).toEqual([multibyte]);
     expect(calls[1].body.urls).toEqual([multibyte]);
@@ -527,9 +550,13 @@ describe("storing results", () => {
         position: 2,
         title: "Multibyte",
         snippet: "x".repeat(2_000),
-        url: multibyte,
+        url: multibyteRaw,
       },
     ]);
+    // The page still carries its search rank, matched across spellings.
+    expect(
+      await t.query(api.jobs.getPage, { jobId, url: multibyteRaw }),
+    ).toMatchObject({ status: "completed", position: 2 });
   });
 
   test("a search result Convex rejects keeps its plain fields", async () => {
@@ -542,13 +569,13 @@ describe("storing results", () => {
               position: 1,
               title: "A",
               snippet: "s",
-              url: "https://a.com",
+              url: "https://a.com/",
               $meta: { x: 1 },
             },
           ],
         },
       },
-      { body: { results: [fetched("https://a.com")], errors: [] } },
+      { body: { results: [fetched("https://a.com/")], errors: [] } },
     ]);
 
     const jobId = await t.mutation(api.jobs.startSearchAndFetch, {
@@ -559,7 +586,7 @@ describe("storing results", () => {
     const job = await t.query(api.jobs.get, { jobId });
     expect(job).toMatchObject({ status: "completed", completed: 1 });
     expect(job?.searchResults).toEqual([
-      { position: 1, title: "A", snippet: "s", url: "https://a.com" },
+      { position: 1, title: "A", snippet: "s", url: "https://a.com/" },
     ]);
   });
 });
@@ -568,16 +595,16 @@ describe("startSearchAndFetch", () => {
   test("searches, fetches the top results, and keeps the sources", async () => {
     const t = initConvexTest();
     const results = [
-      searchResult(1, "https://a.com"),
-      searchResult(2, "https://b.com"),
-      searchResult(3, "https://c.com"),
+      searchResult(1, "https://a.com/"),
+      searchResult(2, "https://b.com/"),
+      searchResult(3, "https://c.com/"),
     ];
     const calls = mockFetch([
       { body: { query: "acme", results, total_results: 3, page: 0 } },
       {
         body: {
-          results: [fetched("https://a.com")],
-          errors: [{ url: "https://b.com", error: "login_required" }],
+          results: [fetched("https://a.com/")],
+          errors: [{ url: "https://b.com/", error: "login_required" }],
         },
       },
     ]);
@@ -591,14 +618,14 @@ describe("startSearchAndFetch", () => {
     await finish(t);
 
     expect(new URL(calls[0].url).searchParams.get("domain_type")).toBe("news");
-    expect(calls[1].body).toEqual({ urls: ["https://a.com", "https://b.com"] });
+    expect(calls[1].body).toEqual({ urls: ["https://a.com/", "https://b.com/"] });
 
     const job = await t.query(api.jobs.get, { jobId });
     expect(job).toMatchObject({
       kind: "search_and_fetch",
       status: "completed",
       query: "acme",
-      urls: ["https://a.com", "https://b.com"],
+      urls: ["https://a.com/", "https://b.com/"],
       total: 2,
       completed: 1,
       failed: 1,
@@ -610,13 +637,13 @@ describe("startSearchAndFetch", () => {
       paginationOpts: firstPage,
     });
     expect(page[0]).toMatchObject({
-      url: "https://a.com",
+      url: "https://a.com/",
       status: "completed",
       position: 1,
       snippet: "Snippet 1",
     });
     expect(page[1]).toMatchObject({
-      url: "https://b.com",
+      url: "https://b.com/",
       status: "failed",
       error: "login_required",
       position: 2,
@@ -692,13 +719,13 @@ describe("cancel, list and delete", () => {
 
   test("list returns recent jobs, optionally by status", async () => {
     const t = initConvexTest();
-    mockFetch([{ body: { results: [fetched("https://a.com")], errors: [] } }]);
+    mockFetch([{ body: { results: [fetched("https://a.com/")], errors: [] } }]);
     const done = await t.mutation(api.jobs.startFetch, {
-      urls: ["https://a.com"],
+      urls: ["https://a.com/"],
     });
     await finish(t);
     const cancelled = await t.mutation(api.jobs.startFetch, {
-      urls: ["https://b.com"],
+      urls: ["https://b.com/"],
     });
     await t.mutation(api.jobs.cancel, { jobId: cancelled });
 
@@ -742,7 +769,7 @@ describe("shaping pages", () => {
   });
 
   test("clamps oversized text to fit a Convex document", () => {
-    const page = toPage(fetched("https://a.com", "x".repeat(2_000_000)), {
+    const page = toPage(fetched("https://a.com/", "x".repeat(2_000_000)), {
       storeContent: true,
     });
     expect((page.text as string).length).toBe(800_000);
@@ -752,7 +779,7 @@ describe("shaping pages", () => {
   test("drops an oversized json document tree instead of corrupting it", () => {
     const tree = { children: Array.from({ length: 100_000 }, () => "node!!") };
     const page = toPage(
-      { ...fetched("https://a.com"), text: tree, format: "json" },
+      { ...fetched("https://a.com/"), text: tree, format: "json" },
       { storeContent: true },
     );
     expect(page.text).toBeUndefined();
@@ -761,7 +788,7 @@ describe("shaping pages", () => {
 
   test("keeps unmodelled result fields in extra", () => {
     const page = toPage(
-      { ...fetched("https://a.com"), etag: '"abc"', links: ["https://a.com/x"] },
+      { ...fetched("https://a.com/"), etag: '"abc"', links: ["https://a.com/x"] },
       { storeContent: true },
     );
     expect(page.extra).toEqual({ etag: '"abc"' });
@@ -774,7 +801,7 @@ describe("shaping pages", () => {
 
     const page = toPage(
       {
-        ...fetched("https://a.com"),
+        ...fetched("https://a.com/"),
         text: { children: [bad] },
         format: "json",
         highlights: [{ text: "ok", rank: 1, meta: bad }],
@@ -789,29 +816,23 @@ describe("shaping pages", () => {
     expect(page.extra).toBeUndefined();
     expect(storable(page)).toBe(true);
     // The rest of the page survives.
-    expect(page).toMatchObject({ status: "completed", title: "Title of https://a.com" });
+    expect(page).toMatchObject({ status: "completed", title: "Title of https://a.com/" });
   });
 
-  test("never gives one response entry to two requested URLs", () => {
-    const result = fetched("https://a.com/");
-    const error = { url: "https://A.com", error: "timeout" };
-
-    // Both URLs normalize to the same thing, but each has its own outcome.
-    expect(
-      matchResponse(["https://A.com", "https://a.com/"], {
-        results: [result],
-        errors: [error],
-      }),
-    ).toEqual([{ error }, { result }]);
-
-    // With only one entry to go round, the second URL is left unmatched.
-    expect(
-      matchResponse(["https://A.com", "https://a.com"], { results: [result] }),
-    ).toEqual([{ result }, {}]);
+  test("normalizeUrl gives every spelling of a URL one form", () => {
+    expect(normalizeUrl("https://A.com")).toBe("https://a.com/");
+    expect(normalizeUrl(" https://a.com:443/ ")).toBe("https://a.com/");
+    expect(normalizeUrl("https://a.com/Path?q=1")).toBe("https://a.com/Path?q=1");
+    expect(normalizeUrl("https://a.com/日本")).toBe(
+      "https://a.com/%E6%97%A5%E6%9C%AC",
+    );
+    expect(normalizeUrl("ftp://a.com/file")).toBeNull();
+    expect(normalizeUrl("not a url")).toBeNull();
+    expect(normalizeUrl(`https://a.com/${"p".repeat(3_000)}`)).toBeNull();
   });
 
   test("keeps stored search results small", () => {
-    const small = { position: 1, title: "A", snippet: "s", url: "https://a.com" };
+    const small = { position: 1, title: "A", snippet: "s", url: "https://a.com/" };
     expect(searchResultForStorage(small)).toEqual(small);
 
     const huge = searchResultForStorage({
@@ -823,7 +844,7 @@ describe("shaping pages", () => {
       position: 1,
       title: "A",
       snippet: "x".repeat(2_000),
-      url: "https://a.com",
+      url: "https://a.com/",
     });
     expect(searchResultForStorage("not an object")).toEqual({});
 
@@ -850,24 +871,24 @@ describe("shaping pages", () => {
     expect(storable(fifteen, 1)).toBe(false);
 
     const page = toPage(
-      { ...fetched("https://a.com"), text: deep, format: "json" },
+      { ...fetched("https://a.com/"), text: deep, format: "json" },
       { storeContent: true },
     );
     expect(page.text).toBeUndefined();
     expect(page.truncated).toBe(true);
-    expect(page).toMatchObject({ status: "completed", title: "Title of https://a.com" });
+    expect(page).toMatchObject({ status: "completed", title: "Title of https://a.com/" });
 
     expect(
       toPage(
-        { ...fetched("https://a.com"), text: shallow, format: "json" },
+        { ...fetched("https://a.com/"), text: shallow, format: "json" },
         { storeContent: true },
       ).text,
     ).toEqual(shallow);
   });
 
   test("keeps retry hints on a failed page", () => {
-    const page = toFailedPage("https://a.com", {
-      url: "https://a.com",
+    const page = toFailedPage("https://a.com/", {
+      url: "https://a.com/",
       error: "selector_not_matched",
       candidate_selectors: ["main", "article"],
     });

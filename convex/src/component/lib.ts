@@ -34,6 +34,14 @@ export function fetchBody(
   return { urls, ...rest, ...(extra ?? {}) };
 }
 
+/** Reject a `maxCharacters` that would silently empty every page. */
+export function validateMaxCharacters(options?: { maxCharacters?: number }) {
+  const max = options?.maxCharacters;
+  if (max !== undefined && (!Number.isInteger(max) || max < 0)) {
+    invalid("`maxCharacters` must be an integer of 0 or more.");
+  }
+}
+
 /** Cut a page's `text` to `maxCharacters`, flagging it when anything was cut. */
 export function capText<T extends Record<string, any>>(
   result: T,
@@ -46,7 +54,7 @@ export function capText<T extends Record<string, any>>(
   ) {
     return result;
   }
-  let end = Math.max(0, Math.floor(maxCharacters));
+  let end = maxCharacters;
   // Don't leave half of a surrogate pair (an emoji, say) at the cut.
   const last = result.text.charCodeAt(end - 1);
   if (end > 0 && last >= 0xd800 && last <= 0xdbff) end--;
@@ -92,6 +100,7 @@ export const fetch = action({
         `fetch takes at most ${MAX_URLS_PER_REQUEST} URLs per call (got ${args.urls.length}). Use startFetch to fetch more as a durable job.`,
       );
     }
+    validateMaxCharacters(args.options);
     const body = await tinyfishRequest("fetch", {
       body: fetchBody(args.urls, args.options),
     });

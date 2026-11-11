@@ -28,6 +28,11 @@ export const RETRY = { attempts: 2, baseDelayMs: 500, maxDelayMs: 8_000 };
 
 const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
 
+/** Whether a response with this status is worth sending again. */
+export function isRetryableStatus(status: number): boolean {
+  return RETRYABLE_STATUS.has(status);
+}
+
 export type Endpoint = "search" | "fetch";
 
 export function endpointUrl(endpoint: Endpoint): string {
@@ -205,7 +210,7 @@ export async function tinyfishRequest(
         : text.slice(0, 300) || response.statusText,
     );
     details.requestId ??= response.headers.get("x-request-id") ?? undefined;
-    if (!RETRYABLE_STATUS.has(response.status) || attempt >= retries) {
+    if (!isRetryableStatus(response.status) || attempt >= retries) {
       fail(endpoint, response.status, details.message, details);
     }
     await sleep(retryDelayMs(attempt, response.headers.get("retry-after")));

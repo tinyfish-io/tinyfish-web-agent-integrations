@@ -222,6 +222,11 @@ anyone but its owner; the example app's
 const jobId = await tinyfish.startFetch(ctx, { urls, options: { ttl: 0 } });
 ```
 
+A job normalizes its URLs first (`https://Example.com` becomes
+`https://example.com/`), so different spellings of one address are fetched
+once. Pages are stored under the normalized URL, and `getPage` accepts any
+spelling.
+
 Both can be called from a mutation, so starting a job and recording who owns
 it commit together.
 

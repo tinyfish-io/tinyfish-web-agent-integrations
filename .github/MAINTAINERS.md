@@ -26,7 +26,11 @@ The publish workflows use the repository `PYPI_API_TOKEN` Actions secret provisi
 
 ## npm integration releases
 
-npm publish workflows follow the same rule as the Python ones: no automatic version bumps. Each workflow reads the name and version from the package's `package.json`, checks npm for that exact version, and publishes only when it does not exist yet. Publishing uses npm Trusted Publisher (OIDC), so there is no token secret. A new package needs one manual first publish before a trusted publisher can be configured; the steps are in the header of its publish workflow.
+npm publish workflows follow the same rule as the Python ones: no automatic version bumps. Each workflow reads the name and version from the package's `package.json`, checks npm for that exact version, and publishes only when it does not exist yet. Publishing uses npm Trusted Publisher (OIDC), so there is no token secret. A new package needs one manual first publish, because a trusted publisher cannot be configured on a package that does not exist yet:
+
+1. In the package folder, run `npm ci`, the package's verify script (`npm run verify` for Convex), then `npm publish --access public`.
+2. On npmjs.com, open the package's Settings → Trusted Publisher → GitHub Actions and name this repository and the package's publish workflow (for Convex, `convex-publish.yml`). If the form asks which publish methods to allow, allow `npm publish`: these workflows publish directly rather than through staged publishing.
+3. Every release after that is the publish workflow, on a version bump.
 
 | Integration | Package | Version files |
 | --- | --- | --- |

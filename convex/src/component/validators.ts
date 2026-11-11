@@ -23,6 +23,7 @@ export const searchOptionsValidator = v.object({
   include_domains: v.optional(v.union(v.string(), v.array(v.string()))),
   /** Domains to drop from results. An array is joined with commas. */
   exclude_domains: v.optional(v.union(v.string(), v.array(v.string()))),
+  /** Freshness window in minutes. Not combinable with the date bounds. */
   recency_minutes: v.optional(v.number()),
   /** YYYY-MM-DD */
   after_date: v.optional(v.string()),
@@ -35,7 +36,9 @@ export const searchOptionsValidator = v.object({
       v.literal("research_paper"),
     ),
   ),
+  /** `research_paper` only. */
   pub_year_min: v.optional(v.number()),
+  /** `research_paper` only. */
   pub_year_max: v.optional(v.number()),
   /** Zero-based page, up to 10. */
   page: v.optional(v.number()),
@@ -49,6 +52,7 @@ export const fetchFormatValidator = v.union(
 );
 
 export const highlightsValidator = v.object({
+  /** The question to answer from each page. Name the entity in it. */
   query: v.string(),
   max_snippets: v.optional(v.number()),
   max_characters: v.optional(v.number()),
@@ -59,12 +63,14 @@ export const highlightsValidator = v.object({
 const fetchFields = {
   /** Why you are fetching. Improves result quality. Max 2000 characters. */
   purpose: v.optional(v.string()),
+  /** Format of each page's `text`. Defaults to "markdown". */
   format: v.optional(fetchFormatValidator),
   links: v.optional(v.boolean()),
   image_links: v.optional(v.boolean()),
   iframe_links: v.optional(v.boolean()),
   /** Cache tolerance in seconds. 0 forces a live fetch. */
   ttl: v.optional(v.number()),
+  /** 1 to 110000. */
   per_url_timeout_ms: v.optional(v.number()),
   include_etag_and_last_modified: v.optional(v.boolean()),
   include_selectors: v.optional(v.array(v.string())),
@@ -72,8 +78,9 @@ const fetchFields = {
   /** Beta: enabled per account. Requires `format: "markdown"`. */
   highlights: v.optional(highlightsValidator),
   /**
-   * Component option, not sent to TinyFish: cap each page's `text` at this
-   * many characters. Capped pages come back with `truncated: true`.
+   * Cap each page's `text` at this many characters (an integer of 0 or more),
+   * so results fit a model's context or your own storage budget. Capped pages
+   * have `truncated: true`. Applied by the component; not sent to TinyFish.
    */
   maxCharacters: v.optional(v.number()),
   extra,
@@ -89,3 +96,23 @@ export const fetchOptionsValidator = v.object({
 
 /** Options for durable jobs, which fetch many URLs across several requests. */
 export const jobFetchOptionsValidator = v.object(fetchFields);
+
+/**
+ * Arguments of the mutation an app passes as `onComplete`. The one definition
+ * of the completion payload: the component sends it and apps validate with it.
+ */
+export const jobCompleteArgs = {
+  jobId: v.string(),
+  kind: v.union(v.literal("fetch"), v.literal("search_and_fetch")),
+  status: v.union(
+    v.literal("completed"),
+    v.literal("failed"),
+    v.literal("cancelled"),
+  ),
+  total: v.number(),
+  completed: v.number(),
+  failed: v.number(),
+  error: v.optional(v.string()),
+  /** Whatever the job was started with. */
+  context: v.optional(v.any()),
+};

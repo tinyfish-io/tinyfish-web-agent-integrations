@@ -243,6 +243,21 @@ describe("fetch", () => {
     expect(response.results[0].truncated).toBe(true);
   });
 
+  test("rejects a maxCharacters that would empty every page", async () => {
+    const t = initConvexTest();
+    const calls = mockFetch([]);
+
+    for (const maxCharacters of [-1, 2.5, Number.NaN]) {
+      await expect(
+        t.action(api.lib.fetch, {
+          urls: ["https://a.com"],
+          options: { maxCharacters },
+        }),
+      ).rejects.toThrow(/maxCharacters/);
+    }
+    expect(calls).toHaveLength(0);
+  });
+
   test("rejects more than 10 URLs and points at startFetch", async () => {
     const t = initConvexTest();
     const calls = mockFetch([]);

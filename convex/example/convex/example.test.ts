@@ -94,7 +94,7 @@ test("research runs a job and saves a brief with sources and failures", async ()
           position: 1,
           title: "Acme Loop",
           snippet: "Workflow automation for support teams",
-          url: "https://acmeloop.dev",
+          url: "https://acmeloop.dev/",
         },
         {
           position: 2,
@@ -107,7 +107,7 @@ test("research runs a job and saves a brief with sources and failures", async ()
     {
       results: [
         {
-          url: "https://acmeloop.dev",
+          url: "https://acmeloop.dev/",
           final_url: "https://acmeloop.dev/",
           title: "Acme Loop",
           text: "# Acme Loop",
@@ -152,7 +152,7 @@ test("a job is only visible to the user who started it", async () => {
   mockTinyFish([]);
   const jobId = await t
     .withIdentity({ subject: "user-1" })
-    .mutation(api.example.readMany, { urls: ["https://a.com"] });
+    .mutation(api.example.readMany, { urls: ["https://a.com/"] });
 
   await expect(
     t.withIdentity({ subject: "user-2" }).query(api.example.job, { jobId }),
@@ -171,10 +171,10 @@ test("removing a job removes its brief, and a running job leaves none behind", a
   const hop = () => vi.advanceTimersByTime(10_000);
   const search = {
     query: "acme",
-    results: [{ position: 1, title: "Acme", snippet: "", url: "https://a.com" }],
+    results: [{ position: 1, title: "Acme", snippet: "", url: "https://a.com/" }],
   };
   const fetch = {
-    results: [{ url: "https://a.com", final_url: "https://a.com", text: "# A" }],
+    results: [{ url: "https://a.com/", final_url: "https://a.com/", text: "# A" }],
     errors: [],
   };
   mockTinyFish([search, fetch]);
