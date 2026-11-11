@@ -427,6 +427,42 @@ describe("storing results", () => {
     });
   });
 
+  test("a deeply nested json page does not fail its job", async () => {
+    const t = initConvexTest();
+    const nest = (levels: number): unknown =>
+      levels === 0 ? "leaf" : { children: [nest(levels - 1)] };
+    const calls = mockFetch([
+      {
+        body: {
+          results: [
+            { ...fetched("https://a.com"), text: nest(20), format: "json" },
+            { ...fetched("https://b.com"), text: nest(2), format: "json" },
+          ],
+          errors: [],
+        },
+      },
+    ]);
+
+    const jobId = await t.mutation(api.jobs.startFetch, {
+      urls: ["https://a.com", "https://b.com"],
+      options: { format: "json" },
+    });
+    await finish(t);
+
+    expect(calls).toHaveLength(1);
+    expect(await t.query(api.jobs.get, { jobId })).toMatchObject({
+      status: "completed",
+      completed: 2,
+      truncated: 1,
+    });
+    const deep = await t.query(api.jobs.getPage, { jobId, url: "https://a.com" });
+    expect(deep).toMatchObject({ status: "completed", truncated: true });
+    expect(deep).not.toHaveProperty("text");
+    expect(
+      await t.query(api.jobs.getPage, { jobId, url: "https://b.com" }),
+    ).toMatchObject({ truncated: false, text: nest(2) });
+  });
+
   test("matches a result whose URL came back in normalized form", async () => {
     const t = initConvexTest();
     mockFetch([
@@ -798,6 +834,35 @@ describe("shaping pages", () => {
       title: "A",
       snippet: "s",
     });
+  });
+
+  test("leaves out a document tree nested too deeply for Convex", () => {
+    const nest = (levels: number): unknown =>
+      levels === 0 ? "leaf" : { children: [nest(levels - 1)] };
+    // Each level here is an object holding an array: two containers.
+    const shallow = nest(5);
+    const deep = nest(20);
+    expect(storable(shallow)).toBe(true);
+    expect(storable(deep)).toBe(false);
+    // The same value has less room as an array element than as a field.
+    const fifteen = Array.from({ length: 14 }).reduce((v) => [v], ["x"]);
+    expect(storable(fifteen, 0)).toBe(true);
+    expect(storable(fifteen, 1)).toBe(false);
+
+    const page = toPage(
+      { ...fetched("https://a.com"), text: deep, format: "json" },
+      { storeContent: true },
+    );
+    expect(page.text).toBeUndefined();
+    expect(page.truncated).toBe(true);
+    expect(page).toMatchObject({ status: "completed", title: "Title of https://a.com" });
+
+    expect(
+      toPage(
+        { ...fetched("https://a.com"), text: shallow, format: "json" },
+        { storeContent: true },
+      ).text,
+    ).toEqual(shallow);
   });
 
   test("keeps retry hints on a failed page", () => {

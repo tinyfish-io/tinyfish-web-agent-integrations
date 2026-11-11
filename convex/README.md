@@ -233,7 +233,7 @@ it commit together.
 | --- | --- |
 | `status` | `queued` → `running` → `completed`, `failed`, or `cancelled` |
 | `total`, `completed`, `failed` | URLs to fetch, fetched so far, and failed so far |
-| `truncated` | Pages whose content was cut to fit a size cap |
+| `truncated` | Pages whose content was cut or left out to fit what Convex can store |
 | `searchResults` | What the search returned, for `startSearchAndFetch` jobs |
 | `error` | Why the job failed, when it did |
 
@@ -265,6 +265,12 @@ Convex documents hold at most 1MB. Page `text` beyond roughly 800KB is cut and
 the page is marked `truncated: true`; the job counts these in `truncated`. To
 choose your own, smaller cap, set `maxCharacters`. To keep only URLs and
 metadata, pass `storeContent: false`.
+
+`truncated` also marks content that was left out because Convex can't store
+it. With `format: "json"`, a document tree that is over the size limit, nested
+more than about 15 levels deep, or uses keys Convex rejects is dropped whole,
+since a tree can't be cut cleanly. The page's metadata is still stored. Use
+`markdown` or `html` when you need the content of deeply structured pages.
 
 When you list pages with content, keep `numItems` small.
 

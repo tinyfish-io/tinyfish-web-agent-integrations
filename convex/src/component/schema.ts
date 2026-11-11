@@ -48,7 +48,7 @@ export default defineSchema({
     completed: v.number(),
     /** URLs that failed so far. Their pages carry the error code. */
     failed: v.number(),
-    /** Pages whose content was cut to fit a size cap. */
+    /** Pages whose content was cut or left out. See `pages.truncated`. */
     truncated: v.number(),
     error: v.optional(v.string()),
     /** App mutation to call once the job reaches a terminal state. */
@@ -97,7 +97,12 @@ export default defineSchema({
     error_status: v.optional(v.number()),
     /** Remaining result fields (etag, unmatched_selectors, ...). */
     extra: v.optional(v.any()),
-    /** True when content was cut to fit `maxCharacters` or Convex's 1MB document limit. */
+    /**
+     * True when content was cut to fit `maxCharacters` or Convex's 1MB
+     * document limit, or left out because Convex can't store it: a `json`
+     * tree or `highlights` that is too large, nested too deeply, or uses keys
+     * Convex rejects.
+     */
     truncated: v.boolean(),
     fetchedAt: v.number(),
   })

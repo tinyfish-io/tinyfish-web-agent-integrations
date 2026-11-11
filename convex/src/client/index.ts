@@ -200,7 +200,7 @@ export type Job = {
   completed: number;
   /** URLs that failed so far. Their pages carry the error code. */
   failed: number;
-  /** Pages whose content was cut to fit a size cap. */
+  /** Pages whose content was cut or left out. See `JobPage.truncated`. */
   truncated: number;
   error?: string;
   context?: unknown;
@@ -238,7 +238,12 @@ export type JobPage = {
   error_status?: number;
   /** Remaining result fields, e.g. `etag` or `unmatched_selectors`. */
   extra?: Record<string, unknown>;
-  /** True when content was cut to fit `maxCharacters` or Convex's 1MB document limit. */
+  /**
+   * True when content was cut to fit `maxCharacters` or Convex's 1MB document
+   * limit, or left out because Convex can't store it: a `json` tree or
+   * `highlights` that is too large, nested too deeply, or uses keys Convex
+   * rejects. The rest of the page is still stored.
+   */
   truncated: boolean;
   fetchedAt: number;
 };

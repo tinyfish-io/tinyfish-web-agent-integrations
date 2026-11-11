@@ -142,12 +142,31 @@ function byteLength(value: unknown): number {
 }
 
 /**
+ * Convex rejects documents nested more than 16 levels deep. One level is held
+ * back as a margin, since a value that slips through fails the whole job.
+ */
+const MAX_NESTING = 15;
+
+/** Whether `value` holds more than `limit` levels of arrays and objects. */
+function nestsDeeperThan(value: unknown, limit: number): boolean {
+  if (value === null || typeof value !== "object") return false;
+  if (limit <= 0) return true;
+  const children = Array.isArray(value) ? value : Object.values(value);
+  return children.some((child) => nestsDeeperThan(child, limit - 1));
+}
+
+/**
  * Whether Convex will accept a value TinyFish sent. Free-form values (a JSON
  * document tree, highlights, unmodelled fields) can carry object keys Convex
- * rejects, such as ones starting with `$`. Checking here means a page is
- * stored without the offending field instead of failing the whole batch.
+ * rejects, such as ones starting with `$`, or be nested too deeply. Checking
+ * here means a page is stored without the offending field instead of failing
+ * its job.
+ *
+ * `level` is how many containers sit above the value in its document: 1 for
+ * a top-level field, 2 for an element of a top-level array.
  */
-export function storable(value: unknown): boolean {
+export function storable(value: unknown, level = 1): boolean {
+  if (nestsDeeperThan(value, MAX_NESTING - level)) return false;
   try {
     convexToJson(value as any);
     return true;
@@ -181,7 +200,8 @@ function plainFields(value: unknown): Record<string, string | number | boolean> 
  */
 export function searchResultForStorage(result: unknown): Record<string, unknown> {
   const kept: Record<string, unknown> =
-    result && typeof result === "object" && storable(result)
+    // On the job, a result is an element of the `searchResults` array.
+    result && typeof result === "object" && storable(result, 2)
       ? (result as Record<string, unknown>)
       : plainFields(result);
   if (byteLength(kept) <= MAX_SEARCH_RESULT_BYTES) return kept;
