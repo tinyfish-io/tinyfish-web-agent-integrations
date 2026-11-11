@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from tinyfish_hermes import config, research_tools, rest_client, tool_helpers
+from tinyfish_hermes import config, research_tools, rest_client
 from tinyfish_hermes.credit_policy import pre_tool_call_policy
 
 TOOLS = {schema["name"]: handler for schema, handler in research_tools.RESEARCH_TOOLS}
@@ -15,18 +15,6 @@ REPORT_URL = f"{rest_client.AGENT_URL}/research/{RUN_ID}"
 
 def call(name: str, args: dict[str, Any]) -> dict[str, Any]:
     return json.loads(TOOLS[name](args))
-
-
-@pytest.fixture
-def clock(monkeypatch: pytest.MonkeyPatch) -> list[float]:
-    now = [0.0]
-
-    def sleep(seconds: float) -> None:
-        now[0] += seconds
-
-    monkeypatch.setattr(tool_helpers.time, "monotonic", lambda: now[0])
-    monkeypatch.setattr(tool_helpers.time, "sleep", sleep)
-    return now
 
 
 def test_start_returns_the_run_and_report_link(http: Any) -> None:

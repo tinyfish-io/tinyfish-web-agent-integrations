@@ -44,10 +44,25 @@ sys.modules.setdefault("tools", tools_pkg)
 sys.modules["tools.interrupt"] = interrupt_mod
 
 
+# Imported after the stubs above, which it needs at import time.
+from tinyfish_hermes import rest_client, tool_helpers  # noqa: E402
+
+
+@pytest.fixture
+def clock(monkeypatch: pytest.MonkeyPatch) -> list[float]:
+    # time_machine leaves monotonic and sleep real, so poll loops would really wait.
+    now = [0.0]
+
+    def sleep(seconds: float) -> None:
+        now[0] += seconds
+
+    monkeypatch.setattr(tool_helpers.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(tool_helpers.time, "sleep", sleep)
+    return now
+
+
 @pytest.fixture
 def http(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
-    from tinyfish_hermes import rest_client
-
     monkeypatch.setenv("TINYFISH_API_KEY", "tf_test")
     sent: list[dict[str, Any]] = []
     replies: list[httpx.Response] = []

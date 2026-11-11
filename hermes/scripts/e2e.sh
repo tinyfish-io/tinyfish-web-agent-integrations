@@ -8,7 +8,11 @@ PLUGIN_DIR=$(cd "$(dirname "$0")/.." && pwd)
 REPO_ROOT=$(git -C "$PLUGIN_DIR" rev-parse --show-toplevel)
 HERMES_HOME=$(mktemp -d)
 # Git Bash: native Windows Python needs C:/ paths, and file:// URLs need a leading slash before the drive.
-if command -v cygpath >/dev/null; then HERMES_HOME=$(cygpath -m "$HERMES_HOME"); fi
+CHECKS="$PLUGIN_DIR/scripts/e2e_checks.py"
+if command -v cygpath >/dev/null; then
+  HERMES_HOME=$(cygpath -m "$HERMES_HOME")
+  CHECKS=$(cygpath -m "$CHECKS")
+fi
 [[ $REPO_ROOT == /* ]] || REPO_ROOT=/$REPO_ROOT
 export HERMES_HOME
 # CI setups would otherwise count as real plugin installs.
@@ -52,39 +56,7 @@ step "setup + live doctor"
 "$HERMES" tinyfish doctor --live
 
 step "search + extract through Hermes' own web tools"
-"$HERMES_PYTHON" - <<'PY'
-import asyncio
-import json
-
-from hermes_cli.plugins import discover_plugins
-from tools.web_tools import web_extract_tool, web_search_tool
-
-discover_plugins()
-search = json.loads(web_search_tool("TinyFish web agent", limit=2))
-assert search["success"] and search["data"]["web"], search
-extract = json.loads(asyncio.run(web_extract_tool(["https://example.com"], "markdown")))
-page = extract["results"][0]
-assert not page.get("error") and "Example Domain" in page["title"], page
-print("search + extract OK")
-PY
+"$HERMES_PYTHON" "$CHECKS" web
 
 step "monitor, research and dataset tools + bundled skills"
-"$HERMES_PYTHON" - <<'PY'
-import json
-
-from hermes_cli.plugins import discover_plugins
-from tools.registry import registry
-from tools.skills_tool import skills_list
-
-discover_plugins()
-monitors = json.loads(registry.dispatch("tinyfish_list_monitors", {}))
-assert "error" not in monitors, monitors
-# Datasets and Research are flag-gated per account; a clean refusal also passes.
-for tool in ("tinyfish_list_datasets", "tinyfish_list_deep_research"):
-    out = json.loads(registry.dispatch(tool, {}))
-    assert "error" not in out or "isn't enabled" in out.get("next_action", ""), (tool, out)
-names = {s["name"] for s in json.loads(skills_list())["skills"]}
-for skill in ("tinyfish-monitor", "tinyfish-datasets", "tinyfish-websearch"):
-    assert f"tinyfish:{skill}" in names, (skill, sorted(names))
-print("product tools + skills OK")
-PY
+"$HERMES_PYTHON" "$CHECKS" products

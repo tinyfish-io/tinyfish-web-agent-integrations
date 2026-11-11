@@ -145,21 +145,23 @@ _CREDIT_FEATURE_BY_TOOL: dict[str, CreditFeature] = {
 
 def _charge_scope(tool_name: str, params: dict[str, Any]) -> str:
     rows = params.get("target_rows")
-    if tool_name == "tinyfish_create_monitor":
-        config = params.get("config")
-        config = config if isinstance(config, dict) else {}
-        watched = str(config.get("url") or config.get("query") or "?")[:120]
-        cron = params.get("schedule_cron")
-        return (
-            f" Watches {watched} on schedule '{cron}', billing every check until "
-            "paused or cancelled."
-        )
-    if tool_name == "tinyfish_resume_monitor":
-        return " Its scheduled checks bill again until paused or cancelled."
-    if tool_name == "tinyfish_create_dataset":
-        return f" Fills up to {rows or 100} rows, $0.10 per complete row."
-    if tool_name == "tinyfish_populate_dataset" and rows:
-        return f" Fills up to {rows} rows, $0.10 per complete row."
+    match tool_name:
+        case "tinyfish_create_monitor":
+            config = params.get("config")
+            config = config if isinstance(config, dict) else {}
+            watched = str(config.get("url") or config.get("query") or "?")[:120]
+            return (
+                f" Watches {watched} on schedule '{params.get('schedule_cron')}', "
+                "billing every check until paused or cancelled."
+            )
+        case "tinyfish_resume_monitor":
+            return " Its scheduled checks bill again until paused or cancelled."
+        case "tinyfish_create_dataset":
+            return f" Fills up to {rows or 100} rows, $0.10 per complete row."
+        case "tinyfish_populate_dataset":
+            # Populate has no fixed default target, so an omitted one stays unnamed.
+            target = f"up to {rows} rows" if rows else "an unspecified number of rows"
+            return f" Fills {target}, $0.10 per complete row."
     return ""
 
 
@@ -173,6 +175,52 @@ def _delete_approval(kind: str, collection: str, item_id: str) -> dict[str, str]
     }
 
 
+_DELETES: dict[str, tuple[str, str, str]] = {
+    "tinyfish_delete_profile": ("profile", "profiles", "profile_id"),
+    "tinyfish_cancel_monitor": ("monitor", "monitors", "monitor_id"),
+    "tinyfish_delete_dataset": ("dataset", "datasets", "dataset_id"),
+}
+
+
+def _reset_approval(params: dict[str, Any]) -> dict[str, str]:
+    dataset_id = str(params.get("dataset_id") or "")
+    label = _fetch_label("datasets", dataset_id)
+    # Reset deletes rows, so it asks even under `allow`, once per dataset.
+    return {
+        "action": "approve",
+        "message": f"Empty TinyFish dataset {label} and refill it? Its current rows "
+        "are deleted, and refilling consumes TinyFish credits."
+        + _charge_scope("tinyfish_populate_dataset", params),
+        "rule_key": f"tinyfish:dataset_reset:{dataset_id}",
+    }
+
+
+def _billed_directive(
+    tool_name: str, params: dict[str, Any], target: str
+) -> dict[str, str] | None:
+    feature = _CREDIT_FEATURE_BY_TOOL[tool_name]
+    directive = _directive_for_feature(feature, tool_name, target)
+    blocked = directive is not None and directive["action"] == "block"
+    if tool_name == "tinyfish_populate_dataset" and params.get("reset") and not blocked:
+        return _reset_approval(params)
+    if directive and not blocked:
+        directive["message"] += _charge_scope(tool_name, params)
+    return directive
+
+
+def _schedule_change_directive(
+    params: dict[str, Any], target: str
+) -> dict[str, str] | None:
+    # A new schedule is a new spend decision; fetch monitors have no floor.
+    directive = _directive_for_feature("monitor", "tinyfish_update_monitor", target)
+    if directive and directive["action"] == "approve":
+        directive["message"] += (
+            f" Changes the schedule to '{params['schedule_cron']}'; every check "
+            "bills until paused or cancelled."
+        )
+    return directive
+
+
 def pre_tool_call_policy(
     tool_name: str, args: dict[str, Any] | None = None, **_: Any
 ) -> dict[str, str] | None:
@@ -180,43 +228,13 @@ def pre_tool_call_policy(
 
     params = args or {}
     target = str(params.get("url") or params.get("target") or "")
-
     if tool_name in _CREDIT_FEATURE_BY_TOOL:
-        feature = _CREDIT_FEATURE_BY_TOOL[tool_name]
-        directive = _directive_for_feature(feature, tool_name, target)
-        if directive and directive["action"] == "approve":
-            directive["message"] += _charge_scope(tool_name, params)
-        if tool_name == "tinyfish_populate_dataset" and params.get("reset"):
-            if directive and directive["action"] == "block":
-                return directive
-            dataset_id = str(params.get("dataset_id") or "")
-            label = _fetch_label("datasets", dataset_id)
-            # Reset deletes rows, so it asks even under `allow`, once per dataset.
-            return {
-                "action": "approve",
-                "message": f"Empty TinyFish dataset {label} and refill it? Its current "
-                "rows are deleted, and refilling consumes TinyFish credits.",
-                "rule_key": f"tinyfish:dataset_reset:{dataset_id}",
-            }
-        return directive
+        return _billed_directive(tool_name, params, target)
     if tool_name == "tinyfish_update_monitor" and params.get("schedule_cron"):
-        # A new schedule is a new spend decision; fetch monitors have no floor.
-        directive = _directive_for_feature("monitor", tool_name, target)
-        if directive and directive["action"] == "approve":
-            directive["message"] += (
-                f" Changes the schedule to '{params['schedule_cron']}'; every check "
-                "bills until paused or cancelled."
-            )
-        return directive
-    if tool_name == "tinyfish_delete_profile":
-        profile_id = str(params.get("profile_id") or "")
-        return _delete_approval("profile", "profiles", profile_id)
-    if tool_name == "tinyfish_cancel_monitor":
-        monitor_id = str(params.get("monitor_id") or "")
-        return _delete_approval("monitor", "monitors", monitor_id)
-    if tool_name == "tinyfish_delete_dataset":
-        dataset_id = str(params.get("dataset_id") or "")
-        return _delete_approval("dataset", "datasets", dataset_id)
+        return _schedule_change_directive(params, target)
+    if tool_name in _DELETES:
+        kind, collection, id_key = _DELETES[tool_name]
+        return _delete_approval(kind, collection, str(params.get(id_key) or ""))
     if not tool_name.startswith("browser_"):
         return None
     config = load_config()

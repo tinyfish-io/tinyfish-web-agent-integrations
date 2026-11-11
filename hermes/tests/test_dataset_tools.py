@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from tinyfish_hermes import config, dataset_tools, rest_client, tool_helpers
+from tinyfish_hermes import config, dataset_tools, rest_client
 from tinyfish_hermes.credit_policy import pre_tool_call_policy
 
 TOOLS = {schema["name"]: handler for schema, handler in dataset_tools.DATASET_TOOLS}
@@ -47,18 +47,6 @@ def dataset(status: str, **extra: Any) -> dict[str, Any]:
 
 def call(name: str, args: dict[str, Any]) -> dict[str, Any]:
     return json.loads(TOOLS[name](args))
-
-
-@pytest.fixture
-def clock(monkeypatch: pytest.MonkeyPatch) -> list[float]:
-    now = [0.0]
-
-    def sleep(seconds: float) -> None:
-        now[0] += seconds
-
-    monkeypatch.setattr(tool_helpers.time, "monotonic", lambda: now[0])
-    monkeypatch.setattr(tool_helpers.time, "sleep", sleep)
-    return now
 
 
 @pytest.mark.parametrize("args", [{}, {"prompt": "coffee shops", "spec": SPEC}])
@@ -271,6 +259,12 @@ def test_reset_always_asks_and_names_the_dataset(
     assert directive is not None
     assert directive["rule_key"] == "tinyfish:dataset_reset:d1"
     assert "'Coffee' (d1)" in directive["message"]
+    assert "unspecified number of rows, $0.10 per complete row" in directive["message"]
+    http.reply(200, dataset("ready"))
+    sized = pre_tool_call_policy(
+        "tinyfish_populate_dataset", {**args, "target_rows": 500}
+    )
+    assert sized is not None and "Fills up to 500 rows, $0.10" in sized["message"]
     assert (
         pre_tool_call_policy("tinyfish_populate_dataset", {"dataset_id": "d1"}) is None
     )
@@ -295,3 +289,12 @@ def test_refusal_after_the_run_started_points_at_get(http: Any) -> None:
     assert out["run_id"] == "r9"
     assert out["next_action"].startswith("The run started as run_id=r9.")
     assert "tinyfish_get_dataset with dataset_id=d1" in out["next_action"]
+
+
+def test_populate_approval_prices_an_unnamed_target() -> None:
+    directive = pre_tool_call_policy("tinyfish_populate_dataset", {"dataset_id": "d1"})
+
+    assert directive is not None
+    assert directive["message"].endswith(
+        "Fills an unspecified number of rows, $0.10 per complete row."
+    )
