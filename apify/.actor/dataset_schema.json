@@ -1,0 +1,177 @@
+{
+  "$schema": "https://apify.com/schemas/v1/dataset.ide.json",
+  "actorSpecification": 1,
+  "fields": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Search mode: the query this result was found for.",
+        "nullable": true,
+        "example": "web automation tools"
+      },
+      "position": {
+        "type": "integer",
+        "description": "Search mode: rank of the result, starting from 1.",
+        "nullable": true,
+        "example": 1
+      },
+      "site_name": {
+        "type": "string",
+        "description": "Search mode: domain of the result.",
+        "nullable": true,
+        "example": "example.com"
+      },
+      "snippet": {
+        "type": "string",
+        "description": "Search mode: text snippet from the result.",
+        "nullable": true,
+        "example": "An overview of tools for automating work on the web."
+      },
+      "date": {
+        "type": "string",
+        "description": "Search mode: publication date. Present for news and some web results.",
+        "nullable": true,
+        "example": "2026-01-15"
+      },
+      "url": {
+        "type": "string",
+        "description": "URL of the search result, or the URL that was asked to be fetched.",
+        "nullable": true,
+        "example": "https://example.com/article"
+      },
+      "title": {
+        "type": "string",
+        "description": "Title of the result or page.",
+        "nullable": true,
+        "example": "Example Article Title"
+      },
+      "final_url": {
+        "type": "string",
+        "description": "Fetch mode: the URL after any redirects.",
+        "nullable": true,
+        "example": "https://www.example.com/article"
+      },
+      "description": {
+        "type": "string",
+        "description": "Fetch mode: the page's meta description.",
+        "nullable": true,
+        "example": "A short description of the example article."
+      },
+      "language": {
+        "type": "string",
+        "description": "Fetch mode: detected language of the page.",
+        "nullable": true,
+        "example": "en"
+      },
+      "author": {
+        "type": "string",
+        "description": "Fetch mode: author from the page's meta tags.",
+        "nullable": true,
+        "example": "Example Author"
+      },
+      "published_date": {
+        "type": "string",
+        "description": "Fetch mode: publication date of the page, when it can be detected.",
+        "nullable": true,
+        "example": "2026-01-15T12:00:00.000Z"
+      },
+      "text": {
+        "type": ["string", "object"],
+        "description": "Fetch mode: the page content. A string for the \"markdown\" and \"html\" formats, a document tree for \"json\".",
+        "nullable": true,
+        "example": "# Example Article Title\n\nThe first paragraph of the article."
+      },
+      "format": {
+        "type": "string",
+        "description": "Fetch mode: format of `text`: \"markdown\", \"html\" or \"json\".",
+        "nullable": true,
+        "example": "markdown"
+      },
+      "links": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Fetch mode: links found on the page, when `links` was requested.",
+        "nullable": true,
+        "example": ["https://example.com/pricing"]
+      },
+      "image_links": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Fetch mode: image URLs found on the page, when `image_links` was requested.",
+        "nullable": true,
+        "example": ["https://example.com/logo.png"]
+      },
+      "iframe_links": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Fetch mode: iframe URLs found on the page, when `iframe_links` was requested.",
+        "nullable": true,
+        "example": ["https://example.com/embed/123"]
+      },
+      "latency_ms": {
+        "type": "number",
+        "description": "Fetch mode: time taken to fetch and extract the page, in milliseconds.",
+        "nullable": true,
+        "example": 1240
+      },
+      "error": {
+        "type": "string",
+        "description": "Fetch mode: why this URL could not be fetched, such as `page_not_found`, `timeout` or `bot_blocked`. Absent for pages that were fetched. Failed URLs are not charged.",
+        "nullable": true,
+        "example": "page_not_found"
+      },
+      "status": {
+        "type": "integer",
+        "description": "Fetch mode: HTTP status of the target, when a failed URL returned one.",
+        "nullable": true,
+        "example": 404
+      }
+    },
+    "required": [],
+    "additionalProperties": true
+  },
+  "views": {
+    "search": {
+      "title": "Search results",
+      "description": "Ranked results of a search.",
+      "transformation": {
+        "fields": ["position", "title", "url", "snippet", "site_name", "date", "query"]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "position": { "label": "Rank", "format": "number" },
+          "title": { "label": "Title", "format": "text" },
+          "url": { "label": "URL", "format": "link" },
+          "snippet": { "label": "Snippet", "format": "text" },
+          "site_name": { "label": "Site", "format": "text" },
+          "date": { "label": "Date", "format": "text" },
+          "query": { "label": "Query", "format": "text" }
+        }
+      }
+    },
+    "pages": {
+      "title": "Fetched pages",
+      "description": "Pages that were read, and the URLs that failed.",
+      "transformation": {
+        "fields": ["url", "title", "text", "language", "published_date", "final_url", "format", "error", "status"]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "url": { "label": "URL", "format": "link" },
+          "title": { "label": "Title", "format": "text" },
+          "text": { "label": "Content", "format": "text" },
+          "language": { "label": "Language", "format": "text" },
+          "published_date": { "label": "Published", "format": "text" },
+          "final_url": { "label": "Final URL", "format": "link" },
+          "format": { "label": "Format", "format": "text" },
+          "error": { "label": "Error", "format": "text" },
+          "status": { "label": "Target status", "format": "number" }
+        }
+      }
+    }
+  }
+}

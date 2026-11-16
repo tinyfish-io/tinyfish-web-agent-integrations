@@ -42,3 +42,29 @@ For Convex, bump both version files together: `version.ts` is what the component
 ## Kiro power
 
 `kiro/tinyfish/plugin.json`'s `description` names the TinyFish MCP tools and their required arguments on purpose. Kiro cuts a power's activation output at 30,000 characters and shows the agent only the first and last 500, and the hosted server's tool list is about 38,000, so without those names the agent guesses tool names such as `fetch`. Kiro always shows the `description` in full. When a tool used there is renamed or gains a required argument on the server, update the description and bump `version` in `kiro/tinyfish/plugin.json` and `X-TF-Client-Version` in `kiro/tinyfish/mcp.json` together; CI checks that the two versions match. The power lives in `kiro/tinyfish/`, not `kiro/`, because the Kiro IDE names an imported power after its folder (`kiro` would name the server `power-kiro-tinyfish`); Kiro CLI uses `plugin.json`'s `name`.
+
+## Apify Actor
+
+`apify/` is the source of the `search-and-fetch` Actor in the `tinyfish` organization on Apify. `apify/README.md` is the Actor's Apify Store page, so keep maintainer notes here.
+
+The Actor has two interfaces that share one set of fields. The server interface (a Server Actor, formerly Standby mode) answers `GET|POST /search` and `/fetch`; the input interface does one search or one batch of fetches per run and writes to the dataset. `src/options.ts` is the single definition of those fields. `.actor/input_schema.json` and `.actor/openapi.json` are generated from it: after changing a field, run `npm run build:schemas` in `apify/` and commit the result. Do not edit the two files by hand; a test fails when they are out of date.
+
+### Deploying
+
+Deploys are manual for now. Log the Apify CLI in with the `tinyfish` organization's API token (Console → switch to the organization → Settings → API & Integrations), not a personal one, then in `apify/` run `npm run verify` and `apify push`. Pushing with a personal login creates the Actor under that person instead.
+
+### One-time setup in Apify Console
+
+- **API key.** Add `TINYFISH_API_KEY` under the Actor's Source → Environment variables with **Secret** enabled. It is deliberately not in `.actor/actor.json`: variables listed there replace the ones set in Console on every push, and would need the key in each pusher's local secret store.
+- **Pricing.** Pay per event, with two events named exactly `search` and `fetch` (see `src/charging.ts` for when each is charged). Remove the synthetic `apify-default-dataset-item` event, or every search result row of a regular run is charged on top of the `search` event.
+- **Tenancy.** Settings → Server → **Multi-tenant**, once pricing is set. The switch reaches every user within two minutes. Runs then happen in the `tinyfish` account, and each request is charged to its sender through the `X-Actor-Request-ID` header.
+
+While the Actor has no pay-per-event pricing, charging is skipped, so a private copy can be tested unpriced. Requests from the owner's account are never charged, so test charging from a second account.
+
+### Versions
+
+Bump `version` in `apify/package.json`, set `version` in `apify/.actor/actor.json` to its major.minor, and run `npm run build:schemas` (the OpenAPI document carries the version). Tests fail if any of the three disagree. `X-TF-Client-Version` is read from `package.json` at runtime.
+
+### Running locally
+
+`apify run` starts a regular run from `storage/key_value_stores/default/INPUT.json`. `APIFY_META_ORIGIN=STANDBY apify run` starts the server on port 4321. Both need `TINYFISH_API_KEY` in the environment.

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://apify.com/schemas/v1/output.ide.json",
+  "actorOutputSchemaVersion": 1,
+  "title": "Output of TinyFish Search & Fetch",
+  "description": "Search results, or the pages that were read, one item per result or page.",
+  "properties": {
+    "results": {
+      "type": "string",
+      "title": "Results",
+      "description": "Dataset with one item per search result or fetched page.",
+      "template": "{{links.apiDefaultDatasetUrl}}/items"
+    }
+  }
+}

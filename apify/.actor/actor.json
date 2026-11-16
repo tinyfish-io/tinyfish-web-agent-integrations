@@ -1,0 +1,23 @@
+{
+  "$schema": "https://apify.com/schemas/v1/actor.ide.json",
+  "actorSpecification": 1,
+  "name": "search-and-fetch",
+  "title": "TinyFish Search & Fetch",
+  "description": "Search the web and read any page as clean Markdown, HTML, or JSON. A real-time API for AI agents and RAG pipelines. Pages that need JavaScript are rendered.",
+  "version": "0.1",
+  "buildTag": "latest",
+  "usesStandbyMode": true,
+  "webServerSchema": "./openapi.json",
+  "minMemoryMbytes": 256,
+  "maxMemoryMbytes": 1024,
+  "defaultMemoryMbytes": 512,
+  "meta": {
+    "generatedBy": "Claude Code with Claude Fable 5.2"
+  },
+  "inputSchema": "./input_schema.json",
+  "outputSchema": "./output_schema.json",
+  "storages": {
+    "dataset": "./dataset_schema.json"
+  },
+  "dockerfile": "../Dockerfile"
+}
