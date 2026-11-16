@@ -1,0 +1,44 @@
+{
+  "name": "tinyfish-apify-actor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TinyFish Search and Fetch as an Apify Actor: a real-time server interface plus regular Actor runs.",
+  "homepage": "https://docs.tinyfish.ai",
+  "bugs": {
+    "url": "https://github.com/tinyfish-io/tinyfish-web-agent-integrations/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tinyfish-io/tinyfish-web-agent-integrations.git",
+    "directory": "apify"
+  },
+  "author": {
+    "name": "TinyFish",
+    "email": "support@tinyfish.io",
+    "url": "https://tinyfish.ai"
+  },
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "start:prod": "node dist/main.js",
+    "clean": "rm -rf dist",
+    "build": "tsc --project ./tsconfig.build.json",
+    "build:schemas": "tsx scripts/generate-schemas.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "verify": "npm run build && npm run test && npm run typecheck"
+  },
+  "dependencies": {
+    "apify": "3.7.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.2",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
+  }
+}

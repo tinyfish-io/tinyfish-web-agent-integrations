@@ -1,0 +1,225 @@
+{
+  "$schema": "https://apify.com/schemas/v1/input.ide.json",
+  "title": "TinyFish Search & Fetch input",
+  "description": "Search the web, or read pages as clean Markdown, HTML, or JSON. Field names match the TinyFish Search and Fetch APIs.",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "mode": {
+      "title": "Mode",
+      "type": "string",
+      "description": "What to do: \"search\" finds pages for a query, \"fetch\" reads the pages at the URLs you give.",
+      "editor": "select",
+      "enum": [
+        "search",
+        "fetch"
+      ],
+      "enumTitles": [
+        "Search the web",
+        "Fetch URLs"
+      ],
+      "default": "search"
+    },
+    "query": {
+      "title": "Search query",
+      "description": "What to search the web for. Used in \"search\" mode.",
+      "type": "string",
+      "editor": "textfield",
+      "example": "web automation tools",
+      "prefill": "web automation tools"
+    },
+    "urls": {
+      "title": "URLs",
+      "description": "Pages to read. Each must be an http or https URL. Pages that need JavaScript are rendered. Used in \"fetch\" mode. Up to 100 per run.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 100,
+      "editor": "stringList",
+      "example": [
+        "https://www.tinyfish.ai/"
+      ]
+    },
+    "purpose": {
+      "title": "Purpose",
+      "description": "Why you are making this request: the goal the results will be used for. Optional, and improves result quality.",
+      "type": "string",
+      "editor": "textfield",
+      "example": "Compare pricing tiers across vendors for a procurement report"
+    },
+    "location": {
+      "title": "Location",
+      "description": "Country code for geo-targeted results, such as \"US\", \"GB\" or \"DE\". Resolved from `language` when omitted.",
+      "type": "string",
+      "editor": "textfield",
+      "example": "US",
+      "sectionCaption": "Search options"
+    },
+    "language": {
+      "title": "Language",
+      "description": "Language code for results, such as \"en\", \"fr\" or \"de\". Resolved from `location` when omitted.",
+      "type": "string",
+      "editor": "textfield",
+      "example": "en"
+    },
+    "include_domains": {
+      "title": "Include domains",
+      "description": "Only return results from these domains.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "editor": "stringList",
+      "example": [
+        "github.com",
+        "arxiv.org"
+      ]
+    },
+    "exclude_domains": {
+      "title": "Exclude domains",
+      "description": "Never return results from these domains.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "editor": "stringList",
+      "example": [
+        "pinterest.com",
+        "quora.com"
+      ]
+    },
+    "domain_type": {
+      "title": "Search type",
+      "description": "\"web\" for standard results, \"news\" for news articles with publisher and date, \"research_paper\" for academic papers with authors, venue and citation count. Defaults to \"web\".",
+      "type": "string",
+      "enum": [
+        "web",
+        "news",
+        "research_paper"
+      ],
+      "editor": "select",
+      "example": "web"
+    },
+    "recency_minutes": {
+      "title": "Recency (minutes)",
+      "description": "Only return results from the past N minutes, such as 60 for the last hour. Cannot be combined with `after_date` or `before_date`.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5256000,
+      "example": 1440
+    },
+    "after_date": {
+      "title": "After date",
+      "description": "Only return results after this date, as YYYY-MM-DD.",
+      "type": "string",
+      "editor": "textfield",
+      "example": "2026-06-01"
+    },
+    "before_date": {
+      "title": "Before date",
+      "description": "Only return results before this date, as YYYY-MM-DD.",
+      "type": "string",
+      "editor": "textfield",
+      "example": "2026-06-18"
+    },
+    "pub_year_min": {
+      "title": "Earliest publication year",
+      "description": "Only return papers published in or after this year. Only for the \"research_paper\" search type.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9999,
+      "example": 2019
+    },
+    "pub_year_max": {
+      "title": "Latest publication year",
+      "description": "Only return papers published in or before this year. Only for the \"research_paper\" search type.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9999,
+      "example": 2022
+    },
+    "page": {
+      "title": "Page",
+      "description": "Page of results to return, starting from 0.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "example": 0
+    },
+    "format": {
+      "title": "Format",
+      "description": "Format of each page's `text`: \"markdown\" (recommended for LLMs), \"html\" for cleaned semantic HTML, or \"json\" for a structured document tree. Defaults to \"markdown\".",
+      "type": "string",
+      "enum": [
+        "markdown",
+        "html",
+        "json"
+      ],
+      "editor": "select",
+      "example": "markdown",
+      "sectionCaption": "Fetch options"
+    },
+    "links": {
+      "title": "Include links",
+      "description": "Also return every link (`<a href>`) found on each page.",
+      "type": "boolean",
+      "example": false
+    },
+    "image_links": {
+      "title": "Include image links",
+      "description": "Also return every image URL (`<img src>`) found on each page.",
+      "type": "boolean",
+      "example": false
+    },
+    "iframe_links": {
+      "title": "Include iframe links",
+      "description": "Also return the `src` of every `<iframe>` on each page. Useful when a page embeds its main content in a frame: fetch the returned URL to read it.",
+      "type": "boolean",
+      "example": false
+    },
+    "ttl": {
+      "title": "Cache tolerance (seconds)",
+      "description": "Accept a cached copy of a page younger than this many seconds. 0 forces a live fetch. Omit to accept any cached copy.",
+      "type": "integer",
+      "minimum": 0,
+      "example": 3600
+    },
+    "per_url_timeout_ms": {
+      "title": "Timeout per URL (ms)",
+      "description": "Time allowed for each URL, in milliseconds. A URL that takes longer comes back as a `timeout` error while the others still complete.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 110000,
+      "example": 45000
+    },
+    "include_selectors": {
+      "title": "Include selectors",
+      "description": "CSS selectors: only content inside matching elements is returned, such as \"article\" or \"main\".",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "editor": "stringList",
+      "example": [
+        "article"
+      ]
+    },
+    "exclude_selectors": {
+      "title": "Exclude selectors",
+      "description": "CSS selectors: matching elements are removed before the content is extracted, such as \".comments\".",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "editor": "stringList",
+      "example": [
+        ".comments",
+        ".newsletter-signup"
+      ]
+    }
+  },
+  "required": []
+}

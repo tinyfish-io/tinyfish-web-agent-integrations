@@ -1,0 +1,895 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "TinyFish Search & Fetch",
+    "version": "0.1.0",
+    "description": "Search the web and read pages as clean Markdown, HTML, or JSON. Each endpoint takes the same fields as a GET query string or a POST JSON body. Authenticate with your Apify API token."
+  },
+  "paths": {
+    "/search": {
+      "get": {
+        "operationId": "searchGet",
+        "summary": "Search the web",
+        "description": "Returns ranked results with titles, snippets, and source URLs. Charged as one `search` event when at least one result comes back.",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "description": "What to search the web for.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "web automation tools"
+          },
+          {
+            "name": "purpose",
+            "in": "query",
+            "required": false,
+            "description": "Why you are making this request: the goal the results will be used for. Optional, and improves result quality.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "Compare pricing tiers across vendors for a procurement report"
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "required": false,
+            "description": "Country code for geo-targeted results, such as \"US\", \"GB\" or \"DE\". Resolved from `language` when omitted.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "US"
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "description": "Language code for results, such as \"en\", \"fr\" or \"de\". Resolved from `location` when omitted.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "en"
+          },
+          {
+            "name": "include_domains",
+            "in": "query",
+            "required": false,
+            "description": "Only return results from these domains.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "explode": false,
+            "example": [
+              "github.com",
+              "arxiv.org"
+            ]
+          },
+          {
+            "name": "exclude_domains",
+            "in": "query",
+            "required": false,
+            "description": "Never return results from these domains.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "explode": false,
+            "example": [
+              "pinterest.com",
+              "quora.com"
+            ]
+          },
+          {
+            "name": "domain_type",
+            "in": "query",
+            "required": false,
+            "description": "\"web\" for standard results, \"news\" for news articles with publisher and date, \"research_paper\" for academic papers with authors, venue and citation count. Defaults to \"web\".",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "web",
+                "news",
+                "research_paper"
+              ]
+            },
+            "example": "web"
+          },
+          {
+            "name": "recency_minutes",
+            "in": "query",
+            "required": false,
+            "description": "Only return results from the past N minutes, such as 60 for the last hour. Cannot be combined with `after_date` or `before_date`.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5256000
+            },
+            "example": 1440
+          },
+          {
+            "name": "after_date",
+            "in": "query",
+            "required": false,
+            "description": "Only return results after this date, as YYYY-MM-DD.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "2026-06-01"
+          },
+          {
+            "name": "before_date",
+            "in": "query",
+            "required": false,
+            "description": "Only return results before this date, as YYYY-MM-DD.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "2026-06-18"
+          },
+          {
+            "name": "pub_year_min",
+            "in": "query",
+            "required": false,
+            "description": "Only return papers published in or after this year. Only for the \"research_paper\" search type.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9999
+            },
+            "example": 2019
+          },
+          {
+            "name": "pub_year_max",
+            "in": "query",
+            "required": false,
+            "description": "Only return papers published in or before this year. Only for the \"research_paper\" search type.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9999
+            },
+            "example": 2022
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Page of results to return, starting from 0.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "example": 0
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The TinyFish response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/searchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A parameter is missing or invalid. Nothing is charged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Retry after a few seconds.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "TinyFish could not complete the request. Nothing is charged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "TinyFish did not answer in time. Nothing is charged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "searchPost",
+        "summary": "Search the web",
+        "description": "Returns ranked results with titles, snippets, and source URLs. Charged as one `search` event when at least one result comes back.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/searchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The TinyFish response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/searchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A parameter is missing or invalid. Nothing is charged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Retry after a few seconds.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "TinyFish could not complete the request. Nothing is charged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "TinyFish did not answer in time. Nothing is charged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fetch": {
+      "get": {
+        "operationId": "fetchGet",
+        "summary": "Read pages",
+        "description": "Returns the content of up to 10 URLs. A URL that could not be fetched is listed in `errors`; the others still come back in `results`. Charged as one `fetch` event per page in `results`.",
+        "parameters": [
+          {
+            "name": "urls",
+            "in": "query",
+            "required": true,
+            "description": "Pages to read. Each must be an http or https URL. Pages that need JavaScript are rendered.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 10
+            },
+            "explode": true,
+            "example": [
+              "https://www.tinyfish.ai/"
+            ]
+          },
+          {
+            "name": "purpose",
+            "in": "query",
+            "required": false,
+            "description": "Why you are making this request: the goal the results will be used for. Optional, and improves result quality.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "Compare pricing tiers across vendors for a procurement report"
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Format of each page's `text`: \"markdown\" (recommended for LLMs), \"html\" for cleaned semantic HTML, or \"json\" for a structured document tree. Defaults to \"markdown\".",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "markdown",
+                "html",
+                "json"
+              ]
+            },
+            "example": "markdown"
+          },
+          {
+            "name": "links",
+            "in": "query",
+            "required": false,
+            "description": "Also return every link (`<a href>`) found on each page.",
+            "schema": {
+              "type": "boolean"
+            },
+            "example": false
+          },
+          {
+            "name": "image_links",
+            "in": "query",
+            "required": false,
+            "description": "Also return every image URL (`<img src>`) found on each page.",
+            "schema": {
+              "type": "boolean"
+            },
+            "example": false
+          },
+          {
+            "name": "iframe_links",
+            "in": "query",
+            "required": false,
+            "description": "Also return the `src` of every `<iframe>` on each page. Useful when a page embeds its main content in a frame: fetch the returned URL to read it.",
+            "schema": {
+              "type": "boolean"
+            },
+            "example": false
+          },
+          {
+            "name": "ttl",
+            "in": "query",
+            "required": false,
+            "description": "Accept a cached copy of a page younger than this many seconds. 0 forces a live fetch. Omit to accept any cached copy.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "example": 3600
+          },
+          {
+            "name": "per_url_timeout_ms",
+            "in": "query",
+            "required": false,
+            "description": "Time allowed for each URL, in milliseconds. A URL that takes longer comes back as a `timeout` error while the others still complete.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 110000
+            },
+            "example": 45000
+          },
+          {
+            "name": "include_selectors",
+            "in": "query",
+            "required": false,
+            "description": "CSS selectors: only content inside matching elements is returned, such as \"article\" or \"main\".",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 20
+            },
+            "explode": true,
+            "example": [
+              "article"
+            ]
+          },
+          {
+            "name": "exclude_selectors",
+            "in": "query",
+            "required": false,
+            "description": "CSS selectors: matching elements are removed before the content is extracted, such as \".comments\".",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 20
+            },
+            "explode": true,
+            "example": [
+              ".comments",
+              ".newsletter-signup"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The TinyFish response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/fetchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A parameter is missing or invalid. Nothing is charged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Retry after a few seconds.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "TinyFish could not complete the request. Nothing is charged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "TinyFish did not answer in time. Nothing is charged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "fetchPost",
+        "summary": "Read pages",
+        "description": "Returns the content of up to 10 URLs. A URL that could not be fetched is listed in `errors`; the others still come back in `results`. Charged as one `fetch` event per page in `results`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/fetchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The TinyFish response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/fetchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A parameter is missing or invalid. Nothing is charged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests. Retry after a few seconds.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "TinyFish could not complete the request. Nothing is charged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "TinyFish did not answer in time. Nothing is charged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "searchRequest": {
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "properties": {
+          "query": {
+            "description": "What to search the web for.",
+            "type": "string",
+            "example": "web automation tools"
+          },
+          "purpose": {
+            "description": "Why you are making this request: the goal the results will be used for. Optional, and improves result quality.",
+            "type": "string",
+            "example": "Compare pricing tiers across vendors for a procurement report"
+          },
+          "location": {
+            "description": "Country code for geo-targeted results, such as \"US\", \"GB\" or \"DE\". Resolved from `language` when omitted.",
+            "type": "string",
+            "example": "US"
+          },
+          "language": {
+            "description": "Language code for results, such as \"en\", \"fr\" or \"de\". Resolved from `location` when omitted.",
+            "type": "string",
+            "example": "en"
+          },
+          "include_domains": {
+            "description": "Only return results from these domains.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "github.com",
+              "arxiv.org"
+            ]
+          },
+          "exclude_domains": {
+            "description": "Never return results from these domains.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "pinterest.com",
+              "quora.com"
+            ]
+          },
+          "domain_type": {
+            "description": "\"web\" for standard results, \"news\" for news articles with publisher and date, \"research_paper\" for academic papers with authors, venue and citation count. Defaults to \"web\".",
+            "type": "string",
+            "enum": [
+              "web",
+              "news",
+              "research_paper"
+            ],
+            "example": "web"
+          },
+          "recency_minutes": {
+            "description": "Only return results from the past N minutes, such as 60 for the last hour. Cannot be combined with `after_date` or `before_date`.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5256000,
+            "example": 1440
+          },
+          "after_date": {
+            "description": "Only return results after this date, as YYYY-MM-DD.",
+            "type": "string",
+            "example": "2026-06-01"
+          },
+          "before_date": {
+            "description": "Only return results before this date, as YYYY-MM-DD.",
+            "type": "string",
+            "example": "2026-06-18"
+          },
+          "pub_year_min": {
+            "description": "Only return papers published in or after this year. Only for the \"research_paper\" search type.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9999,
+            "example": 2019
+          },
+          "pub_year_max": {
+            "description": "Only return papers published in or before this year. Only for the \"research_paper\" search type.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9999,
+            "example": 2022
+          },
+          "page": {
+            "description": "Page of results to return, starting from 0.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10,
+            "example": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "fetchRequest": {
+        "type": "object",
+        "required": [
+          "urls"
+        ],
+        "properties": {
+          "urls": {
+            "description": "Pages to read. Each must be an http or https URL. Pages that need JavaScript are rendered.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "example": [
+              "https://www.tinyfish.ai/"
+            ]
+          },
+          "purpose": {
+            "description": "Why you are making this request: the goal the results will be used for. Optional, and improves result quality.",
+            "type": "string",
+            "example": "Compare pricing tiers across vendors for a procurement report"
+          },
+          "format": {
+            "description": "Format of each page's `text`: \"markdown\" (recommended for LLMs), \"html\" for cleaned semantic HTML, or \"json\" for a structured document tree. Defaults to \"markdown\".",
+            "type": "string",
+            "enum": [
+              "markdown",
+              "html",
+              "json"
+            ],
+            "example": "markdown"
+          },
+          "links": {
+            "description": "Also return every link (`<a href>`) found on each page.",
+            "type": "boolean",
+            "example": false
+          },
+          "image_links": {
+            "description": "Also return every image URL (`<img src>`) found on each page.",
+            "type": "boolean",
+            "example": false
+          },
+          "iframe_links": {
+            "description": "Also return the `src` of every `<iframe>` on each page. Useful when a page embeds its main content in a frame: fetch the returned URL to read it.",
+            "type": "boolean",
+            "example": false
+          },
+          "ttl": {
+            "description": "Accept a cached copy of a page younger than this many seconds. 0 forces a live fetch. Omit to accept any cached copy.",
+            "type": "integer",
+            "minimum": 0,
+            "example": 3600
+          },
+          "per_url_timeout_ms": {
+            "description": "Time allowed for each URL, in milliseconds. A URL that takes longer comes back as a `timeout` error while the others still complete.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 110000,
+            "example": 45000
+          },
+          "include_selectors": {
+            "description": "CSS selectors: only content inside matching elements is returned, such as \"article\" or \"main\".",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "example": [
+              "article"
+            ]
+          },
+          "exclude_selectors": {
+            "description": "CSS selectors: matching elements are removed before the content is extracted, such as \".comments\".",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "example": [
+              ".comments",
+              ".newsletter-signup"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "searchResponse": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "position": {
+                  "type": "integer",
+                  "description": "Rank of the result, starting from 1."
+                },
+                "site_name": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "snippet": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string",
+                  "description": "Present for news and some web results."
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "total_results": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          }
+        }
+      },
+      "fetchResponse": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "description": "One entry per page that was fetched.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "description": "The URL you asked for."
+                },
+                "final_url": {
+                  "type": "string",
+                  "description": "The URL after any redirects."
+                },
+                "title": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "language": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "author": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "published_date": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "text": {
+                  "description": "The page content: a string for \"markdown\" and \"html\", a document tree for \"json\"."
+                },
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "image_links": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "iframe_links": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "format": {
+                  "type": "string"
+                },
+                "latency_ms": {
+                  "type": "number",
+                  "nullable": true
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "errors": {
+            "type": "array",
+            "description": "One entry per URL that could not be fetched.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
+                },
+                "error": {
+                  "type": "string",
+                  "description": "Why the fetch failed, such as `page_not_found`, `timeout` or `bot_blocked`."
+                },
+                "status": {
+                  "type": "integer",
+                  "description": "HTTP status of the target, when it sent one."
+                }
+              },
+              "additionalProperties": true
+            }
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "example": "invalid_input"
+              },
+              "message": {
+                "type": "string",
+                "example": "`query` is required."
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
