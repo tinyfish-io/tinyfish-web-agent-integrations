@@ -55,8 +55,9 @@ Deploys are manual for now. Log the Apify CLI in with the `tinyfish` organizatio
 
 ### One-time setup in Apify Console
 
-- **API key.** Add `TINYFISH_API_KEY` under the Actor's Source → Environment variables with **Secret** enabled. It is deliberately not in `.actor/actor.json`: variables listed there replace the ones set in Console on every push, and would need the key in each pusher's local secret store.
+- **API key.** Add `TINYFISH_API_KEY` under the Actor's Source → Environment variables with **Secret** enabled. Then start a new build: a build keeps the variables it was built with, so runs of an older build do not see the key. It is deliberately not in `.actor/actor.json`: variables listed there replace the ones set in Console on every push, and would need the key in each pusher's local secret store.
 - **Pricing.** Pay per event, with two events named exactly `search` and `fetch` (see `src/charging.ts` for when each is charged). Remove the synthetic `apify-default-dataset-item` event, or every search result row of a regular run is charged on top of the `search` event.
+- **Server settings.** Settings → Server starts with at most 4 concurrent requests per run. The server only relays requests, so raise it before publishing, or Apify starts a new run for every few callers.
 - **Tenancy.** Settings → Server → **Multi-tenant**, once pricing is set. The switch reaches every user within two minutes. Runs then happen in the `tinyfish` account, and each request is charged to its sender through the `X-Actor-Request-ID` header.
 
 While the Actor has no pay-per-event pricing, charging is skipped, so a private copy can be tested unpriced. Requests from the owner's account are never charged, so test charging from a second account.
