@@ -33,7 +33,7 @@ Authenticate with your [Apify API token](https://console.apify.com/settings/inte
 ### Search
 
 ```bash
-curl 'https://tinyfish--search-and-fetch.apify.actor/search?query=best+vector+databases&recency_minutes=43200' \
+curl 'https://tinyfish--tinyfish.apify.actor/search?query=best+vector+databases&recency_minutes=43200' \
   -H 'Authorization: Bearer <YOUR_APIFY_TOKEN>'
 ```
 
@@ -57,7 +57,7 @@ curl 'https://tinyfish--search-and-fetch.apify.actor/search?query=best+vector+da
 ### Fetch
 
 ```bash
-curl -X POST 'https://tinyfish--search-and-fetch.apify.actor/fetch' \
+curl -X POST 'https://tinyfish--tinyfish.apify.actor/fetch' \
   -H 'Authorization: Bearer <YOUR_APIFY_TOKEN>' \
   -H 'Content-Type: application/json' \
   -d '{ "urls": ["https://example.com/vector-databases"], "format": "markdown" }'

@@ -45,7 +45,7 @@ For Convex, bump both version files together: `version.ts` is what the component
 
 ## Apify Actor
 
-`apify/` is the source of the `search-and-fetch` Actor in the `tinyfish` organization on Apify. `apify/README.md` is the Actor's Apify Store page, so keep maintainer notes here.
+`apify/` is the source of the `tinyfish` Actor in the `tinyfish` organization on Apify (`apify.com/tinyfish/tinyfish`). The name is deliberately general: the Actor is meant to gain endpoints beyond Search and Fetch. `apify/README.md` is the Actor's Apify Store page, so keep maintainer notes here.
 
 The Actor has two interfaces that share one set of fields. The server interface (a Server Actor, formerly Standby mode) answers `GET|POST /search` and `/fetch`; the input interface does one search or one batch of fetches per run and writes to the dataset. `src/options.ts` is the single definition of those fields. `.actor/input_schema.json` and `.actor/openapi.json` are generated from it: after changing a field, run `npm run build:schemas` in `apify/` and commit the result. Do not edit the two files by hand; a test fails when they are out of date.
 
