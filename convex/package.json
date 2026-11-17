@@ -86,7 +86,7 @@
     "convex": "1.49.0",
     "convex-test": "0.0.68",
     "typescript": "6.0.3",
-    "vitest": "4.1.4"
+    "vitest": "4.1.11"
   },
   "peerDependencies": {
     "convex": "^1.46.0"
